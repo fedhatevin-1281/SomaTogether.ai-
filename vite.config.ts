@@ -49,10 +49,71 @@
         '@': path.resolve(__dirname, './src'),
       },
     },
-    build: {
-      target: 'esnext',
-      outDir: 'build',
+  build: {
+    target: 'esnext',
+    outDir: 'build',
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase-vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
+              return 'utils-vendor';
+            }
+            return 'vendor';
+          }
+          
+          // Service chunks
+          if (id.includes('/services/')) {
+            if (id.includes('educationService') || id.includes('AuthContext')) {
+              return 'services-auth';
+            }
+            if (id.includes('aiService')) {
+              return 'services-ai';
+            }
+            if (id.includes('stripeService') || id.includes('paymentService')) {
+              return 'services-payment';
+            }
+            if (id.includes('zoomService')) {
+              return 'services-zoom';
+            }
+            return 'services';
+          }
+          
+          // Component chunks
+          if (id.includes('/components/')) {
+            if (id.includes('/auth/')) {
+              return 'components-auth';
+            }
+            if (id.includes('/student/')) {
+              return 'components-student';
+            }
+            if (id.includes('/teacher/')) {
+              return 'components-teacher';
+            }
+            if (id.includes('/shared/')) {
+              return 'components-shared';
+            }
+            return 'components';
+          }
+        },
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
+          return `assets/[name]-[hash].js`;
+        },
+      },
     },
+    chunkSizeWarningLimit: 1000,
+  },
     server: {
       port: 3000,
       open: true,

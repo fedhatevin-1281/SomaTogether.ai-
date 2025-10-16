@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../supabaseClient';
 import { shouldSkipEmailVerification } from '../utils/emailUtils';
+import { EducationService } from '../services/educationService';
 
 export interface UserProfile {
   id: string;
@@ -263,15 +264,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             preferred_language: userData.preferred_language || 'en',
           };
 
-          const { success: onboardingSuccess, response: onboardingResponse } = await import('../services/educationService').then(module => 
-            module.EducationService.createOnboardingResponse(onboardingData)
-          );
+          const { success: onboardingSuccess, response: onboardingResponse } = await EducationService.createOnboardingResponse(onboardingData);
 
           if (onboardingSuccess && onboardingResponse && userData.preferred_subjects && userData.preferred_subjects.length > 0) {
             // Add preferred subjects
-            const { success: subjectsSuccess } = await import('../services/educationService').then(module => 
-              module.EducationService.addPreferredSubjects(onboardingResponse.id, userData.preferred_subjects)
-            );
+            const { success: subjectsSuccess } = await EducationService.addPreferredSubjects(onboardingResponse.id, userData.preferred_subjects);
 
             if (!subjectsSuccess) {
               console.error('Error adding preferred subjects');
@@ -298,16 +295,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               preferred_language: userData.preferred_language || 'en',
             };
 
-            const { success: teacherOnboardingSuccess, response: teacherOnboardingResponse } = await import('../services/educationService').then(module => 
-              module.EducationService.createTeacherOnboardingResponse(teacherOnboardingData)
-            );
+            const { success: teacherOnboardingSuccess, response: teacherOnboardingResponse } = await EducationService.createTeacherOnboardingResponse(teacherOnboardingData);
 
             if (teacherOnboardingSuccess && teacherOnboardingResponse) {
               // Add preferred curriculums
               if (userData.preferred_curriculums && userData.preferred_curriculums.length > 0) {
-                const { success: curriculumsSuccess } = await import('../services/educationService').then(module => 
-                  module.EducationService.addPreferredCurriculums(teacherOnboardingResponse.id, userData.preferred_curriculums)
-                );
+                const { success: curriculumsSuccess } = await EducationService.addPreferredCurriculums(teacherOnboardingResponse.id, userData.preferred_curriculums);
 
                 if (!curriculumsSuccess) {
                   console.error('Error adding preferred curriculums');
@@ -316,9 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
               // Add preferred subjects
               if (userData.preferred_subjects && userData.preferred_subjects.length > 0) {
-                const { success: subjectsSuccess } = await import('../services/educationService').then(module => 
-                  module.EducationService.addTeacherPreferredSubjects(teacherOnboardingResponse.id, userData.preferred_subjects)
-                );
+                const { success: subjectsSuccess } = await EducationService.addTeacherPreferredSubjects(teacherOnboardingResponse.id, userData.preferred_subjects);
 
                 if (!subjectsSuccess) {
                   console.error('Error adding preferred subjects');
@@ -327,9 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
               // Add availability (if provided)
               if (userData.availability && userData.availability.length > 0) {
-                const { success: availabilitySuccess } = await import('../services/educationService').then(module => 
-                  module.EducationService.addTeacherAvailability(teacherOnboardingResponse.id, userData.availability)
-                );
+                const { success: availabilitySuccess } = await EducationService.addTeacherAvailability(teacherOnboardingResponse.id, userData.availability);
 
                 if (!availabilitySuccess) {
                   console.error('Error adding teacher availability');

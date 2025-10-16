@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ArrowLeft, Star, MessageSquare, Calendar, DollarSign, Loader2 } from 'lucide-react';
 import { TeacherProfile } from '../../services/teacherBrowseService';
+import TeacherBrowseService from '../../services/teacherBrowseService';
 
 interface TeacherOverviewProps {
   onBack?: () => void;
@@ -24,7 +25,7 @@ export function TeacherOverview({ onBack }: TeacherOverviewProps) {
       setError(null);
       
       // Import the service dynamically to avoid circular dependencies
-      const { default: TeacherBrowseService } = await import('../../services/teacherBrowseService');
+      // Using static import instead of dynamic import
       const result = await TeacherBrowseService.getTeachers({}, 1, 10);
       setTeachers(result.teachers);
     } catch (error: any) {
