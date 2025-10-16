@@ -217,174 +217,162 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
+      if (!data.user) {
+        console.error('No user data returned from signup');
+        return { error: { message: 'No user data returned from signup' } };
+      }
+
       // Create the profile first (no trigger exists)
-      if (data.user) {
-        console.log('Creating profile for user:', data.user.id);
-        
-        const profileData = {
+      console.log('Creating profile for user:', data.user.id);
+      
+      const profileData = {
+        id: data.user.id,
+        email: data.user.email!,
+        full_name: userData.full_name,
+        role: userData.role,
+        phone: userData.phone,
+        date_of_birth: userData.date_of_birth,
+        location: userData.location,
+        bio: userData.bio,
+        timezone: userData.timezone || 'UTC',
+        language: userData.language || 'en',
+        is_verified: false,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Create the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert(profileData);
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // Don't return error here, continue with user creation
+      } else {
+        console.log('Profile created successfully');
+      }
+
+      // Create wallet for the user
+      const walletData = {
+        user_id: data.user.id,
+        balance: 0.00,
+        currency: 'USD',
+        tokens: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Creating wallet for user:', data.user.id);
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .insert(walletData);
+
+      if (walletError) {
+        console.error('Error creating wallet:', walletError);
+        // Don't fail signup for wallet creation error
+      } else {
+        console.log('Wallet created successfully');
+      }
+
+      // Create role-specific records
+      if (userData.role === 'student') {
+        // Create student record
+        const studentData = {
           id: data.user.id,
-          email: data.user.email!,
-          full_name: userData.full_name,
-          role: userData.role,
-          phone: userData.phone,
-          date_of_birth: userData.date_of_birth,
-          location: userData.location,
-          bio: userData.bio,
-          timezone: userData.timezone || 'UTC',
-          language: userData.language || 'en',
-          is_verified: false,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          education_system_id: userData.education_system_id,
+          education_level_id: userData.education_level_id,
+          school_name: userData.school_name,
+          interests: userData.interests || [],
+          preferred_languages: userData.preferred_language ? [userData.preferred_language] : ['en'],
         };
 
-        // Create the profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert(profileData);
+        console.log('Creating student record:', studentData);
+        const { error: studentError } = await supabase
+          .from('students')
+          .insert(studentData);
 
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          // Don't return error here, continue with user creation
+        if (studentError) {
+          console.error('Error creating student record:', studentError);
         } else {
-          console.log('Profile created successfully');
+          console.log('Student record created successfully');
         }
 
-        // Create wallet for the user
-        const walletData = {
+        // Create onboarding response
+        const onboardingData = {
           user_id: data.user.id,
-          balance: 0.00,
-          currency: 'USD',
-          tokens: 0,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          system_id: userData.education_system_id,
+          level_id: userData.education_level_id,
+          interests: userData.interests || [],
+          preferred_language: userData.preferred_language || 'en',
         };
 
-        console.log('Creating wallet for user:', data.user.id);
-        const { error: walletError } = await supabase
-          .from('wallets')
-          .insert(walletData);
+        const { success: onboardingSuccess, response: onboardingResponse } = await EducationService.createOnboardingResponse(onboardingData);
 
-        if (walletError) {
-          console.error('Error creating wallet:', walletError);
-          // Don't fail signup for wallet creation error
+        if (onboardingSuccess && onboardingResponse && userData.preferred_subjects && userData.preferred_subjects.length > 0) {
+          // Add preferred subjects
+          const { success: subjectsSuccess } = await EducationService.addPreferredSubjects(onboardingResponse.id, userData.preferred_subjects);
+
+          if (!subjectsSuccess) {
+            console.error('Error adding preferred subjects');
+          }
+        }
+      } else if (userData.role === 'teacher') {
+        // Create teacher record
+        const teacherData = {
+          id: data.user.id,
+          is_available: true,
+        };
+
+        console.log('Creating teacher record:', teacherData);
+        const { error: teacherError } = await supabase
+          .from('teachers')
+          .insert(teacherData);
+
+        if (teacherError) {
+          console.error('Error creating teacher record:', teacherError);
         } else {
-          console.log('Wallet created successfully');
+          console.log('Teacher record created successfully');
         }
 
-        // Create role-specific records
-        if (userData.role === 'student') {
-          // Create student record
-          const studentData = {
-            id: data.user.id,
-            education_system_id: userData.education_system_id,
-            education_level_id: userData.education_level_id,
-            school_name: userData.school_name,
-            interests: userData.interests || [],
-            preferred_languages: userData.preferred_language ? [userData.preferred_language] : ['en'],
-          };
+        // Create teacher onboarding response
+        const teacherOnboardingData = {
+          teacher_id: data.user.id,
+          max_children: userData.max_children || 5,
+          preferred_language: userData.preferred_language || 'en',
+        };
 
-          console.log('Creating student record:', studentData);
-          const { error: studentError } = await supabase
-            .from('students')
-            .insert(studentData);
+        const { success: teacherOnboardingSuccess, response: teacherOnboardingResponse } = await EducationService.createTeacherOnboardingResponse(teacherOnboardingData);
 
-          if (studentError) {
-            console.error('Error creating student record:', studentError);
-          } else {
-            console.log('Student record created successfully');
+        if (teacherOnboardingSuccess && teacherOnboardingResponse) {
+          // Add preferred curriculums
+          if (userData.preferred_curriculums && userData.preferred_curriculums.length > 0) {
+            const { success: curriculumsSuccess } = await EducationService.addPreferredCurriculums(teacherOnboardingResponse.id, userData.preferred_curriculums);
+
+            if (!curriculumsSuccess) {
+              console.error('Error adding preferred curriculums');
+            }
           }
 
-          // Create onboarding response
-          const onboardingData = {
-            user_id: data.user.id,
-            system_id: userData.education_system_id,
-            level_id: userData.education_level_id,
-            interests: userData.interests || [],
-            preferred_language: userData.preferred_language || 'en',
-          };
-
-          const { success: onboardingSuccess, response: onboardingResponse } = await EducationService.createOnboardingResponse(onboardingData);
-
-          if (onboardingSuccess && onboardingResponse && userData.preferred_subjects && userData.preferred_subjects.length > 0) {
-            // Add preferred subjects
-            const { success: subjectsSuccess } = await EducationService.addPreferredSubjects(onboardingResponse.id, userData.preferred_subjects);
+          // Add preferred subjects
+          if (userData.preferred_subjects && userData.preferred_subjects.length > 0) {
+            const { success: subjectsSuccess } = await EducationService.addTeacherPreferredSubjects(teacherOnboardingResponse.id, userData.preferred_subjects);
 
             if (!subjectsSuccess) {
               console.error('Error adding preferred subjects');
             }
           }
-        } else if (userData.role === 'teacher') {
-          // Create teacher record
-          const teacherData = {
-            id: data.user.id,
-            is_available: true,
-          };
 
-          console.log('Creating teacher record:', teacherData);
-          const { error: teacherError } = await supabase
-            .from('teachers')
-            .insert(teacherData);
+          // Add availability (if provided)
+          if (userData.availability && userData.availability.length > 0) {
+            const { success: availabilitySuccess } = await EducationService.addTeacherAvailability(teacherOnboardingResponse.id, userData.availability);
 
-          if (teacherError) {
-            console.error('Error creating teacher record:', teacherError);
-          } else {
-            console.log('Teacher record created successfully');
-          }
-            // Create teacher onboarding response
-            const teacherOnboardingData = {
-              teacher_id: data.user.id,
-              max_children: userData.max_children || 5,
-              preferred_language: userData.preferred_language || 'en',
-            };
-
-            const { success: teacherOnboardingSuccess, response: teacherOnboardingResponse } = await EducationService.createTeacherOnboardingResponse(teacherOnboardingData);
-
-            if (teacherOnboardingSuccess && teacherOnboardingResponse) {
-              // Add preferred curriculums
-              if (userData.preferred_curriculums && userData.preferred_curriculums.length > 0) {
-                const { success: curriculumsSuccess } = await EducationService.addPreferredCurriculums(teacherOnboardingResponse.id, userData.preferred_curriculums);
-
-                if (!curriculumsSuccess) {
-                  console.error('Error adding preferred curriculums');
-                }
-              }
-
-              // Add preferred subjects
-              if (userData.preferred_subjects && userData.preferred_subjects.length > 0) {
-                const { success: subjectsSuccess } = await EducationService.addTeacherPreferredSubjects(teacherOnboardingResponse.id, userData.preferred_subjects);
-
-                if (!subjectsSuccess) {
-                  console.error('Error adding preferred subjects');
-                }
-              }
-
-              // Add availability (if provided)
-              if (userData.availability && userData.availability.length > 0) {
-                const { success: availabilitySuccess } = await EducationService.addTeacherAvailability(teacherOnboardingResponse.id, userData.availability);
-
-                if (!availabilitySuccess) {
-                  console.error('Error adding teacher availability');
-                }
-              }
+            if (!availabilitySuccess) {
+              console.error('Error adding teacher availability');
             }
           }
-        }
-
-        // Create wallet for the user
-        const { error: walletError } = await supabase
-          .from('wallets')
-          .insert({
-            user_id: data.user.id,
-            balance: 0.00,
-            tokens: 0,
-            currency: 'USD',
-            is_active: true,
-          });
-
-        if (walletError) {
-          console.error('Error creating wallet:', walletError);
         }
       }
 
