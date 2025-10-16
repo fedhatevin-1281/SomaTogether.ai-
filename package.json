@@ -1,7 +1,29 @@
 {
-      "name": "Wireframe System for SomaTogether.ai",
-      "version": "0.1.0",
-      "private": true,
+      "name": "somatogether-ai",
+      "version": "1.0.0",
+      "description": "A comprehensive educational platform connecting students, teachers, and parents with AI-powered learning tools and real-time collaboration features.",
+      "keywords": [
+            "education",
+            "e-learning",
+            "ai",
+            "react",
+            "typescript",
+            "supabase",
+            "online-learning",
+            "virtual-classroom",
+            "teacher-student-platform"
+      ],
+      "author": "SomaTogether.ai Team",
+      "license": "MIT",
+      "homepage": "https://github.com/fedhatevin-1281/SomaTogether.ai-#readme",
+      "repository": {
+            "type": "git",
+            "url": "https://github.com/fedhatevin-1281/SomaTogether.ai-.git"
+      },
+      "bugs": {
+            "url": "https://github.com/fedhatevin-1281/SomaTogether.ai-/issues"
+      },
+      "private": false,
       "dependencies": {
             "@google/genai": "^1.24.0",
             "@radix-ui/react-accordion": "^1.2.3",
