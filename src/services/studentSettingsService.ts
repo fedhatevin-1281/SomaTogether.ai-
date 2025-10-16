@@ -72,15 +72,40 @@ export class StudentSettingsService {
       }
 
       // Get or create student preferences
-      let { data: preferences, error: preferencesError } = await supabase
-        .from('student_preferences')
-        .select('*')
-        .eq('student_id', studentId)
-        .single();
+      console.log('Attempting to fetch student preferences for:', studentId);
+      let preferences = null;
+      let preferencesError = null;
+
+      try {
+        const { data, error } = await supabase
+          .from('student_preferences')
+          .select('*')
+          .eq('student_id', studentId)
+          .single();
+        
+        preferences = data;
+        preferencesError = error;
+      } catch (err) {
+        console.error('Exception while fetching student preferences:', err);
+        preferencesError = err;
+      }
 
       if (preferencesError && preferencesError.code !== 'PGRST116') {
         console.error('Error fetching student preferences:', preferencesError);
-        throw preferencesError;
+        console.error('Error details:', {
+          code: preferencesError.code,
+          message: preferencesError.message,
+          details: preferencesError.details,
+          hint: preferencesError.hint
+        });
+        
+        // If it's a 406 error, the table might not exist or RLS is blocking access
+        if (preferencesError.code === 'PGRST301' || preferencesError.message?.includes('406')) {
+          console.warn('Student preferences table may not exist or RLS is blocking access. Creating default preferences...');
+          preferences = null; // Force creation of default preferences
+        } else {
+          throw preferencesError;
+        }
       }
 
       // If no preferences exist, create default ones
@@ -107,10 +132,33 @@ export class StudentSettingsService {
 
         if (createError) {
           console.error('Error creating student preferences:', createError);
-          throw createError;
+          console.error('Create error details:', {
+            code: createError.code,
+            message: createError.message,
+            details: createError.details,
+            hint: createError.hint
+          });
+          
+          // If creation fails, return default preferences object instead of throwing
+          console.warn('Failed to create student preferences in database, using defaults');
+          preferences = {
+            student_id: studentId,
+            email_notifications: true,
+            sms_notifications: false,
+            push_notifications: true,
+            class_reminders: true,
+            assignment_due_reminders: true,
+            teacher_messages: true,
+            weekly_progress_reports: false,
+            marketing_emails: false,
+            profile_visibility: 'public',
+            show_online_status: true,
+            allow_teacher_contact: true,
+            share_progress_with_parents: true
+          };
+        } else {
+          preferences = newPreferences;
         }
-
-        preferences = newPreferences;
       }
 
       const settingsData: StudentSettingsData = {

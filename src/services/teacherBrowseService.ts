@@ -192,7 +192,15 @@ class TeacherBrowseService {
       const to = from + perPage - 1;
       query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      // Get count separately for total count
+      const { count } = await supabase
+        .from('teachers')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_available', true)
+        .eq('profiles.is_active', true)
+        .eq('profiles.role', 'teacher');
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching teachers:', error);

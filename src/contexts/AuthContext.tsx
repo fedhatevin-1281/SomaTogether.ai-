@@ -209,9 +209,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUpOptions.options.emailRedirectTo = undefined;
       }
 
+      console.log('Attempting signup with options:', signUpOptions);
       const { data, error } = await supabase.auth.signUp(signUpOptions);
 
-      if (error) return { error };
+      if (error) {
+        console.error('Signup error:', error);
+        return { error };
+      }
 
       // Wait a moment for the profile to be created by the trigger
       await new Promise(resolve => setTimeout(resolve, 1000));
