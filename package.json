@@ -18,8 +18,11 @@
       "homepage": "https://github.com/fedhatevin-1281/SomaTogether.ai-#readme",
       "repository": {
             "type": "git",
-            "url": "https://github.com/fedhatevin-1281/SomaTogether.ai-.git"
+            "url": "https://github.com/fedhatevin-1281/SomaTogether.ai-.git",
+            "directory": "."
       },
+      "main": "src/main.tsx",
+      "types": "src/main.tsx",
       "bugs": {
             "url": "https://github.com/fedhatevin-1281/SomaTogether.ai-/issues"
       },
