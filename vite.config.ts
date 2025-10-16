@@ -52,7 +52,7 @@
   build: {
     target: 'esnext',
     outDir: 'build',
-    minify: 'terser',
+    minify: 'esbuild',
     sourcemap: false,
     rollupOptions: {
       output: {
@@ -82,7 +82,7 @@
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
   },
     server: {
       port: 3000,
