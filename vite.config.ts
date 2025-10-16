@@ -52,59 +52,18 @@
   build: {
     target: 'esnext',
     outDir: 'build',
+    minify: 'terser',
+    sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('@supabase')) {
-              return 'supabase-vendor';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-              return 'utils-vendor';
-            }
-            return 'vendor';
-          }
-          
-          // Service chunks
-          if (id.includes('/services/')) {
-            if (id.includes('educationService') || id.includes('AuthContext')) {
-              return 'services-auth';
-            }
-            if (id.includes('aiService')) {
-              return 'services-ai';
-            }
-            if (id.includes('stripeService') || id.includes('paymentService')) {
-              return 'services-payment';
-            }
-            if (id.includes('zoomService')) {
-              return 'services-zoom';
-            }
-            return 'services';
-          }
-          
-          // Component chunks
-          if (id.includes('/components/')) {
-            if (id.includes('/auth/')) {
-              return 'components-auth';
-            }
-            if (id.includes('/student/')) {
-              return 'components-student';
-            }
-            if (id.includes('/teacher/')) {
-              return 'components-teacher';
-            }
-            if (id.includes('/shared/')) {
-              return 'components-shared';
-            }
-            return 'components';
-          }
+        manualChunks: {
+          // Keep React ecosystem together to prevent module resolution issues
+          'react-vendor': ['react', 'react-dom', 'scheduler'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'ui-vendor': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-aspect-ratio', '@radix-ui/react-avatar', '@radix-ui/react-checkbox', '@radix-ui/react-collapsible', '@radix-ui/react-context-menu', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-hover-card', '@radix-ui/react-label', '@radix-ui/react-menubar', '@radix-ui/react-navigation-menu', '@radix-ui/react-popover', '@radix-ui/react-progress', '@radix-ui/react-radio-group', '@radix-ui/react-scroll-area', '@radix-ui/react-select', '@radix-ui/react-separator', '@radix-ui/react-slider', '@radix-ui/react-slot', '@radix-ui/react-switch', '@radix-ui/react-tabs', '@radix-ui/react-toggle', '@radix-ui/react-toggle-group', '@radix-ui/react-tooltip'],
+          'utils-vendor': ['clsx', 'tailwind-merge', 'class-variance-authority', 'lucide-react'],
+          'animation-vendor': ['framer-motion', 'recharts'],
+          'form-vendor': ['react-hook-form', 'react-day-picker'],
         },
         chunkFileNames: (chunkInfo) => {
           const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
