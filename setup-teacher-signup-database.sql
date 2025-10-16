@@ -629,3 +629,4 @@ DO $$ BEGIN
     RAISE NOTICE 'Inserted default subjects and education systems';
 END $$;
 
+
