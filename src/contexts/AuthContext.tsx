@@ -217,26 +217,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error };
       }
 
-      // Wait a moment for the profile to be created by the trigger
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update the profile with additional onboarding data
+      // Create the profile first (no trigger exists)
       if (data.user) {
-        const profileUpdates: any = {
+        console.log('Creating profile for user:', data.user.id);
+        
+        const profileData = {
+          id: data.user.id,
+          email: data.user.email!,
+          full_name: userData.full_name,
+          role: userData.role,
           phone: userData.phone,
           date_of_birth: userData.date_of_birth,
           location: userData.location,
           bio: userData.bio,
+          timezone: userData.timezone || 'UTC',
+          language: userData.language || 'en',
+          is_verified: false,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
-        // Update the profile
+        // Create the profile
         const { error: profileError } = await supabase
           .from('profiles')
-          .update(profileUpdates)
-          .eq('id', data.user.id);
+          .insert(profileData);
 
         if (profileError) {
-          console.error('Error updating profile:', profileError);
+          console.error('Error creating profile:', profileError);
+          // Don't return error here, continue with user creation
+        } else {
+          console.log('Profile created successfully');
+        }
+
+        // Create wallet for the user
+        const walletData = {
+          user_id: data.user.id,
+          balance: 0.00,
+          currency: 'USD',
+          tokens: 0,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        console.log('Creating wallet for user:', data.user.id);
+        const { error: walletError } = await supabase
+          .from('wallets')
+          .insert(walletData);
+
+        if (walletError) {
+          console.error('Error creating wallet:', walletError);
+          // Don't fail signup for wallet creation error
+        } else {
+          console.log('Wallet created successfully');
         }
 
         // Create role-specific records
@@ -251,12 +285,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             preferred_languages: userData.preferred_language ? [userData.preferred_language] : ['en'],
           };
 
+          console.log('Creating student record:', studentData);
           const { error: studentError } = await supabase
             .from('students')
             .insert(studentData);
 
           if (studentError) {
             console.error('Error creating student record:', studentError);
+          } else {
+            console.log('Student record created successfully');
           }
 
           // Create onboarding response
@@ -285,6 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             is_available: true,
           };
 
+          console.log('Creating teacher record:', teacherData);
           const { error: teacherError } = await supabase
             .from('teachers')
             .insert(teacherData);
@@ -292,6 +330,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (teacherError) {
             console.error('Error creating teacher record:', teacherError);
           } else {
+            console.log('Teacher record created successfully');
+          }
             // Create teacher onboarding response
             const teacherOnboardingData = {
               teacher_id: data.user.id,
