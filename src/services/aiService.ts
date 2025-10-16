@@ -23,15 +23,35 @@ export class AIService {
   private apiKey: string;
   private model: string;
   private isMockMode: boolean;
+  private static instance: AIService | null = null;
 
   constructor() {
-    this.apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+    // Get API key from environment variables
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     this.model = 'gemini-2.5-flash-lite';
-    this.isMockMode = !this.apiKey;
+    this.isMockMode = !this.apiKey || this.apiKey.trim() === '';
     
     if (this.isMockMode) {
-      console.warn('⚠️ GEMINI_API_KEY not found. AI Assistant will use mock responses.');
+      console.warn('⚠️ VITE_GEMINI_API_KEY not found or empty. AI Assistant will use mock responses.');
+      console.info('💡 To enable full AI features, set VITE_GEMINI_API_KEY in your environment variables.');
+    } else {
+      console.info('✅ Gemini API key found. AI Assistant is ready with full capabilities.');
     }
+  }
+
+  // Static method for easy access
+  static getInstance(): AIService {
+    if (!AIService.instance) {
+      AIService.instance = new AIService();
+    }
+    return AIService.instance;
+  }
+
+  // Static method for sending messages (used by GeminiChatBox)
+  static async sendMessage(message: string, subject?: string, context?: string): Promise<string> {
+    const aiService = AIService.getInstance();
+    const response = await aiService.generateResponse(message, subject, context);
+    return response.text;
   }
 
   // Safety check for concerning messages
