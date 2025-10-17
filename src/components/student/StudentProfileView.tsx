@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Star, MapPin, Clock, MessageSquare, BookOpen, Award, Users, Calendar } from 'lucide-react';
+import { Star, MapPin, Clock, MessageSquare, BookOpen, Award, Users, Calendar, Loader2 } from 'lucide-react';
+import { supabase } from '../../supabaseClient';
 
 interface StudentProfileViewProps {
   student: {
@@ -37,6 +38,86 @@ export function StudentProfileView({
   onMessageStudent, 
   onBookSession 
 }: StudentProfileViewProps) {
+  const [loading, setLoading] = useState(true);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalSessions: 0,
+    completedAssignments: 0,
+    averageGrade: 'N/A',
+    studyHours: 0,
+    streak: 0
+  });
+
+  useEffect(() => {
+    if (student?.id) {
+      fetchStudentData();
+    }
+  }, [student?.id]);
+
+  const fetchStudentData = async () => {
+    if (!student?.id) return;
+
+    try {
+      setLoading(true);
+      
+      // Fetch class sessions
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('class_sessions')
+        .select('*')
+        .eq('student_id', student.id);
+
+      // Fetch assignments
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('assignment_submissions')
+        .select('*')
+        .eq('student_id', student.id);
+
+      // Calculate stats
+      const totalSessions = sessions?.length || 0;
+      const completedAssignments = assignments?.filter(a => a.status === 'graded').length || 0;
+      const averageGrade = calculateAverageGrade(assignments || []);
+      const studyHours = totalSessions * 1; // Assuming 1 hour per session
+      const streak = calculateStreak(sessions || []);
+
+      setStats({
+        totalSessions,
+        completedAssignments,
+        averageGrade,
+        studyHours,
+        streak
+      });
+
+      // For now, we'll use empty achievements array
+      // In the future, this could be fetched from an achievements table
+      setAchievements([]);
+
+    } catch (error) {
+      console.error('Error fetching student data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateAverageGrade = (assignments: any[]) => {
+    const gradedAssignments = assignments.filter(a => a.grade && a.status === 'graded');
+    if (gradedAssignments.length === 0) return 'N/A';
+    
+    const totalPoints = gradedAssignments.reduce((sum, a) => sum + (a.points_earned || 0), 0);
+    const maxPoints = gradedAssignments.reduce((sum, a) => sum + (a.max_points || 100), 0);
+    const percentage = (totalPoints / maxPoints) * 100;
+    
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+  };
+
+  const calculateStreak = (sessions: any[]) => {
+    // Simple streak calculation - in a real app, this would be more sophisticated
+    return Math.min(sessions.length, 7);
+  };
+
   if (!student) {
     return (
       <div className="text-center p-6">
@@ -46,19 +127,14 @@ export function StudentProfileView({
     );
   }
 
-  const mockAchievements = [
-    { id: 1, title: 'Mathematics Excellence', description: 'Top 10% in Algebra', date: '2024-01-15' },
-    { id: 2, title: 'Language Learning', description: 'Completed French Level 2', date: '2024-01-10' },
-    { id: 3, title: 'Science Project', description: 'First place in Chemistry Fair', date: '2023-12-20' },
-  ];
-
-  const mockStats = {
-    totalSessions: 24,
-    completedAssignments: 18,
-    averageGrade: 'A-',
-    studyHours: 120,
-    streak: 7
-  };
+  if (loading) {
+    return (
+      <div className="text-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <p>Loading student data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -226,19 +302,19 @@ export function StudentProfileView({
                 <h3 className="font-bold text-lg mb-4">Learning Progress</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{mockStats.totalSessions}</div>
+                    <div className="text-2xl font-bold text-blue-600">{stats.totalSessions}</div>
                     <div className="text-sm text-slate-600">Total Sessions</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{mockStats.completedAssignments}</div>
+                    <div className="text-2xl font-bold text-green-600">{stats.completedAssignments}</div>
                     <div className="text-sm text-slate-600">Assignments</div>
                   </div>
                   <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">{mockStats.averageGrade}</div>
+                    <div className="text-2xl font-bold text-yellow-600">{stats.averageGrade}</div>
                     <div className="text-sm text-slate-600">Average Grade</div>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">{mockStats.studyHours}h</div>
+                    <div className="text-2xl font-bold text-purple-600">{stats.studyHours}h</div>
                     <div className="text-sm text-slate-600">Study Hours</div>
                   </div>
                 </div>
@@ -249,7 +325,7 @@ export function StudentProfileView({
               <Card className="p-6">
                 <h3 className="font-bold text-lg mb-4">Achievements & Awards</h3>
                 <div className="space-y-4">
-                  {mockAchievements.map((achievement) => (
+                  {achievements.length > 0 ? achievements.map((achievement) => (
                     <div key={achievement.id} className="flex items-start space-x-3 p-4 border rounded-lg">
                       <Award className="h-6 w-6 text-yellow-500 mt-1" />
                       <div>
@@ -258,7 +334,13 @@ export function StudentProfileView({
                         <p className="text-xs text-slate-500 mt-1">{achievement.date}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-slate-500">
+                      <Award className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                      <p>No achievements yet</p>
+                      <p className="text-sm">Achievements will appear here as you progress</p>
+                    </div>
+                  )}
                 </div>
               </Card>
             </TabsContent>
@@ -273,7 +355,7 @@ export function StudentProfileView({
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-600">Study Streak</span>
-                <span className="font-medium">{mockStats.streak} days</span>
+                <span className="font-medium">{stats.streak} days</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Wallet Balance</span>

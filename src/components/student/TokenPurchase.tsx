@@ -6,6 +6,7 @@ import { Badge } from '../ui/badge';
 import { Check, CreditCard, DollarSign, Gift, Star, Zap } from 'lucide-react';
 import { TokenService, TokenPackage } from '../../services/tokenService';
 import { useAuth } from '../../contexts/AuthContext';
+import { PaymentMethodSelector } from '../payment/PaymentMethodSelector';
 
 interface TokenPurchaseProps {
   onBack: () => void;
@@ -18,6 +19,7 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
 
   const tokenPackages = TokenService.getTokenPackages();
 
@@ -74,56 +76,26 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
     return { valid: false, error: 'Please select a package or enter custom amount' };
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = () => {
     const validation = validatePurchase();
     if (!validation.valid) {
       setError(validation.error || 'Invalid purchase request');
       return;
     }
 
-    setIsProcessing(true);
     setError('');
+    setShowPaymentMethods(true);
+  };
 
-    try {
-      let tokens: number;
-      let price: number;
+  const handlePaymentSuccess = (reference: string, method: string) => {
+    console.log('Payment successful:', { reference, method });
+    setShowPaymentMethods(false);
+    onSuccess();
+  };
 
-      if (selectedPackage) {
-        tokens = selectedPackage.tokens;
-        price = selectedPackage.price_usd;
-      } else {
-        tokens = parseInt(customAmount);
-        price = TokenService.calculatePurchaseAmount(tokens, 'student');
-      }
-
-      // For now, simulate payment processing
-      // In production, integrate with Stripe or other payment provider
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Create mock transaction
-      const result = await TokenService.purchaseTokens(
-        user?.id || '',
-        {
-          id: selectedPackage?.id || 'custom',
-          tokens,
-          price_usd: price,
-          bonus_tokens: selectedPackage?.bonus_tokens || 0,
-          description: selectedPackage?.description || `Custom purchase of ${tokens} tokens`
-        },
-        'student',
-        'mock_payment_method'
-      );
-
-      if (result.success) {
-        onSuccess();
-      } else {
-        setError(result.error || 'Payment failed');
-      }
-    } catch (error) {
-      setError('Payment processing failed. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handlePaymentError = (error: string) => {
+    setError(error);
+    setShowPaymentMethods(false);
   };
 
   return (
@@ -273,19 +245,12 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   onClick={handlePurchase}
-                  disabled={isProcessing || getTotalTokens() === 0}
+                  disabled={getTotalTokens() === 0}
                 >
-                  {isProcessing ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Processing...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <CreditCard className="h-4 w-4" />
-                      <span>Purchase Tokens</span>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Choose Payment Method</span>
+                  </div>
                 </Button>
               </div>
             ) : (
@@ -335,6 +300,21 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
           </Card>
         </div>
       </div>
+
+      {/* Payment Method Selector Modal */}
+      {showPaymentMethods && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <PaymentMethodSelector
+              amount={selectedPackage ? selectedPackage.price_usd : TokenService.calculatePurchaseAmount(parseInt(customAmount), 'student')}
+              tokens={getTotalTokens()}
+              onSuccess={handlePaymentSuccess}
+              onError={handlePaymentError}
+              onCancel={() => setShowPaymentMethods(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

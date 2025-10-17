@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../supabaseClient";
+import { WalletFunding } from "./WalletFunding";
 
 interface Transaction {
   id: string;
@@ -60,10 +61,10 @@ export function StudentWallet() {
   const [loading, setLoading] = useState(true);
   const [walletData, setWalletData] = useState<WalletData>({ balance: 0, tokens: 0, currency: 'USD' });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [depositAmount, setDepositAmount] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("all");
   const [monthlySpent, setMonthlySpent] = useState(0);
   const [sessionsBooked, setSessionsBooked] = useState(0);
+  const [showFundingModal, setShowFundingModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -196,63 +197,6 @@ export function StudentWallet() {
 
   const convertToTokens = (amount: number) => Math.floor(amount / 10);
 
-  const handleDeposit = async () => {
-    const amount = parseFloat(depositAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert("Enter a valid amount");
-      return;
-    }
-
-    if (!user) return;
-
-    try {
-      // Create transaction record
-      const { data: transactionData, error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          wallet_id: user.id, // Assuming wallet ID matches user ID
-          type: 'deposit',
-          amount: amount,
-          currency: 'USD',
-          description: 'Wallet Top-up',
-          status: 'completed'
-        })
-        .select()
-        .single();
-
-      if (transactionError) {
-        console.error('Error creating transaction:', transactionError);
-        alert('Failed to process deposit. Please try again.');
-        return;
-      }
-
-      // Update wallet balance
-      const newTokens = convertToTokens(amount);
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({
-          balance: walletData.balance + amount,
-          tokens: walletData.tokens + newTokens
-        })
-        .eq('user_id', user.id);
-
-      if (walletError) {
-        console.error('Error updating wallet:', walletError);
-        alert('Failed to update wallet balance. Please contact support.');
-        return;
-      }
-
-      // Refresh data
-      await fetchWalletData();
-      setDepositAmount("");
-      alert('Deposit successful!');
-    } catch (error) {
-      console.error('Error processing deposit:', error);
-      alert('Failed to process deposit. Please try again.');
-    }
-  };
-
   const getTransactionIcon = (type: string, status: string) => {
     if (status === "pending") return <Clock className="w-4 h-4 text-yellow-500" />;
     if (status === "failed") return <XCircle className="w-4 h-4 text-red-500" />;
@@ -371,34 +315,20 @@ export function StudentWallet() {
 
       {/* Add Funds Section */}
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Add Funds</h2>
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Enter amount"
-              className="text-center"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-            />
-          </div>
-          <div className="flex space-x-2">
-            {[25, 50, 100].map((amount) => (
-              <Button key={amount} variant="outline" size="sm" onClick={() => setDepositAmount(amount.toString())}>
-                ${amount}
-              </Button>
-            ))}
-          </div>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleDeposit}>
-            <DollarSign className="w-4 h-4 mr-2" />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Add Funds</h2>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700" 
+            onClick={() => setShowFundingModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
             Add Funds
           </Button>
         </div>
-        {depositAmount && (
-          <p className="text-sm text-gray-500 mt-2">
-            This deposit will give you{" "}
-            <span className="font-medium">{convertToTokens(Number(depositAmount) || 0)}</span> tokens
-          </p>
-        )}
+        <div className="text-center text-gray-600">
+          <p>Click "Add Funds" to choose your payment method and add tokens to your wallet</p>
+          <p className="text-sm mt-1">Supports Paystack, Stripe, M-Pesa, and more</p>
+        </div>
       </Card>
 
       {/* Transaction History */}
@@ -475,6 +405,21 @@ export function StudentWallet() {
           )}
         </div>
       </Card>
+
+      {/* Funding Modal */}
+      {showFundingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <WalletFunding
+              onSuccess={() => {
+                setShowFundingModal(false);
+                fetchWalletData(); // Refresh wallet data
+              }}
+              onCancel={() => setShowFundingModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
