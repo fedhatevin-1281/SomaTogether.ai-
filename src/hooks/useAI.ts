@@ -36,7 +36,7 @@ export function useAI(): UseAIResult {
     setMessages(prev => [...prev, newMessage]);
   }, []);
 
-  const sendMessage = useCallback(async (message: string, subject?: string, context?: string) => {
+  const sendMessage = useCallback(async (message: string, subject?: string, context?: string, userId?: string) => {
     if (!message.trim()) return;
 
     setIsLoading(true);
@@ -53,7 +53,7 @@ export function useAI(): UseAIResult {
 
     try {
       const aiService = new AIService();
-      const response: AIResponse = await aiService.generateResponse(message, subject, context);
+      const response: AIResponse = await aiService.generateResponse(message, subject, context, userId);
 
       // Add AI response
       addMessage({

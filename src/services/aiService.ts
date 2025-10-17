@@ -1,3 +1,5 @@
+import { supabase } from '../supabaseClient';
+
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -131,7 +133,8 @@ Your safety is the most important thing right now. Don't try to handle this alon
   async generateResponse(
     message: string,
     subject?: string,
-    context?: string
+    context?: string,
+    userId?: string
   ): Promise<AIResponse> {
     // Check for safety concerns first
     const safetyCheck = this.checkForSafetyConcerns(message);
@@ -149,6 +152,12 @@ Your safety is the most important thing right now. Don't try to handle this alon
     }
 
     try {
+      // Fetch student information if userId is provided
+      let studentInfo = null;
+      if (userId) {
+        studentInfo = await this.fetchStudentInfo(userId);
+      }
+
       // Create the messages array with the new structure
       const messages = [
         {
@@ -161,7 +170,7 @@ Your safety is the most important thing right now. Don't try to handle this alon
         },
         {
           role: "user",
-          content: this.createUserPrompt(message, subject, context)
+          content: this.createPersonalizedUserPrompt(message, subject, context, studentInfo)
         }
       ];
 
@@ -207,6 +216,86 @@ Your safety is the most important thing right now. Don't try to handle this alon
       console.error('AI Service Error:', error);
       throw new Error('Failed to generate AI response. Please try again.');
     }
+  }
+
+  private async fetchStudentInfo(userId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          role,
+          students!inner(
+            grade_level,
+            school_name,
+            learning_goals,
+            interests,
+            learning_style,
+            education_system_id,
+            education_level_id,
+            education_systems(name, description),
+            education_levels(level_name, description)
+          )
+        `)
+        .eq('id', userId)
+        .eq('role', 'student')
+        .single();
+
+      if (error) {
+        console.error('Error fetching student info:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching student info:', error);
+      return null;
+    }
+  }
+
+  private createPersonalizedUserPrompt(
+    message: string, 
+    subject?: string, 
+    context?: string, 
+    studentInfo?: any
+  ): string {
+    // Extract student details
+    const studentName = studentInfo?.full_name || 'Student';
+    const gradeLevel = studentInfo?.students?.[0]?.grade_level || 
+                      context?.match(/Grade (\d+)/)?.[1] || '8';
+    const curriculum = studentInfo?.students?.[0]?.education_systems?.name || 
+                      (context?.includes('CBC') ? 'Kenyan CBC curriculum' : 'Kenyan curriculum');
+    const subjectName = subject || 'Mathematics';
+    const topic = this.extractTopicFromMessage(message) || 'the topic you\'re asking about';
+    const previousLearning = this.extractPreviousLearning(studentInfo, context);
+    
+    return `You are teaching ${studentName}, a Grade ${gradeLevel} student under the ${curriculum} curriculum.
+
+Subject: ${subjectName}
+Topic: ${topic}
+The student previously learned: ${previousLearning}
+
+Your task:
+- Explain this topic clearly.
+- Adapt to the student's learning level and prior knowledge.
+- Make it interactive and relatable to daily life.
+- Add a short 2-question quiz and award XP.
+
+Please respond following the exact structure: 1. 📘 Main Explanation, 2. 🎯 Key Points, 3. 🧩 Example or Analogy, 4. 🧠 Mini Quiz/Challenge, 5. 💬 Motivation with XP points. Use emojis and friendly language to keep the student engaged.`;
+  }
+
+  private extractPreviousLearning(studentInfo?: any, context?: string): string {
+    if (studentInfo?.students?.[0]?.learning_goals?.length > 0) {
+      return studentInfo.students[0].learning_goals.slice(0, 2).join(', ');
+    }
+    
+    if (context?.includes('previously learned')) {
+      const match = context.match(/previously learned[^.]*\./i);
+      return match ? match[0] : 'related concepts';
+    }
+    
+    return 'related concepts';
   }
 
   private createUserPrompt(message: string, subject?: string, context?: string): string {

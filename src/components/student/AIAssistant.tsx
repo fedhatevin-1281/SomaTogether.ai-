@@ -31,6 +31,7 @@ interface AIAssistantProps {
 }
 
 export function AIAssistant({ onBack }: AIAssistantProps) {
+  const { user } = useAuth();
   const {
     messages,
     isLoading,
@@ -87,7 +88,7 @@ export function AIAssistant({ onBack }: AIAssistantProps) {
       action: () => {
         const question = prompt('Hey! What\'s on your mind? I\'m here to help you learn! 🌟');
         if (question) {
-          sendMessage(question, selectedSubject);
+          sendMessage(question, selectedSubject, undefined, user?.id);
         }
       }
     }
@@ -96,7 +97,7 @@ export function AIAssistant({ onBack }: AIAssistantProps) {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
     
-    await sendMessage(inputMessage, selectedSubject);
+    await sendMessage(inputMessage, selectedSubject, undefined, user?.id);
     setInputMessage('');
   };
 
