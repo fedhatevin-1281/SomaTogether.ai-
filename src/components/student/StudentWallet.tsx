@@ -264,7 +264,7 @@ export function StudentWallet() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleDeposit}>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowFundingModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Funds
           </Button>
