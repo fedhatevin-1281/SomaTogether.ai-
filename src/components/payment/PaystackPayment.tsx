@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { Loader2, CreditCard, Globe, CheckCircle, XCircle } from 'lucide-react';
 import { PaystackService } from '../../services/paystackService';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../supabaseClient';
 
 interface PaystackPaymentProps {
   amount: number;
@@ -48,19 +49,33 @@ export function PaystackPayment({ amount, tokens, onSuccess, onError, onCancel }
   }, [user]);
 
   const handleInitializePayment = async () => {
-    if (!email || !firstName || !lastName) {
+    if (!user || !email || !firstName || !lastName) {
       onError('Please fill in all required fields');
       return;
     }
 
     setIsLoading(true);
     try {
+      // Create payment session in database first
+      const { data: sessionData, error: sessionError } = await supabase
+        .rpc('initialize_paystack_payment', {
+          p_user_id: user.id,
+          p_amount_usd: amount,
+          p_tokens: tokens,
+          p_currency: selectedCurrency
+        });
+
+      if (sessionError) {
+        throw new Error(sessionError.message);
+      }
+
       const result = await paystackService.purchaseTokens(
-        user?.id || '',
+        user.id,
         email,
         amount,
         tokens,
-        selectedCurrency
+        selectedCurrency,
+        sessionData.reference
       );
 
       if (result.success && result.authorizationUrl && result.reference) {
@@ -80,7 +95,7 @@ export function PaystackPayment({ amount, tokens, onSuccess, onError, onCancel }
       }
     } catch (error) {
       console.error('Payment initialization error:', error);
-      onError('An unexpected error occurred');
+      onError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +104,30 @@ export function PaystackPayment({ amount, tokens, onSuccess, onError, onCancel }
   const startPaymentStatusPolling = (reference: string) => {
     const pollInterval = setInterval(async () => {
       try {
+        // Check database first for payment status
+        const { data: dbResult, error: dbError } = await supabase
+          .rpc('verify_paystack_payment', { p_reference: reference });
+
+        if (dbError) {
+          console.error('Database verification error:', dbError);
+          return;
+        }
+
+        if (dbResult && dbResult.success) {
+          if (dbResult.status === 'completed') {
+            setPaymentSession(prev => prev ? { ...prev, status: 'completed' } : null);
+            clearInterval(pollInterval);
+            onSuccess(reference);
+            return;
+          } else if (dbResult.status === 'failed') {
+            setPaymentSession(prev => prev ? { ...prev, status: 'failed' } : null);
+            clearInterval(pollInterval);
+            onError('Payment failed');
+            return;
+          }
+        }
+
+        // Fallback to Paystack API verification
         const result = await paystackService.verifyTransaction(reference);
         
         if (result.success && result.data) {

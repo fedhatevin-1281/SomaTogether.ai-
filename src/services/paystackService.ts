@@ -70,8 +70,8 @@ export class PaystackService {
 
   constructor() {
     this.config = {
-      publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_ced3ddd12a492fa241e03f04f4e5a8a9f3dae5e8',
-      secretKey: import.meta.env.VITE_PAYSTACK_SECRET_KEY || 'sk_test_3e023cf5b1bc25ca0db97fe9f85362277a1bd9f0',
+      publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '',
+      secretKey: import.meta.env.VITE_PAYSTACK_SECRET_KEY || '',
       baseUrl: 'https://api.paystack.co'
     };
   }
@@ -256,7 +256,8 @@ export class PaystackService {
     userEmail: string,
     amount: number,
     tokens: number,
-    currency: string = 'NGN'
+    currency: string = 'NGN',
+    reference?: string
   ): Promise<{ success: boolean; authorizationUrl?: string; reference?: string; error?: string }> {
     try {
       // Convert USD to NGN (approximate rate, should be dynamic)
@@ -266,7 +267,7 @@ export class PaystackService {
         email: userEmail,
         amount: ngnAmount,
         currency: currency,
-        reference: this.generateReference(),
+        reference: reference || this.generateReference(),
         metadata: {
           user_id: userId,
           tokens: tokens,

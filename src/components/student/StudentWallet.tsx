@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -252,24 +253,25 @@ export function StudentWallet() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Wallet</h1>
-          <p className="text-gray-600">Manage your payments and balance</p>
+    <>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Wallet</h1>
+            <p className="text-gray-600">Manage your payments and balance</p>
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowFundingModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Funds
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowFundingModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Funds
-          </Button>
-        </div>
-      </div>
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -405,18 +407,20 @@ export function StudentWallet() {
           )}
         </div>
       </Card>
+      </div>
 
       {/* Funding Modal */}
-      {showFundingModal && (
+      {showFundingModal && createPortal(
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowFundingModal(false);
             }
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
             <div className="p-6">
               <WalletFunding
                 onSuccess={() => {
@@ -427,8 +431,9 @@ export function StudentWallet() {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
