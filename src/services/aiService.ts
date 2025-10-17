@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { AIMemoryService } from './aiMemoryService';
 
 export interface AIMessage {
   id: string;
@@ -158,6 +159,13 @@ Your safety is the most important thing right now. Don't try to handle this alon
         studentInfo = await this.fetchStudentInfo(userId);
       }
 
+      // Get conversation context from memory
+      let conversationContext = "";
+      if (userId) {
+        const memoryService = AIMemoryService.getInstance();
+        conversationContext = await memoryService.getFormattedContext(userId, 5);
+      }
+
       // Create the messages array with the new structure
       const messages = [
         {
@@ -170,7 +178,7 @@ Your safety is the most important thing right now. Don't try to handle this alon
         },
         {
           role: "user",
-          content: this.createPersonalizedUserPrompt(message, subject, context, studentInfo)
+          content: this.createPersonalizedUserPrompt(message, subject, context, studentInfo, conversationContext)
         }
       ];
 
@@ -207,6 +215,17 @@ Your safety is the most important thing right now. Don't try to handle this alon
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+
+      // Store the Q&A in memory if userId is provided
+      if (userId) {
+        try {
+          const memoryService = AIMemoryService.getInstance();
+          await memoryService.storeQA(userId, message, text, subject, context);
+        } catch (error) {
+          console.error('Error storing AI Q&A in memory:', error);
+          // Don't throw error here, just log it
+        }
+      }
 
       return { 
         text,
@@ -269,7 +288,8 @@ Your safety is the most important thing right now. Don't try to handle this alon
     message: string, 
     subject?: string, 
     context?: string, 
-    studentInfo?: any
+    studentInfo?: any,
+    conversationContext?: string
   ): string {
     // Extract student details
     const studentName = studentInfo?.full_name || 'Student';
@@ -281,19 +301,29 @@ Your safety is the most important thing right now. Don't try to handle this alon
     const topic = this.extractTopicFromMessage(message) || 'the topic you\'re asking about';
     const previousLearning = this.extractPreviousLearning(studentInfo, context);
     
-    return `You are teaching ${studentName}, a Grade ${gradeLevel} student under the ${curriculum} curriculum.
+    let prompt = `You are teaching ${studentName}, a Grade ${gradeLevel} student under the ${curriculum} curriculum.
 
 Subject: ${subjectName}
 Topic: ${topic}
-The student previously learned: ${previousLearning}
+The student previously learned: ${previousLearning}`;
+
+    // Add conversation context if available
+    if (conversationContext && conversationContext.trim() !== "This is the start of our conversation.") {
+      prompt += `\n\n${conversationContext}`;
+    }
+
+    prompt += `\n\nCurrent question: ${message}
 
 Your task:
 - Explain this topic clearly.
 - Adapt to the student's learning level and prior knowledge.
+- Reference previous conversations when relevant.
 - Make it interactive and relatable to daily life.
 - Add a short 2-question quiz and award XP.
 
 Please respond following the exact structure: 1. 📘 Main Explanation, 2. 🎯 Key Points, 3. 🧩 Example or Analogy, 4. 🧠 Mini Quiz/Challenge, 5. 💬 Motivation with XP points. Use emojis and friendly language to keep the student engaged.`;
+
+    return prompt;
   }
 
   private extractPreviousLearning(studentInfo?: any, context?: string): string {

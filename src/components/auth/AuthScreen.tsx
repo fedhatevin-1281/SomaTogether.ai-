@@ -400,7 +400,7 @@ export default function AuthScreen() {
     const demoCredentials = {
       student: { 
         email: getSafeEmail('student'), 
-        password: 'demo123',
+        password: 'Demo123!@#',
         full_name: 'Demo Student',
         role: 'student' as const,
         phone: '+1 (555) 123-4567',
@@ -408,7 +408,7 @@ export default function AuthScreen() {
       },
       teacher: { 
         email: getSafeEmail('teacher'), 
-        password: 'demo123',
+        password: 'Demo123!@#',
         full_name: 'Demo Teacher',
         role: 'teacher' as const,
         phone: '+1 (555) 234-5678',
@@ -416,7 +416,7 @@ export default function AuthScreen() {
       },
       parent: { 
         email: getSafeEmail('parent'), 
-        password: 'demo123',
+        password: 'Demo123!@#',
         full_name: 'Demo Parent',
         role: 'parent' as const,
         phone: '+1 (555) 345-6789',

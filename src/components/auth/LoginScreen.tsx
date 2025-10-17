@@ -340,16 +340,16 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
         <div className="text-center">
           <p className="text-slate-600 mb-4">Want to explore the platform?</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="outline" onClick={() => handleSignUp('Demo Student', 'demo.student@soma.ai', 'demo123', 'student')}>
+            <Button variant="outline" onClick={() => handleSignUp('Demo Student', 'demo.student@soma.ai', 'Demo123!@#', 'student')}>
               Demo as Student
             </Button>
-            <Button variant="outline" onClick={() => handleSignUp('Demo Teacher', 'demo.teacher@soma.ai', 'demo123', 'teacher')}>
+            <Button variant="outline" onClick={() => handleSignUp('Demo Teacher', 'demo.teacher@soma.ai', 'Demo123!@#', 'teacher')}>
               Demo as Teacher
             </Button>
-            <Button variant="outline" onClick={() => handleSignUp('Demo Parent', 'demo.parent@soma.ai', 'demo123', 'parent')}>
+            <Button variant="outline" onClick={() => handleSignUp('Demo Parent', 'demo.parent@soma.ai', 'Demo123!@#', 'parent')}>
               Demo as Parent
             </Button>
-            <Button variant="outline" onClick={() => handleSignUp('Demo Admin', 'demo.admin@soma.ai', 'demo123', 'admin')}>
+            <Button variant="outline" onClick={() => handleSignUp('Demo Admin', 'demo.admin@soma.ai', 'Demo123!@#', 'admin')}>
               Demo as Admin
             </Button>
           </div>
