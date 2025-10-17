@@ -1,10 +1,11 @@
 import { supabase } from '../supabaseClient';
+import { PaystackService } from './paystackService';
 
 export interface PaymentMethod {
   id: string;
   user_id: string;
   type: 'card' | 'paypal' | 'bank_account' | 'crypto';
-  provider: 'stripe' | 'paypal' | 'wise' | 'binance' | 'mpesa' | 'bank_transfer';
+  provider: 'stripe' | 'paypal' | 'wise' | 'binance' | 'mpesa' | 'bank_transfer' | 'paystack';
   provider_id: string;
   last_four?: string;
   expiry_month?: number;
@@ -46,7 +47,7 @@ export interface WithdrawalRequest {
   net_amount: number;
   reference_id?: string;
   failure_reason?: string;
-  provider: 'stripe' | 'mpesa' | 'bank_transfer';
+  provider: 'stripe' | 'mpesa' | 'bank_transfer' | 'paystack';
   provider_transaction_id?: string;
   provider_response?: any;
   created_at: string;
@@ -601,6 +602,183 @@ class PaymentService {
     } catch (error) {
       console.error('Error sending M-Pesa verification SMS:', error);
     }
+  }
+
+  /**
+   * Initialize Paystack payment
+   */
+  static async initializePaystackPayment(
+    userId: string,
+    userEmail: string,
+    amount: number,
+    tokens: number,
+    currency: string = 'NGN'
+  ): Promise<{ success: boolean; authorizationUrl?: string; reference?: string; error?: string }> {
+    try {
+      const paystackService = PaystackService.getInstance();
+      
+      // Create payment session in database
+      const { data: session, error: sessionError } = await supabase
+        .from('paystack_payment_sessions')
+        .insert({
+          user_id: userId,
+          reference: `SOMA_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          amount: amount,
+          currency: currency,
+          tokens: tokens,
+          status: 'pending',
+          metadata: {
+            user_email: userEmail,
+            platform: 'SomaTogether.ai'
+          }
+        })
+        .select('reference')
+        .single();
+
+      if (sessionError) {
+        console.error('Error creating payment session:', sessionError);
+        return { success: false, error: 'Failed to create payment session' };
+      }
+
+      // Initialize payment with Paystack
+      const result = await paystackService.purchaseTokens(
+        userId,
+        userEmail,
+        amount,
+        tokens,
+        currency
+      );
+
+      if (result.success && result.authorizationUrl && result.reference) {
+        // Update session with authorization URL
+        await supabase
+          .from('paystack_payment_sessions')
+          .update({
+            authorization_url: result.authorization_url,
+            access_code: result.reference,
+            status: 'processing'
+          })
+          .eq('reference', session.reference);
+
+        return {
+          success: true,
+          authorizationUrl: result.authorizationUrl,
+          reference: result.reference
+        };
+      }
+
+      return { success: false, error: result.error || 'Failed to initialize payment' };
+    } catch (error) {
+      console.error('Paystack payment initialization error:', error);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  }
+
+  /**
+   * Verify Paystack payment
+   */
+  static async verifyPaystackPayment(
+    reference: string
+  ): Promise<{ success: boolean; transaction?: any; error?: string }> {
+    try {
+      const paystackService = PaystackService.getInstance();
+      const result = await paystackService.verifyTransaction(reference);
+
+      if (result.success && result.data) {
+        const transaction = result.data.data;
+        
+        // Update payment session status
+        await supabase
+          .from('paystack_payment_sessions')
+          .update({
+            status: transaction.status === 'success' ? 'completed' : 'failed',
+            paystack_transaction_id: transaction.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('reference', reference);
+
+        // If successful, process the payment
+        if (transaction.status === 'success') {
+          const paymentResult = await paystackService.handlePaymentSuccess(transaction);
+          if (!paymentResult.success) {
+            return { success: false, error: paymentResult.error };
+          }
+        }
+
+        return { success: true, transaction };
+      }
+
+      return { success: false, error: result.error || 'Payment verification failed' };
+    } catch (error) {
+      console.error('Paystack payment verification error:', error);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  }
+
+  /**
+   * Get Paystack payment session
+   */
+  static async getPaystackPaymentSession(
+    reference: string
+  ): Promise<{ success: boolean; session?: any; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('paystack_payment_sessions')
+        .select('*')
+        .eq('reference', reference)
+        .single();
+
+      if (error) {
+        return { success: false, error: 'Payment session not found' };
+      }
+
+      return { success: true, session: data };
+    } catch (error) {
+      console.error('Error fetching payment session:', error);
+      return { success: false, error: 'An unexpected error occurred' };
+    }
+  }
+
+  /**
+   * Get supported payment methods
+   */
+  static getSupportedPaymentMethods(): Array<{
+    id: string;
+    name: string;
+    description: string;
+    available: boolean;
+    features: string[];
+  }> {
+    return [
+      {
+        id: 'paystack',
+        name: 'Paystack',
+        description: 'Cards, Bank Transfer, Mobile Money',
+        available: true,
+        features: ['Visa/Mastercard', 'Bank Transfer', 'Mobile Money', 'Multi-currency']
+      },
+      {
+        id: 'stripe',
+        name: 'Stripe',
+        description: 'International Cards',
+        available: true,
+        features: ['Visa/Mastercard', 'International', 'Apple Pay', 'Google Pay']
+      },
+      {
+        id: 'mpesa',
+        name: 'M-Pesa',
+        description: 'Mobile Money (Kenya)',
+        available: true,
+        features: ['Mobile Money', 'Kenya Only', 'SMS Confirmation']
+      },
+      {
+        id: 'bank_transfer',
+        name: 'Bank Transfer',
+        description: 'Direct Bank Transfer',
+        available: false,
+        features: ['Bank Transfer', 'Manual Processing']
+      }
+    ];
   }
 
   /**
