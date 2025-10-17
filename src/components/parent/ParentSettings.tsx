@@ -472,6 +472,7 @@ export function ParentSettings() {
                 id="currentPassword" 
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter current password"
+                autoComplete="current-password"
               />
               <Button
                 type="button"
@@ -490,6 +491,7 @@ export function ParentSettings() {
               id="newPassword" 
               type={showPassword ? "text" : "password"}
               placeholder="Enter new password"
+              autoComplete="new-password"
             />
           </div>
           <div>
@@ -498,6 +500,7 @@ export function ParentSettings() {
               id="confirmPassword" 
               type={showPassword ? "text" : "password"}
               placeholder="Confirm new password"
+              autoComplete="new-password"
             />
           </div>
           <Button variant="outline" className="mt-4">

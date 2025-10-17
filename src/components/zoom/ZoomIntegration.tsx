@@ -247,6 +247,7 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                       placeholder="Enter your Zoom API Key"
+                      autoComplete="off"
                       required
                     />
                   </div>
@@ -259,6 +260,7 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
                       value={apiSecret}
                       onChange={(e) => setApiSecret(e.target.value)}
                       placeholder="Enter your Zoom API Secret"
+                      autoComplete="off"
                       required
                     />
                   </div>

@@ -440,6 +440,7 @@ export function StepByStepSignup({ onSubmit, loading = false, error, success }: 
                     className="pl-10 pr-10"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"
@@ -464,6 +465,7 @@ export function StepByStepSignup({ onSubmit, loading = false, error, success }: 
                     className="pl-10 pr-10"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
                   />
                   <Button
                     type="button"

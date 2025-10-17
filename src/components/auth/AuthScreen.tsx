@@ -227,7 +227,16 @@ export default function AuthScreen() {
       });
 
       if (error) {
-        setError(error.message || 'Failed to create account');
+        // Handle specific error cases with better user feedback
+        if (error.code === 'EMAIL_ALREADY_EXISTS') {
+          setError('An account with this email already exists. Please try signing in instead.');
+          // Switch to sign in tab to help user
+          setActiveTab('signin');
+          // Pre-fill the email field
+          setSignInData(prev => ({ ...prev, email: signUpData.email }));
+        } else {
+          setError(error.message || 'Failed to create account');
+        }
       } else {
         setSuccess('Account created successfully! Please check your email to verify your account.');
         setSignUpData({
@@ -515,6 +524,7 @@ export default function AuthScreen() {
                         value={signInData.password}
                         onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
                         disabled={loading}
+                        autoComplete="current-password"
                       />
                       <Button
                         type="button"

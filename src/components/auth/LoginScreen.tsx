@@ -56,7 +56,12 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
         role
       });
       if (error) {
-        setError(error.message);
+        // Handle specific error cases with better user feedback
+        if (error.code === 'EMAIL_ALREADY_EXISTS') {
+          setError('An account with this email already exists. Please try signing in instead.');
+        } else {
+          setError(error.message || 'Registration failed. Please try again.');
+        }
       } else {
         // Registration successful
         onLogin(role, true);
@@ -175,6 +180,7 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
                           className="bg-white"
                           value={newStudentPassword}
                           onChange={(e) => setNewStudentPassword(e.target.value)}
+                          autoComplete="new-password"
                         />
                       </div>
                       <Button
@@ -226,6 +232,7 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
                           className="bg-white"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
+                          autoComplete="current-password"
                         />
                       </div>
                       <Button

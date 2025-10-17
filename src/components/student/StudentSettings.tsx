@@ -625,6 +625,7 @@ export function StudentSettings() {
                 id="currentPassword" 
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter current password"
+                autoComplete="current-password"
               />
               <Button
                 type="button"
@@ -643,6 +644,7 @@ export function StudentSettings() {
               id="newPassword" 
               type={showPassword ? "text" : "password"}
               placeholder="Enter new password"
+              autoComplete="new-password"
             />
           </div>
           <div>
@@ -651,6 +653,7 @@ export function StudentSettings() {
               id="confirmPassword" 
               type={showPassword ? "text" : "password"}
               placeholder="Confirm new password"
+              autoComplete="new-password"
             />
           </div>
           <Button variant="outline" className="mt-4">

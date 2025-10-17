@@ -192,6 +192,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (userData: SignUpData) => {
     try {
+      // First, check if user already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', userData.email)
+        .single();
+
+      if (existingProfile && !checkError) {
+        console.log('User with this email already exists:', existingProfile.email);
+        return { 
+          error: { 
+            message: 'An account with this email already exists. Please try signing in instead.',
+            code: 'EMAIL_ALREADY_EXISTS'
+          } 
+        };
+      }
+
       const signUpOptions: any = {
         email: userData.email,
         password: userData.password,
@@ -231,6 +248,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Signup error:', error);
+        // Handle specific error cases
+        if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
+          return { 
+            error: { 
+              message: 'An account with this email already exists. Please try signing in instead.',
+              code: 'EMAIL_ALREADY_EXISTS'
+            } 
+          };
+        }
         return { error };
       }
 
@@ -254,6 +280,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profileError) {
         console.error('Profile not found after signup:', profileError);
+        // If profile creation failed due to duplicate email constraint, handle gracefully
+        if (profileError.code === '23505' && profileError.message?.includes('email')) {
+          console.log('Profile creation failed due to duplicate email - user may already exist');
+          return { 
+            error: { 
+              message: 'An account with this email already exists. Please try signing in instead.',
+              code: 'EMAIL_ALREADY_EXISTS'
+            } 
+          };
+        }
         console.log('This might be normal if the trigger is still processing');
       } else {
         console.log('Profile created successfully by trigger:', profile);
