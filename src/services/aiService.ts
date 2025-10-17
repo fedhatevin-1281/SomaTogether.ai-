@@ -220,34 +220,45 @@ Your safety is the most important thing right now. Don't try to handle this alon
 
   private async fetchStudentInfo(userId: string): Promise<any> {
     try {
-      const { data, error } = await supabase
+      // First get the profile
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          full_name,
-          role,
-          students!inner(
-            grade_level,
-            school_name,
-            learning_goals,
-            interests,
-            learning_style,
-            education_system_id,
-            education_level_id,
-            education_systems(name, description),
-            education_levels(level_name, description)
-          )
-        `)
+        .select('id, full_name, role')
         .eq('id', userId)
         .eq('role', 'student')
         .single();
 
-      if (error) {
-        console.error('Error fetching student info:', error);
+      if (profileError || !profile) {
+        console.error('Error fetching profile:', profileError);
         return null;
       }
 
-      return data;
+      // Then get the student data
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select(`
+          grade_level,
+          school_name,
+          learning_goals,
+          interests,
+          learning_style,
+          education_system_id,
+          education_level_id,
+          education_systems(name, description),
+          education_levels(level_name, description)
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (studentError) {
+        console.error('Error fetching student data:', studentError);
+        return null;
+      }
+
+      return {
+        ...profile,
+        students: student ? [student] : []
+      };
     } catch (error) {
       console.error('Error fetching student info:', error);
       return null;
