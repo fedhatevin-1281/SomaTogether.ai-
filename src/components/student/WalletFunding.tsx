@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { Loader2, DollarSign, CreditCard, Smartphone, Globe } from 'lucide-react';
+import { Loader2, DollarSign, CreditCard, Smartphone, Globe, X } from 'lucide-react';
 import { PaymentMethodSelector } from '../payment/PaymentMethodSelector';
 import { PaystackPayment } from '../payment/PaystackPayment';
 import { PaymentService } from '../../services/paymentService';
@@ -57,43 +57,91 @@ export function WalletFunding({ onSuccess, onCancel }: WalletFundingProps) {
 
   if (selectedMethod === 'paystack') {
     return (
-      <PaystackPayment
-        amount={parseFloat(amount)}
-        tokens={tokens}
-        onSuccess={(reference) => handlePaymentSuccess(reference, 'paystack')}
-        onError={handlePaymentError}
-        onCancel={handleBack}
-      />
+      <div className="space-y-6">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h2 className="text-2xl font-bold">Paystack Payment</h2>
+            <p className="text-gray-600 mt-1">
+              Complete your payment using Paystack
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <PaystackPayment
+          amount={parseFloat(amount)}
+          tokens={tokens}
+          onSuccess={(reference) => handlePaymentSuccess(reference, 'paystack')}
+          onError={handlePaymentError}
+          onCancel={handleBack}
+        />
+      </div>
     );
   }
 
   if (selectedMethod && selectedMethod !== 'paystack') {
     return (
-      <Card className="p-6">
-        <div className="text-center space-y-4">
-          <h3 className="text-lg font-semibold">
-            {selectedMethod === 'stripe' ? 'Stripe' : 
-             selectedMethod === 'mpesa' ? 'M-Pesa' : 
-             selectedMethod === 'bank_transfer' ? 'Bank Transfer' : 'Payment'} Payment
-          </h3>
-          <p className="text-gray-600">
-            This payment method is not yet implemented.
-          </p>
-          <Button onClick={handleBack} variant="outline">
-            Back to Payment Methods
+      <div className="space-y-6">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h2 className="text-2xl font-bold">
+              {selectedMethod === 'stripe' ? 'Stripe' : 
+               selectedMethod === 'mpesa' ? 'M-Pesa' : 
+               selectedMethod === 'bank_transfer' ? 'Bank Transfer' : 'Payment'} Payment
+            </h2>
+            <p className="text-gray-600 mt-1">
+              This payment method is not yet implemented.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="h-8 w-8 p-0 hover:bg-gray-100"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </div>
-      </Card>
+        <Card className="p-6">
+          <div className="text-center space-y-4">
+            <p className="text-gray-600">
+              This payment method is coming soon. Please try Paystack for now.
+            </p>
+            <Button onClick={handleBack} variant="outline">
+              Back to Payment Methods
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Add Funds to Wallet</h2>
-        <p className="text-gray-600">
-          Choose an amount and payment method to add tokens to your wallet
-        </p>
+      {/* Modal Header */}
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h2 className="text-2xl font-bold">Add Funds to Wallet</h2>
+          <p className="text-gray-600 mt-1">
+            Choose an amount and payment method to add tokens to your wallet
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          className="h-8 w-8 p-0 hover:bg-gray-100"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Amount Selection */}
