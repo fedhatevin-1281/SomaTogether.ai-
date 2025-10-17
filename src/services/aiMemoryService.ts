@@ -1,5 +1,5 @@
 // AI Memory Service - Handles storing and retrieving AI conversation context
-import { supabase } from './supabaseClient';
+import { supabase } from '../supabaseClient';
 
 export interface AIMemoryEntry {
   question: string;

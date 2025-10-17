@@ -1,5 +1,5 @@
 // AI Memory Cleanup Service - Handles periodic cleanup of expired conversations
-import { supabase } from './supabaseClient';
+import { supabase } from '../supabaseClient';
 
 export class AIMemoryCleanupService {
   private static instance: AIMemoryCleanupService;
