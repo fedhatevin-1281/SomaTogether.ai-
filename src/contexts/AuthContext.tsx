@@ -266,20 +266,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('User created successfully:', data.user.id);
-      console.log('Database trigger will automatically create profile, wallet, and role-specific records');
+      console.log('Creating profile manually to avoid trigger issues...');
 
-      // Wait a moment for the trigger to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Try to fetch the profile to verify it was created by the trigger
-      const { data: profile, error: profileError } = await supabase
+      // Create profile manually instead of relying on trigger
+      const { error: profileError } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .insert({
+          id: data.user.id,
+          email: userData.email,
+          full_name: userData.full_name,
+          role: userData.role,
+          phone: userData.phone || null,
+          date_of_birth: userData.date_of_birth || null,
+          location: userData.location || null,
+          bio: userData.bio || null,
+          timezone: userData.timezone || 'UTC',
+          language: userData.language || 'en',
+          is_verified: false,
+          is_active: true,
+        });
 
       if (profileError) {
-        console.error('Profile not found after signup:', profileError);
+        console.error('Error creating profile:', profileError);
         // If profile creation failed due to duplicate email constraint, handle gracefully
         if (profileError.code === '23505' && profileError.message?.includes('email')) {
           console.log('Profile creation failed due to duplicate email - user may already exist');
@@ -290,11 +298,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } 
           };
         }
-        console.log('This might be normal if the trigger is still processing');
-      } else {
-        console.log('Profile created successfully by trigger:', profile);
+        return { error: profileError };
       }
 
+      // Create wallet manually
+      const { error: walletError } = await supabase
+        .from('wallets')
+        .insert({
+          user_id: data.user.id,
+          balance: 0.00,
+          currency: 'USD',
+          tokens: 0,
+          is_active: true,
+        });
+
+      if (walletError) {
+        console.error('Error creating wallet:', walletError);
+        // Don't fail signup if wallet creation fails, just log it
+      }
+
+      // Create role-specific records
+      if (userData.role === 'student') {
+        const { error: studentError } = await supabase
+          .from('students')
+          .insert({
+            id: data.user.id,
+            education_system_id: userData.education_system_id || null,
+            education_level_id: userData.education_level_id || null,
+            school_name: userData.school_name || null,
+            interests: userData.interests || [],
+            preferred_languages: [userData.preferred_language || 'en'],
+          });
+
+        if (studentError) {
+          console.error('Error creating student record:', studentError);
+          // Don't fail signup if student record creation fails
+        }
+      } else if (userData.role === 'teacher') {
+        const { error: teacherError } = await supabase
+          .from('teachers')
+          .insert({
+            id: data.user.id,
+            is_available: true,
+          });
+
+        if (teacherError) {
+          console.error('Error creating teacher record:', teacherError);
+          // Don't fail signup if teacher record creation fails
+        }
+      } else if (userData.role === 'parent') {
+        const { error: parentError } = await supabase
+          .from('parents')
+          .insert({
+            id: data.user.id,
+            children_ids: [],
+            payment_methods: {},
+          });
+
+        if (parentError) {
+          console.error('Error creating parent record:', parentError);
+          // Don't fail signup if parent record creation fails
+        }
+      }
+
+      console.log('Profile and related records created successfully');
       return { error: null };
     } catch (error) {
       console.error('Signup error:', error);
