@@ -100,6 +100,13 @@ ALTER TABLE public.paystack_payment_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.paystack_webhook_events ENABLE ROW LEVEL SECURITY;
 
 -- 8. Create RLS policies
+-- Drop existing policies first to avoid conflicts
+DROP POLICY IF EXISTS "Users can view own payment sessions" ON public.paystack_payment_sessions;
+DROP POLICY IF EXISTS "Users can insert own payment sessions" ON public.paystack_payment_sessions;
+DROP POLICY IF EXISTS "Users can update own payment sessions" ON public.paystack_payment_sessions;
+DROP POLICY IF EXISTS "Service role can manage all payment sessions" ON public.paystack_payment_sessions;
+DROP POLICY IF EXISTS "Service role can manage webhook events" ON public.paystack_webhook_events;
+
 -- Payment sessions - users can only see their own
 CREATE POLICY "Users can view own payment sessions" ON public.paystack_payment_sessions
   FOR SELECT USING (auth.uid() = user_id);
@@ -119,6 +126,13 @@ CREATE POLICY "Service role can manage webhook events" ON public.paystack_webhoo
   FOR ALL USING (auth.role() = 'service_role');
 
 -- 9. Create function to process Paystack payments
+-- Drop existing functions first to avoid conflicts
+DROP FUNCTION IF EXISTS process_paystack_payment(uuid, text, numeric, numeric, integer, text, text);
+DROP FUNCTION IF EXISTS handle_paystack_webhook(jsonb);
+DROP FUNCTION IF EXISTS initialize_paystack_payment(uuid, numeric, integer, text);
+DROP FUNCTION IF EXISTS verify_paystack_payment(text);
+DROP FUNCTION IF EXISTS cleanup_expired_paystack_sessions();
+
 CREATE OR REPLACE FUNCTION process_paystack_payment(
   p_user_id uuid,
   p_reference text,
@@ -413,6 +427,9 @@ ON CONFLICT (id) DO UPDATE SET
   is_active = EXCLUDED.is_active;
 
 -- 17. Create view for payment analytics
+-- Drop existing view first to avoid conflicts
+DROP VIEW IF EXISTS public.paystack_payment_analytics;
+
 CREATE OR REPLACE VIEW public.paystack_payment_analytics AS
 SELECT 
   DATE(pps.created_at) as payment_date,
