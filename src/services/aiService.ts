@@ -149,8 +149,21 @@ Your safety is the most important thing right now. Don't try to handle this alon
     }
 
     try {
-      // Create educational context for the AI
-      const systemPrompt = this.createSystemPrompt(subject, context);
+      // Create the messages array with the new structure
+      const messages = [
+        {
+          role: "system",
+          content: "You are Soma AI, the adaptive AI teacher inside SomaTogether.ai. You help students learn through personalized explanations, examples, quizzes, and motivation. Always be encouraging, clear, and educational."
+        },
+        {
+          role: "developer",
+          content: "Always follow the structure: Main Explanation, Key Points, Example, Quiz, Motivation. Use age-appropriate language and relate concepts to Kenyan context when possible."
+        },
+        {
+          role: "user",
+          content: this.createUserPrompt(message, subject, context)
+        }
+      ];
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
@@ -164,7 +177,7 @@ Your safety is the most important thing right now. Don't try to handle this alon
               {
                 parts: [
                   {
-                    text: `${systemPrompt}\n\nStudent Question: ${message}`,
+                    text: this.formatMessagesForGemini(messages),
                   },
                 ],
               },
@@ -194,6 +207,60 @@ Your safety is the most important thing right now. Don't try to handle this alon
       console.error('AI Service Error:', error);
       throw new Error('Failed to generate AI response. Please try again.');
     }
+  }
+
+  private createUserPrompt(message: string, subject?: string, context?: string): string {
+    // Create a structured prompt similar to your example
+    const grade = context?.includes('Grade') ? context.match(/Grade (\d+)/)?.[1] || '8' : '8';
+    const curriculum = context?.includes('CBC') ? 'Kenyan CBC curriculum' : 'Kenyan curriculum';
+    const subjectName = subject || 'Mathematics';
+    const topic = this.extractTopicFromMessage(message) || 'the topic you\'re asking about';
+    
+    return `You are teaching a Grade ${grade} student under the ${curriculum}. Subject: ${subjectName}. Topic: ${topic}. The student previously learned about related concepts. Explain clearly, give relatable examples, add a mini quiz, and motivate the student with XP.`;
+  }
+
+  private extractTopicFromMessage(message: string): string | null {
+    // Simple topic extraction - can be enhanced
+    const mathTopics = ['linear equations', 'algebra', 'fractions', 'geometry', 'statistics'];
+    const scienceTopics = ['photosynthesis', 'cells', 'matter', 'energy', 'ecosystem'];
+    const englishTopics = ['grammar', 'comprehension', 'composition', 'literature'];
+    
+    const lowerMessage = message.toLowerCase();
+    
+    for (const topic of [...mathTopics, ...scienceTopics, ...englishTopics]) {
+      if (lowerMessage.includes(topic)) {
+        return topic;
+      }
+    }
+    
+    return null;
+  }
+
+  private formatMessagesForGemini(messages: Array<{role: string, content: string}>): string {
+    return messages.map(msg => {
+      const rolePrefix = msg.role === 'system' ? 'SYSTEM:' : 
+                        msg.role === 'developer' ? 'DEVELOPER:' : 
+                        msg.role === 'user' ? 'USER:' : 'ASSISTANT:';
+      return `${rolePrefix}\n${msg.content}`;
+    }).join('\n\n');
+  }
+
+  // Method to create the exact example structure you provided
+  public createExampleMessages(): Array<{role: string, content: string}> {
+    return [
+      {
+        role: "system",
+        content: "You are Soma AI, the adaptive AI teacher inside SomaTogether.ai. You help students learn through personalized explanations, examples, quizzes, and motivation. Always be encouraging, clear, and educational."
+      },
+      {
+        role: "developer", 
+        content: "Always follow the structure: Main Explanation, Key Points, Example, Quiz, Motivation. Use age-appropriate language and relate concepts to Kenyan context when possible."
+      },
+      {
+        role: "user",
+        content: "You are teaching a Grade 8 student under the Kenyan CBC curriculum. Subject: Mathematics. Topic: Linear Equations. The student previously learned about algebraic expressions. Explain clearly, give relatable examples, add a mini quiz, and motivate the student with XP."
+      }
+    ];
   }
 
   private createSystemPrompt(subject?: string, context?: string): string {
