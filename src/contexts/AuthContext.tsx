@@ -109,19 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Check if there's pending profile data to create
-          const pendingProfileData = localStorage.getItem('pendingProfileData');
-          if (pendingProfileData) {
-            try {
-              const profileData = JSON.parse(pendingProfileData);
-              console.log('Creating profile from pending data:', profileData);
-              await createUserProfile(profileData);
-              localStorage.removeItem('pendingProfileData');
-            } catch (error) {
-              console.error('Error creating profile from pending data:', error);
-            }
-          }
-          await fetchUserProfile(session.user.id);
+          // Wait a moment for the database trigger to create the profile
+          setTimeout(async () => {
+            await fetchUserProfile(session.user.id);
+          }, 1000);
         }
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
@@ -146,94 +137,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const createUserProfile = async (profileData: any) => {
-    try {
-      console.log('Creating profile for user:', profileData.id);
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: profileData.id,
-          email: profileData.email,
-          full_name: profileData.full_name,
-          role: profileData.role,
-          phone: profileData.phone,
-          date_of_birth: profileData.date_of_birth,
-          location: profileData.location,
-          bio: profileData.bio,
-          timezone: profileData.timezone,
-          language: profileData.language,
-          is_verified: false,
-          is_active: true,
-        });
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        return;
-      }
-
-      // Create wallet
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .insert({
-          user_id: profileData.id,
-          balance: 0.00,
-          currency: 'USD',
-          tokens: 0,
-          is_active: true,
-        });
-
-      if (walletError) {
-        console.error('Error creating wallet:', walletError);
-      }
-
-      // Create role-specific records
-      if (profileData.role === 'student') {
-        const { error: studentError } = await supabase
-          .from('students')
-          .insert({
-            id: profileData.id,
-            education_system_id: profileData.education_system_id,
-            education_level_id: profileData.education_level_id,
-            school_name: profileData.school_name,
-            interests: profileData.interests || [],
-            preferred_languages: [profileData.preferred_language || 'en'],
-          });
-
-        if (studentError) {
-          console.error('Error creating student record:', studentError);
-        }
-      } else if (profileData.role === 'teacher') {
-        const { error: teacherError } = await supabase
-          .from('teachers')
-          .insert({
-            id: profileData.id,
-            is_available: true,
-          });
-
-        if (teacherError) {
-          console.error('Error creating teacher record:', teacherError);
-        }
-      } else if (profileData.role === 'parent') {
-        const { error: parentError } = await supabase
-          .from('parents')
-          .insert({
-            id: profileData.id,
-            children_ids: [],
-            payment_methods: {},
-          });
-
-        if (parentError) {
-          console.error('Error creating parent record:', parentError);
-        }
-      }
-
-      console.log('Profile and related records created successfully');
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-    }
-  };
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -353,34 +256,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('User created successfully:', data.user.id);
-      console.log('Profile creation will be handled by the auth state change listener');
+      console.log('Profile creation will be handled by database trigger');
       
-      // Store user data for profile creation after authentication
-      if (data.user) {
-        localStorage.setItem('pendingProfileData', JSON.stringify({
-          id: data.user.id,
-          email: userData.email,
-          full_name: userData.full_name,
-          role: userData.role,
-          phone: userData.phone || null,
-          date_of_birth: userData.date_of_birth || null,
-          location: userData.location || null,
-          bio: userData.bio || null,
-          timezone: userData.timezone || 'UTC',
-          language: userData.language || 'en',
-          // Student specific fields
-          education_system_id: userData.education_system_id,
-          education_level_id: userData.education_level_id,
-          school_name: userData.school_name,
-          interests: userData.interests,
-          preferred_language: userData.preferred_language,
-          preferred_subjects: userData.preferred_subjects,
-          // Teacher specific fields
-          max_children: userData.max_children,
-          preferred_curriculums: userData.preferred_curriculums,
-          availability: userData.availability,
-        }));
-      }
+      // The database trigger will automatically create the profile and related records
+      // No need for manual profile creation
 
       return { error: null };
     } catch (error) {
