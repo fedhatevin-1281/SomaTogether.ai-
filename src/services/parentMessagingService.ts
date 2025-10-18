@@ -175,12 +175,6 @@ class ParentMessagingService {
             full_name,
             avatar_url,
             role
-          ),
-          reply_to_message:messages!messages_reply_to_id_fkey (
-            content,
-            profiles!messages_sender_id_fkey (
-              full_name
-            )
           )
         `)
         .eq('conversation_id', conversationId)
@@ -197,10 +191,11 @@ class ParentMessagingService {
         sender_name: msg.profiles?.full_name || 'Unknown',
         sender_avatar: msg.profiles?.avatar_url,
         sender_role: msg.profiles?.role || 'user',
-        reply_to: msg.reply_to_message ? {
-          content: msg.reply_to_message.content,
-          sender_name: msg.reply_to_message.profiles?.full_name || 'Unknown'
-        } : undefined
+        reply_to: msg.reply_to_id ? {
+          id: msg.reply_to_id,
+          content: 'Reply message', // We'll fetch this separately if needed
+          sender_name: 'Previous message'
+        } : null
       }));
     } catch (error) {
       console.error('Error in getMessages:', error);
