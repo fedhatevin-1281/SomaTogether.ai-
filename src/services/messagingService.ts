@@ -204,9 +204,7 @@ class MessagingService {
         .from('messages')
         .select(`
           *,
-          sender:profiles(*),
-          reply_to:messages(*),
-          read_by:message_reads(*)
+          sender:profiles(*)
         `)
         .eq('conversation_id', conversationId)
         .eq('is_deleted', false)
