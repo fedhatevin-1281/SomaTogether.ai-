@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Star, MapPin, Clock, Users, Award, MessageCircle, Heart, BookOpen, DollarSign, Globe, CheckCircle, AlertCircle } from 'lucide-react';
+import { Search, Filter, Star, MapPin, Clock, Users, Award, MessageCircle, Heart, BookOpen, DollarSign, Globe, CheckCircle, AlertCircle, Send, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,8 +8,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Skeleton } from '../ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Alert, AlertDescription } from '../ui/alert';
 import { toast } from 'sonner';
 import TeacherBrowseService, { TeacherProfile, TeacherBrowseFilters, PaginatedTeachers } from '../../services/teacherBrowseService';
+import { SessionRequestService, CreateSessionRequestData } from '../../services/sessionRequestService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface TeacherCardProps {
@@ -190,6 +195,17 @@ const TeacherBrowse: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [subjects, setSubjects] = useState<Array<{id: string, name: string, category: string}>>([]);
+  
+  // Session request state
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<TeacherProfile | null>(null);
+  const [requestDate, setRequestDate] = useState('');
+  const [requestTime, setRequestTime] = useState('');
+  const [requestDuration, setRequestDuration] = useState('1');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load teachers
   const loadTeachers = async (page: number = 1, reset: boolean = false) => {
@@ -266,9 +282,10 @@ const TeacherBrowse: React.FC = () => {
   };
 
   const handleSendRequest = (teacher: TeacherProfile) => {
-    // Navigate to session request page
-    console.log('Send request:', teacher);
-    // This would open a session request modal
+    setSelectedTeacher(teacher);
+    setRequestDialogOpen(true);
+    setError(null);
+    setRequestSuccess(null);
   };
 
   const updateFilter = (key: keyof TeacherBrowseFilters, value: any) => {
@@ -283,6 +300,51 @@ const TeacherBrowse: React.FC = () => {
     setSearchQuery('');
   };
 
+  const handleSendRequestSubmit = async () => {
+    if (!user?.id || !selectedTeacher) return;
+
+    try {
+      setSendingRequest(true);
+      setError(null);
+
+      // Validate required fields
+      if (!requestDate || !requestTime || !requestDuration) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+
+      // Create date objects
+      const requestedStart = new Date(`${requestDate}T${requestTime}`);
+      const requestedEnd = new Date(requestedStart.getTime() + (parseFloat(requestDuration) * 60 * 60 * 1000));
+
+      const requestData: CreateSessionRequestData = {
+        teacher_id: selectedTeacher.id,
+        requested_start: requestedStart.toISOString(),
+        requested_end: requestedEnd.toISOString(),
+        duration_hours: parseFloat(requestDuration),
+        message: requestMessage || undefined,
+      };
+
+      await SessionRequestService.createSessionRequest(user.id, requestData);
+
+      setRequestSuccess('Request sent successfully! The teacher will be notified.');
+      setRequestDialogOpen(false);
+      setRequestMessage('');
+      setRequestDate('');
+      setRequestTime('');
+      setRequestDuration('1');
+      setSelectedTeacher(null);
+      
+      toast.success('Session request sent successfully!');
+    } catch (error: any) {
+      console.error('Error sending request:', error);
+      setError(error.message || 'Failed to send request. Please try again.');
+      toast.error(error.message || 'Failed to send request');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -290,6 +352,22 @@ const TeacherBrowse: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Teacher</h1>
         <p className="text-gray-600">Discover qualified teachers from around the world</p>
       </div>
+
+      {/* Success Message */}
+      {requestSuccess && (
+        <Alert className="mb-6">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{requestSuccess}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Search and Filters */}
       <div className="mb-6">
@@ -534,6 +612,139 @@ const TeacherBrowse: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Request Dialog */}
+      <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Session Request</DialogTitle>
+            <DialogDescription>
+              Send a request to {selectedTeacher?.full_name} for a tutoring session.
+              This will cost 10 tokens.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Teacher Info */}
+            {selectedTeacher && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  {selectedTeacher.avatar_url ? (
+                    <img
+                      src={selectedTeacher.avatar_url}
+                      alt={selectedTeacher.full_name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-blue-600" />
+                  )}
+                </div>
+                <div>
+                  <div className="font-semibold">{selectedTeacher.full_name}</div>
+                  <div className="text-sm text-gray-600">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: selectedTeacher.currency || 'USD',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2
+                    }).format(selectedTeacher.hourly_rate)}/hr
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Request Date */}
+            <div>
+              <Label htmlFor="requestDate">Session Date *</Label>
+              <Input
+                id="requestDate"
+                type="date"
+                value={requestDate}
+                onChange={(e) => setRequestDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+
+            {/* Request Time */}
+            <div>
+              <Label htmlFor="requestTime">Session Time *</Label>
+              <Input
+                id="requestTime"
+                type="time"
+                value={requestTime}
+                onChange={(e) => setRequestTime(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Duration */}
+            <div>
+              <Label htmlFor="duration">Duration (hours) *</Label>
+              <Select value={requestDuration} onValueChange={setRequestDuration}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0.5">30 minutes</SelectItem>
+                  <SelectItem value="1">1 hour</SelectItem>
+                  <SelectItem value="1.5">1.5 hours</SelectItem>
+                  <SelectItem value="2">2 hours</SelectItem>
+                  <SelectItem value="2.5">2.5 hours</SelectItem>
+                  <SelectItem value="3">3 hours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Message */}
+            <div>
+              <Label htmlFor="message">Message (Optional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Tell the teacher about your learning goals or specific topics you'd like to cover..."
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Token Cost Info */}
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Sending this request will cost <strong>10 tokens</strong>. 
+                Tokens will be refunded if the teacher declines your request.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRequestDialogOpen(false)}
+              disabled={sendingRequest}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendRequestSubmit}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+            >
+              {sendingRequest ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Request (10 tokens)
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
