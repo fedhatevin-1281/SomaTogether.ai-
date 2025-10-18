@@ -166,27 +166,33 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
     if (!user) return;
 
     try {
-      // Create AI conversation
-      const conversation: Conversation = {
-        id: 'ai-conversation',
-        type: 'direct',
-        title: 'AI Assistant',
-        created_by: user.id,
-        participants: [user.id, 'ai-assistant'],
-        last_message_at: new Date().toISOString(),
-        is_archived: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        other_participant: {
-          id: 'ai-assistant',
-          name: 'AI Assistant',
-          role: 'ai'
-        }
-      };
+      // Use the service to create or get AI conversation
+      const result = await StudentMessagingService.getOrCreateAIConversation(user.id);
 
-      setSelectedConversation(conversation);
-      setMessages([]);
-      setActiveTab('conversations');
+      if (result.success && result.conversationId) {
+        const conversation: Conversation = {
+          id: result.conversationId,
+          type: 'direct',
+          title: 'AI Assistant',
+          created_by: user.id,
+          participants: [user.id, 'ai-assistant'],
+          last_message_at: new Date().toISOString(),
+          is_archived: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          other_participant: {
+            id: 'ai-assistant',
+            name: 'AI Assistant',
+            role: 'ai'
+          }
+        };
+
+        setSelectedConversation(conversation);
+        setMessages([]);
+        setActiveTab('conversations');
+      } else {
+        setError(result.error || 'Failed to start AI chat');
+      }
     } catch (err) {
       console.error('Error starting AI chat:', err);
       setError('Failed to start AI chat');

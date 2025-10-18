@@ -256,16 +256,32 @@ class ParentMessagingService {
    */
   static async getOrCreateAIConversation(parentId: string): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
+      console.log('Creating AI conversation for parent:', parentId);
+      
       // Check if AI conversation already exists
-      const { data: existingConv, error: fetchError } = await supabase
+      const { data: existingConvs, error: fetchError } = await supabase
         .from('conversations')
-        .select('id')
+        .select('id, participants, title')
         .eq('type', 'direct')
         .contains('participants', [parentId])
-        .eq('title', 'AI Assistant')
-        .single();
+        .eq('title', 'AI Assistant');
+
+      if (fetchError) {
+        console.error('Error fetching existing AI conversations:', fetchError);
+      }
+
+      // Check if any existing conversation is with AI
+      let existingConv = null;
+      if (existingConvs) {
+        existingConv = existingConvs.find(conv => 
+          conv.participants && 
+          conv.participants.includes(parentId) && 
+          conv.participants.includes('ai-assistant')
+        );
+      }
 
       if (existingConv) {
+        console.log('Found existing AI conversation:', existingConv.id);
         return { success: true, conversationId: existingConv.id };
       }
 
@@ -286,6 +302,7 @@ class ParentMessagingService {
         return { success: false, error: error.message };
       }
 
+      console.log('Created new AI conversation:', data.id);
       return { success: true, conversationId: data.id };
     } catch (error) {
       console.error('Error in getOrCreateAIConversation:', error);
@@ -301,15 +318,31 @@ class ParentMessagingService {
     teacherId: string
   ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      // Check if conversation already exists
-      const { data: existingConv, error: fetchError } = await supabase
+      console.log('Creating conversation between parent:', parentId, 'and teacher:', teacherId);
+      
+      // Check if conversation already exists - use a different approach
+      const { data: existingConvs, error: fetchError } = await supabase
         .from('conversations')
-        .select('id')
+        .select('id, participants')
         .eq('type', 'direct')
-        .contains('participants', [parentId, teacherId])
-        .single();
+        .contains('participants', [parentId]);
+
+      if (fetchError) {
+        console.error('Error fetching existing conversations:', fetchError);
+      }
+
+      // Check if any existing conversation contains both participants
+      let existingConv = null;
+      if (existingConvs) {
+        existingConv = existingConvs.find(conv => 
+          conv.participants && 
+          conv.participants.includes(parentId) && 
+          conv.participants.includes(teacherId)
+        );
+      }
 
       if (existingConv) {
+        console.log('Found existing conversation:', existingConv.id);
         return { success: true, conversationId: existingConv.id };
       }
 
@@ -321,6 +354,7 @@ class ParentMessagingService {
         .single();
 
       const teacherName = teacherData?.full_name || 'Teacher';
+      console.log('Teacher name:', teacherName);
 
       // Create new conversation
       const { data, error } = await supabase
@@ -339,6 +373,7 @@ class ParentMessagingService {
         return { success: false, error: error.message };
       }
 
+      console.log('Created new conversation:', data.id);
       return { success: true, conversationId: data.id };
     } catch (error) {
       console.error('Error in getOrCreateTeacherConversation:', error);

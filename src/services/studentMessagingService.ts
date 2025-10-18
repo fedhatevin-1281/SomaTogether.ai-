@@ -236,15 +236,31 @@ class StudentMessagingService {
     teacherId: string
   ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      // Check if conversation already exists
-      const { data: existingConv, error: fetchError } = await supabase
+      console.log('Creating conversation between student:', studentId, 'and teacher:', teacherId);
+      
+      // Check if conversation already exists - use a different approach
+      const { data: existingConvs, error: fetchError } = await supabase
         .from('conversations')
-        .select('id')
+        .select('id, participants')
         .eq('type', 'direct')
-        .contains('participants', [studentId, teacherId])
-        .single();
+        .contains('participants', [studentId]);
+
+      if (fetchError) {
+        console.error('Error fetching existing conversations:', fetchError);
+      }
+
+      // Check if any existing conversation contains both participants
+      let existingConv = null;
+      if (existingConvs) {
+        existingConv = existingConvs.find(conv => 
+          conv.participants && 
+          conv.participants.includes(studentId) && 
+          conv.participants.includes(teacherId)
+        );
+      }
 
       if (existingConv) {
+        console.log('Found existing conversation:', existingConv.id);
         return { success: true, conversationId: existingConv.id };
       }
 
@@ -256,6 +272,7 @@ class StudentMessagingService {
         .single();
 
       const teacherName = teacherData?.full_name || 'Teacher';
+      console.log('Teacher name:', teacherName);
 
       // Create new conversation
       const { data, error } = await supabase
@@ -274,10 +291,70 @@ class StudentMessagingService {
         return { success: false, error: error.message };
       }
 
+      console.log('Created new conversation:', data.id);
       return { success: true, conversationId: data.id };
     } catch (error) {
       console.error('Error in getOrCreateTeacherConversation:', error);
       return { success: false, error: 'Failed to create teacher conversation' };
+    }
+  }
+
+  /**
+   * Create or get conversation with AI assistant
+   */
+  static async getOrCreateAIConversation(studentId: string): Promise<{ success: boolean; conversationId?: string; error?: string }> {
+    try {
+      console.log('Creating AI conversation for student:', studentId);
+      
+      // Check if AI conversation already exists
+      const { data: existingConvs, error: fetchError } = await supabase
+        .from('conversations')
+        .select('id, participants, title')
+        .eq('type', 'direct')
+        .contains('participants', [studentId])
+        .eq('title', 'AI Assistant');
+
+      if (fetchError) {
+        console.error('Error fetching existing AI conversations:', fetchError);
+      }
+
+      // Check if any existing conversation is with AI
+      let existingConv = null;
+      if (existingConvs) {
+        existingConv = existingConvs.find(conv => 
+          conv.participants && 
+          conv.participants.includes(studentId) && 
+          conv.participants.includes('ai-assistant')
+        );
+      }
+
+      if (existingConv) {
+        console.log('Found existing AI conversation:', existingConv.id);
+        return { success: true, conversationId: existingConv.id };
+      }
+
+      // Create new AI conversation
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          type: 'direct',
+          title: 'AI Assistant',
+          created_by: studentId,
+          participants: [studentId, 'ai-assistant'] // Special ID for AI
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating AI conversation:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Created new AI conversation:', data.id);
+      return { success: true, conversationId: data.id };
+    } catch (error) {
+      console.error('Error in getOrCreateAIConversation:', error);
+      return { success: false, error: 'Failed to create AI conversation' };
     }
   }
 
