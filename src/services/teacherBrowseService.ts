@@ -126,7 +126,9 @@ class TeacherBrowseService {
             is_verified,
             last_login_at,
             created_at,
-            updated_at
+            updated_at,
+            is_active,
+            role
           ),
           teacher_preferences (
             preferred_student_ages,
@@ -143,9 +145,7 @@ class TeacherBrowseService {
             vacation_end_date
           )
         `)
-        .eq('is_available', true)
-        .eq('profiles.is_active', true)
-        .eq('profiles.role', 'teacher');
+        .eq('is_available', true);
 
       // Apply filters
       if (filters.subjects && filters.subjects.length > 0) {
@@ -196,9 +196,7 @@ class TeacherBrowseService {
       const { count } = await supabase
         .from('teachers')
         .select('*', { count: 'exact', head: true })
-        .eq('is_available', true)
-        .eq('profiles.is_active', true)
-        .eq('profiles.role', 'teacher');
+        .eq('is_available', true);
 
       const { data, error } = await query;
 
@@ -209,8 +207,14 @@ class TeacherBrowseService {
 
       console.log('Fetched teachers:', data?.length, 'Total count:', count);
 
+      // Filter out inactive profiles and non-teachers
+      const filteredData = (data || []).filter((teacher: any) => {
+        const profile = teacher.profiles;
+        return profile && profile.is_active === true && profile.role === 'teacher';
+      });
+
       // Transform the data
-      const teachers: TeacherProfile[] = (data || []).map((teacher: any) => {
+      const teachers: TeacherProfile[] = filteredData.map((teacher: any) => {
         const profile = teacher.profiles;
         const preferences = teacher.teacher_preferences?.[0];
         
@@ -265,11 +269,11 @@ class TeacherBrowseService {
         };
       });
 
-      const totalPages = Math.ceil((count || 0) / perPage);
+      const totalPages = Math.ceil(teachers.length / perPage);
 
       return {
         teachers,
-        total_count: count || 0,
+        total_count: teachers.length,
         page,
         per_page: perPage,
         total_pages: totalPages
@@ -336,7 +340,6 @@ class TeacherBrowseService {
           )
         `)
         .eq('id', teacherId)
-        .eq('profiles.is_active', true)
         .single();
 
       if (error) {
@@ -347,6 +350,13 @@ class TeacherBrowseService {
       if (!data) return null;
 
       const profile = data.profiles;
+      
+      // Check if profile is active and user is a teacher
+      if (!profile || !profile.is_active || profile.role !== 'teacher') {
+        console.log('Teacher profile not found or inactive:', teacherId);
+        return null;
+      }
+      
       const preferences = data.teacher_preferences?.[0];
 
       // Get recent reviews
