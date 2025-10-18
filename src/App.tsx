@@ -31,6 +31,7 @@ import { TeacherOverview } from './components/parent/TeacherOverview';
 import { PaymentHistory } from './components/parent/PaymentHistory';
 import { ParentReports } from './components/parent/ParentReports';
 import { ParentSettings } from './components/parent/ParentSettings';
+import { ParentMessages } from './components/parent/ParentMessages';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import AuthScreen from './components/auth/AuthScreen';
 import { TeacherOnboarding } from './components/teacher/TeacherOnboarding';
@@ -38,7 +39,7 @@ import { StudentOnboarding } from './components/student/StudentOnboarding';
 import { FloatingAIButton } from './components/shared/FloatingAIButton';
 
 export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
-export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports';
+export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports';
 export type AdminScreen = 'dashboard' | 'user-management' | 'teacher-verification' | 'payment-management' | 'analytics' | 'content-moderation' | 'system-settings';
 
 function AppContent() {
@@ -204,7 +205,8 @@ function AppContent() {
         case 'parent-ai-assistant':
           return <AIAssistant onBack={() => handleScreenChange('dashboard')} />;
         case 'messages':
-          return <MessagesScreen userRole={currentRole} onBack={() => handleScreenChange('dashboard')} />;
+        case 'parent-messages':
+          return <ParentMessages onBack={() => handleScreenChange('dashboard')} />;
         case 'settings':
           return <ParentSettings />;
         default:

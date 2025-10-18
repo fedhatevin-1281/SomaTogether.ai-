@@ -200,12 +200,14 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
         <Button 
           className="h-16 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
           variant="outline"
-          onClick={() => onScreenChange('messages')}
+          onClick={() => onScreenChange('parent-messages')}
         >
           <div className="flex items-center justify-center space-x-3">
             <MessageSquare className="h-6 w-6" />
             <span className="font-medium">Messages</span>
-            <Badge className="bg-red-100 text-red-800">3 New</Badge>
+            <Badge className="bg-red-100 text-red-800">
+              {dashboardData.recent_messages.length > 0 ? dashboardData.recent_messages.length : '0'} New
+            </Badge>
           </div>
         </Button>
         <Button 
