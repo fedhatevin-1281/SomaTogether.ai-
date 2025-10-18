@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import TeacherBrowseService, { TeacherProfile, TeacherBrowseFilters, PaginatedTeachers } from '../../services/teacherBrowseService';
 import { SessionRequestService, CreateSessionRequestData } from '../../services/sessionRequestService';
 import { useAuth } from '../../contexts/AuthContext';
+import { TeacherPublicProfileView } from './TeacherPublicProfileView';
 
 interface TeacherCardProps {
   teacher: TeacherProfile;
@@ -275,10 +276,10 @@ const TeacherBrowse: React.FC = () => {
     }
   };
 
+  const [selectedTeacherProfile, setSelectedTeacherProfile] = useState<TeacherProfile | null>(null);
+
   const handleViewProfile = (teacher: TeacherProfile) => {
-    // Navigate to teacher profile page
-    console.log('View profile:', teacher);
-    // This would open a modal or navigate to a profile page
+    setSelectedTeacherProfile(teacher);
   };
 
   const handleSendRequest = (teacher: TeacherProfile) => {
@@ -745,6 +746,18 @@ const TeacherBrowse: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Teacher Profile View */}
+      {selectedTeacherProfile && (
+        <TeacherPublicProfileView
+          teacherId={selectedTeacherProfile.id}
+          onBack={() => setSelectedTeacherProfile(null)}
+          onSendRequest={(teacher) => {
+            setSelectedTeacherProfile(null);
+            handleSendRequest(teacher);
+          }}
+        />
+      )}
     </div>
   );
 };
