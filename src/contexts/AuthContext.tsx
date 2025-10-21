@@ -256,10 +256,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('User created successfully:', data.user.id);
-      console.log('Profile creation will be handled by database trigger');
       
-      // The database trigger will automatically create the profile and related records
-      // No need for manual profile creation
+      // Wait a moment for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if profile was created by trigger using the helper function
+      const { data: profileExists, error: checkError } = await supabase
+        .rpc('check_profile_exists', { user_id: data.user.id });
+
+      if (checkError || !profileExists) {
+        console.log('Profile not found, creating manually as fallback...');
+        
+        // Fallback: Use the helper function to create profile
+        const { data: createResult, error: createError } = await supabase
+          .rpc('create_user_profile', {
+            user_id: data.user.id,
+            user_email: data.user.email || userData.email,
+            user_full_name: userData.full_name,
+            user_role: userData.role,
+            user_phone: userData.phone,
+            user_date_of_birth: userData.date_of_birth,
+            user_location: userData.location,
+            user_bio: userData.bio,
+            user_timezone: userData.timezone || 'UTC',
+            user_language: userData.language || 'en',
+            user_currency: userData.currency || 'USD'
+          });
+
+        if (createError || !createResult) {
+          console.error('Failed to create profile manually:', createError);
+          return { error: { message: 'Failed to create user profile' } };
+        }
+        
+        console.log('Profile created successfully using fallback function');
+      } else {
+        console.log('Profile created successfully by trigger');
+      }
 
       return { error: null };
     } catch (error) {

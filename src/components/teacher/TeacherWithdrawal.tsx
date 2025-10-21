@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { ArrowDownLeft, DollarSign, Wallet, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { TokenService } from '../../services/tokenService';
+import { tokenService, TokenService } from '../../services/tokenService';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabaseClient';
 

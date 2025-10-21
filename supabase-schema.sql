@@ -363,7 +363,7 @@ CREATE TABLE public.payment_methods (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   user_id uuid NOT NULL,
   type text NOT NULL CHECK (type = ANY (ARRAY['card'::text, 'paypal'::text, 'bank_account'::text, 'crypto'::text])),
-  provider text NOT NULL CHECK (provider = ANY (ARRAY['stripe'::text, 'paypal'::text, 'wise'::text, 'binance'::text, 'mpesa'::text, 'bank_transfer'::text])),
+  provider text NOT NULL CHECK (provider = ANY (ARRAY['stripe'::text, 'paypal'::text, 'wise'::text, 'binance'::text, 'mpesa'::text, 'bank_transfer'::text, 'paystack'::text])),
   provider_id text NOT NULL,
   last_four text,
   expiry_month integer,
@@ -380,8 +380,50 @@ CREATE TABLE public.payment_methods (
   mpesa_account_name text,
   stripe_payment_method_id text,
   stripe_account_id text,
+  paystack_customer_id text,
+  paystack_authorization_code text,
+  paystack_card_type text,
+  paystack_bank text,
+  paystack_country_code text,
   CONSTRAINT payment_methods_pkey PRIMARY KEY (id),
   CONSTRAINT payment_methods_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.paystack_payment_sessions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  reference text NOT NULL UNIQUE,
+  amount_usd numeric NOT NULL,
+  amount_kes numeric NOT NULL,
+  tokens integer NOT NULL,
+  currency text NOT NULL DEFAULT 'KES'::text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])),
+  authorization_url text,
+  access_code text,
+  paystack_transaction_id text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  expires_at timestamp with time zone DEFAULT (now() + '00:30:00'::interval),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT paystack_payment_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT paystack_payment_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.paystack_webhook_events (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_type text NOT NULL,
+  paystack_event_id text NOT NULL UNIQUE,
+  transaction_reference text,
+  user_id uuid,
+  amount_usd numeric,
+  amount_kes numeric,
+  tokens integer,
+  currency text,
+  status text,
+  raw_data jsonb NOT NULL,
+  processed boolean DEFAULT false,
+  processed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT paystack_webhook_events_pkey PRIMARY KEY (id),
+  CONSTRAINT paystack_webhook_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.platform_earnings (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -469,6 +511,26 @@ CREATE TABLE public.session_time_tracker (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT session_time_tracker_pkey PRIMARY KEY (id),
   CONSTRAINT session_time_tracker_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.class_sessions(id)
+);
+CREATE TABLE public.student_preferences (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  student_id uuid NOT NULL UNIQUE,
+  email_notifications boolean DEFAULT true,
+  sms_notifications boolean DEFAULT false,
+  push_notifications boolean DEFAULT true,
+  class_reminders boolean DEFAULT true,
+  assignment_due_reminders boolean DEFAULT true,
+  teacher_messages boolean DEFAULT true,
+  weekly_progress_reports boolean DEFAULT false,
+  marketing_emails boolean DEFAULT false,
+  profile_visibility text DEFAULT 'public'::text CHECK (profile_visibility = ANY (ARRAY['public'::text, 'private'::text, 'teachers_only'::text])),
+  show_online_status boolean DEFAULT true,
+  allow_teacher_contact boolean DEFAULT true,
+  share_progress_with_parents boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT student_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT student_preferences_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id)
 );
 CREATE TABLE public.students (
   id uuid NOT NULL,
@@ -747,6 +809,8 @@ CREATE TABLE public.teachers (
   timezone text DEFAULT 'UTC'::text,
   notification_preferences jsonb DEFAULT '{}'::jsonb,
   tsc_number text UNIQUE,
+  education_system_id uuid,
+  education_level_id uuid,
   CONSTRAINT teachers_pkey PRIMARY KEY (id),
   CONSTRAINT teachers_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id)
 );
@@ -778,6 +842,13 @@ CREATE TABLE public.token_transactions (
   wallet_id uuid,
   balance_after numeric DEFAULT 0.00,
   transaction_type text CHECK (transaction_type = ANY (ARRAY['purchase'::text, 'earning'::text, 'deduction'::text, 'refund'::text, 'bonus'::text, 'penalty'::text, 'transfer'::text])),
+  paystack_transaction_id text,
+  paystack_reference text,
+  paystack_authorization_code text,
+  paystack_channel text,
+  paystack_gateway_response text,
+  paystack_currency text DEFAULT 'KES'::text,
+  paystack_amount_kobo integer,
   CONSTRAINT token_transactions_pkey PRIMARY KEY (id),
   CONSTRAINT token_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
   CONSTRAINT token_transactions_payment_method_id_fkey FOREIGN KEY (payment_method_id) REFERENCES public.payment_methods(id),

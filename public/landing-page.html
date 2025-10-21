@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SomaTogether.ai - AI-Powered Education Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 400% 400%;
+            animation: gradient-shift 8s ease infinite;
+        }
+        
+        .dark {
+            color-scheme: dark;
+        }
+        
+        .dark .dark\:bg-slate-900 {
+            background-color: #0f172a;
+        }
+        
+        .dark .dark\:text-slate-100 {
+            color: #f1f5f9;
+        }
+        
+        .dark .dark\:text-slate-400 {
+            color: #94a3b8;
+        }
+        
+        .dark .dark\:bg-slate-800 {
+            background-color: #1e293b;
+        }
+        
+        .dark .dark\:border-slate-700 {
+            border-color: #334155;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-green-500 rounded-xl flex items-center justify-center">
+                        <i data-lucide="brain" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <span class="text-xl font-semibold text-slate-900 dark:text-slate-100">SomaTogether.ai</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="theme-toggle" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="moon" class="h-5 w-5 text-slate-700 dark:text-slate-300" id="theme-icon"></i>
+                    </button>
+                    <button class="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100" onclick="redirectToLogin()">Log In</button>
+                    <button class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-md" onclick="redirectToSignup()">Get Started</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-40 pb-20 px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium mb-4">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i>
+                        AI-Powered Education Platform
+                    </div>
+                    <h1 class="text-5xl font-semibold text-slate-900 dark:text-slate-100 mb-6 leading-tight">
+                        Personalized Learning,
+                        <br />
+                        <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+                            Powered by AI
+                        </span>
+                    </h1>
+                    <p class="text-xl text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+                        Connect with qualified teachers for 1-on-1 learning sessions enhanced by intelligent matching, 
+                        adaptive learning paths, and comprehensive AI-powered educational support.
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <button class="px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-md flex items-center gap-2" onclick="redirectToSignup()">
+                            Start Learning Today
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </button>
+                        <button class="px-8 py-6 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-md" onclick="scrollToSection('demo')">
+                            Watch Demo
+                        </button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="relative rounded-2xl overflow-hidden shadow-2xl">
+                        <img src="https://images.unsplash.com/photo-1758874573116-2bc02232eef1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkZW50JTIwbGVhcm5pbmclMjBvbmxpbmV8ZW58MXx8fHwxNzYxMDE0NjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080" 
+                             alt="Student learning online" 
+                             class="w-full h-auto">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-center justify-center">
+                            <button class="bg-white/90 hover:bg-white text-slate-900 rounded-full w-16 h-16 p-0 flex items-center justify-center">
+                                <i data-lucide="play" class="w-6 h-6 ml-1" fill="currentColor"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Floating stats cards -->
+                    <div class="absolute -bottom-6 -left-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                                <i data-lucide="award" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-900 dark:text-slate-100">95%</div>
+                                <div class="text-xs text-slate-600 dark:text-slate-400">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -top-6 -right-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-900 dark:text-slate-100">2,000+</div>
+                                <div class="text-xs text-slate-600 dark:text-slate-400">Active Students</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto mt-20">
+                <div class="p-6 text-center border-none shadow-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg">
+                    <div class="text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-1">10,000+</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-400">AI-Matched Sessions</div>
+                </div>
+                <div class="p-6 text-center border-none shadow-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg">
+                    <div class="text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-1">500+</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-400">Verified Teachers</div>
+                </div>
+                <div class="p-6 text-center border-none shadow-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg">
+                    <div class="text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-1">2,000+</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-400">Active Students</div>
+                </div>
+                <div class="p-6 text-center border-none shadow-sm bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg">
+                    <div class="text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-1">95%</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-400">Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 px-6 bg-white dark:bg-slate-900">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                    AI-First Approach to Education
+                </h2>
+                <p class="text-lg text-slate-600 dark:text-slate-400">
+                    Every feature enhanced by artificial intelligence to provide the best learning experience
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-blue-500 bg-blue-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="brain" class="w-6 h-6 text-blue-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">AI-Powered Matching</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Intelligent algorithm matches students with optimal teachers based on learning style, subject needs, and personality compatibility.</p>
+                </div>
+
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-purple-500 bg-purple-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-purple-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Personalized Learning Paths</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">AI creates adaptive learning journeys based on student progress, strengths, and areas for improvement.</p>
+                </div>
+
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-green-500 bg-green-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="trending-up" class="w-6 h-6 text-green-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Smart Analytics</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">AI-powered insights for all stakeholders with real-time progress tracking and performance metrics.</p>
+                </div>
+
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-red-500 bg-red-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="video" class="w-6 h-6 text-red-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Live Sessions</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Seamless 1-on-1 video sessions via Zoom integration with AI-enhanced teaching tools.</p>
+                </div>
+
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-blue-500 bg-blue-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="wallet" class="w-6 h-6 text-blue-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Token Economy</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Innovative payment system with AI-optimized pricing and seamless Paystack integration.</p>
+                </div>
+
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-green-500 bg-green-500 bg-opacity-10 dark:bg-opacity-20">
+                        <i data-lucide="shield" class="w-6 h-6 text-green-500"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">AI-Verified Teachers</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Comprehensive verification process with AI-assisted background checks and quality assurance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="py-20 px-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <h2 class="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                    Simple, Transparent Pricing
+                </h2>
+                <p class="text-lg text-slate-600 dark:text-slate-400 mb-6">
+                    Choose the plan that works for you. Pay as you learn with our flexible token system.
+                </p>
+                
+                <!-- Currency Toggle -->
+                <div class="inline-flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 shadow-sm">
+                    <button id="usd-btn" class="px-6 py-2 rounded-md transition-colors bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                        USD
+                    </button>
+                    <button id="kes-btn" class="px-6 py-2 rounded-md transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+                        KES
+                    </button>
+                </div>
+            </div>
+
+            <!-- Student Pricing -->
+            <div class="mb-16">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <i data-lucide="graduation-cap" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">For Students</h3>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="pricing-cards">
+                    <!-- Pricing cards will be populated by JavaScript -->
+                </div>
+
+                <!-- Session Costs -->
+                <div class="p-6 bg-blue-50 border-blue-200 rounded-lg">
+                    <h4 class="font-semibold text-slate-900 mb-4">Session Costs</h4>
+                    <div class="space-y-3" id="session-costs">
+                        <!-- Session costs will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Pricing -->
+            <div>
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                        <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">For Teachers</h3>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-green-50 border-green-200 rounded-lg">
+                        <h4 class="text-xl font-semibold text-slate-900 mb-4">Earn More, Teach Better</h4>
+                        <ul class="space-y-3 mb-6">
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                                <span class="text-slate-700"><strong>No upfront costs</strong> - Start teaching immediately</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                                <span class="text-slate-700"><strong>Earn 40%</strong> of total session revenue</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                                <span class="text-slate-700"><strong>Teach up to 50 students</strong> per hour</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                                <span class="text-slate-700"><strong>More students = More earnings</strong></span>
+                            </li>
+                        </ul>
+                        <button class="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-md">
+                            Become a Teacher
+                        </button>
+                    </div>
+
+                    <div class="p-6 bg-white dark:bg-slate-800 rounded-lg">
+                        <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-4">Earning Examples</h4>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Teachers earn 40% of total revenue. The more students you teach, the more you earn!</p>
+                        <div class="space-y-4" id="teacher-earnings">
+                            <!-- Teacher earnings will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-6 bg-slate-900 text-white">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl font-semibold mb-6">
+                Ready to Transform Your Learning?
+            </h2>
+            <p class="text-xl text-slate-300 mb-8">
+                Join thousands of students and teachers already experiencing the future of education
+            </p>
+            <div class="flex items-center justify-center gap-4">
+                <button class="bg-white text-slate-900 hover:bg-slate-100 px-8 py-6 rounded-md flex items-center gap-2" onclick="redirectToSignup()">
+                    Get Started Free
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+                <button class="border border-white text-white hover:bg-white/10 px-8 py-6 rounded-md" onclick="redirectToLogin()">
+                    Sign In
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 bg-slate-950 text-slate-400">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-500 to-green-500 rounded-lg flex items-center justify-center">
+                            <i data-lucide="brain" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <span class="font-semibold text-white">SomaTogether.ai</span>
+                    </div>
+                    <p class="text-sm">
+                        AI-powered educational platform connecting students with qualified teachers.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Platform</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">For Students</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">For Teachers</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">For Parents</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Docs</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white mb-4">Company</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-slate-800 text-center text-sm">
+                <p>© 2025 SomaTogether.ai. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            html.classList.add('dark');
+            themeIcon.setAttribute('data-lucide', 'sun');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                localStorage.setItem('theme', 'dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeIcon.setAttribute('data-lucide', 'moon');
+            }
+            
+            lucide.createIcons();
+        });
+
+        // Pricing data
+        const pricingData = {
+            USD: {
+                student: [
+                    { name: 'Starter Pack', price: '$25', tokens: '250', bonus: '', popular: false },
+                    { name: 'Popular Pack', price: '$50', tokens: '550', bonus: '10% bonus', popular: true },
+                    { name: 'Premium Pack', price: '$100', tokens: '1,200', bonus: '20% bonus', popular: false },
+                    { name: 'Family Pack', price: '$200', tokens: '2,500', bonus: '25% bonus', popular: false }
+                ],
+                session: [
+                    { duration: '1-hour session', cost: '10 tokens', price: '$1 per student' },
+                    { duration: '30-minute session', cost: '5 tokens', price: '$0.50 per student' },
+                    { duration: 'Group sessions', cost: 'Same rate', price: 'per student' }
+                ],
+                teacher: [
+                    { session: '1 student/hour', earning: '$0.40', detail: 'KES 56', students: '1 student' },
+                    { session: '5 students/hour', earning: '$2', detail: 'KES 280', students: '5 students' },
+                    { session: '10 students/hour', earning: '$4', detail: 'KES 560', students: '10 students' },
+                    { session: '20 students/hour', earning: '$8', detail: 'KES 1,120', students: '20 students' }
+                ]
+            },
+            KES: {
+                student: [
+                    { name: 'Starter Pack', price: 'KES 3,500', tokens: '250', bonus: '', popular: false },
+                    { name: 'Popular Pack', price: 'KES 7,000', tokens: '550', bonus: '10% bonus', popular: true },
+                    { name: 'Premium Pack', price: 'KES 14,000', tokens: '1,200', bonus: '20% bonus', popular: false },
+                    { name: 'Family Pack', price: 'KES 28,000', tokens: '2,500', bonus: '25% bonus', popular: false }
+                ],
+                session: [
+                    { duration: '1-hour session', cost: '10 tokens', price: 'KES 140 per student' },
+                    { duration: '30-minute session', cost: '5 tokens', price: 'KES 70 per student' },
+                    { duration: 'Group sessions', cost: 'Same rate', price: 'per student' }
+                ],
+                teacher: [
+                    { session: '1 student/hour', earning: 'KES 56', detail: '$0.40', students: '1 student' },
+                    { session: '5 students/hour', earning: 'KES 280', detail: '$2', students: '5 students' },
+                    { session: '10 students/hour', earning: 'KES 560', detail: '$4', students: '10 students' },
+                    { session: '20 students/hour', earning: 'KES 1,120', detail: '$8', students: '20 students' }
+                ]
+            }
+        };
+
+        let currentCurrency = 'USD';
+
+        // Currency toggle functionality
+        document.getElementById('usd-btn').addEventListener('click', () => {
+            currentCurrency = 'USD';
+            updatePricing();
+            updateCurrencyButtons();
+        });
+
+        document.getElementById('kes-btn').addEventListener('click', () => {
+            currentCurrency = 'KES';
+            updatePricing();
+            updateCurrencyButtons();
+        });
+
+        function updateCurrencyButtons() {
+            const usdBtn = document.getElementById('usd-btn');
+            const kesBtn = document.getElementById('kes-btn');
+            
+            if (currentCurrency === 'USD') {
+                usdBtn.className = 'px-6 py-2 rounded-md transition-colors bg-gradient-to-r from-blue-500 to-purple-500 text-white';
+                kesBtn.className = 'px-6 py-2 rounded-md transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100';
+            } else {
+                usdBtn.className = 'px-6 py-2 rounded-md transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100';
+                kesBtn.className = 'px-6 py-2 rounded-md transition-colors bg-gradient-to-r from-blue-500 to-purple-500 text-white';
+            }
+        }
+
+        function updatePricing() {
+            const data = pricingData[currentCurrency];
+            
+            // Update student pricing cards
+            const pricingCards = document.getElementById('pricing-cards');
+            pricingCards.innerHTML = data.student.map(pack => `
+                <div class="p-6 border-2 transition-all dark:bg-slate-800 rounded-lg ${pack.popular ? 'border-blue-500 shadow-lg scale-105' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600'}">
+                    ${pack.popular ? '<div class="inline-flex items-center px-2 py-1 bg-blue-500 text-white text-sm rounded-full mb-4">Most Popular</div>' : ''}
+                    <h4 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">${pack.name}</h4>
+                    <div class="text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-1">${pack.price}</div>
+                    <div class="text-slate-600 dark:text-slate-400 mb-4">${pack.tokens} tokens</div>
+                    ${pack.bonus ? `<div class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-sm rounded-full mb-4">${pack.bonus}</div>` : ''}
+                    <button class="w-full ${pack.popular ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'} py-3 rounded-md">
+                        Buy Now
+                    </button>
+                </div>
+            `).join('');
+
+            // Update session costs
+            const sessionCosts = document.getElementById('session-costs');
+            sessionCosts.innerHTML = data.session.map(session => `
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-700 dark:text-slate-300">${session.duration}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-600 dark:text-slate-400">${session.cost}</span>
+                        <span class="text-slate-900 dark:text-slate-100 font-semibold">(${session.price})</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Update teacher earnings
+            const teacherEarnings = document.getElementById('teacher-earnings');
+            teacherEarnings.innerHTML = data.teacher.map(earning => `
+                <div class="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <div class="font-semibold text-slate-900 dark:text-slate-100">${earning.students}</div>
+                            <span class="text-xs text-slate-600 dark:text-slate-400">1-hour session</span>
+                        </div>
+                        <div class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-sm rounded-full">
+                            40% earnings
+                        </div>
+                    </div>
+                    <div class="text-xl font-semibold text-green-600">
+                        You earn: ${earning.earning}
+                    </div>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">${earning.detail}</div>
+                </div>
+            `).join('');
+        }
+
+        // Smooth scrolling function
+        function scrollToSection(section) {
+            // This would typically scroll to a specific section
+            console.log(`Scrolling to ${section}`);
+        }
+
+        // Redirect to the main React app
+        function redirectToApp() {
+            window.location.href = '/';
+        }
+
+        // Redirect to login page in React app
+        function redirectToLogin() {
+            console.log('Redirecting to login page');
+            window.location.href = '/?screen=login';
+        }
+
+        // Redirect to signup page in React app
+        function redirectToSignup() {
+            console.log('Redirecting to signup page');
+            window.location.href = '/?screen=login&mode=signup';
+        }
+
+        // Initialize pricing on page load
+        updatePricing();
+    </script>
+</body>
+</html>

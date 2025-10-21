@@ -28,7 +28,7 @@ export function PaystackPayment({ amount, tokens, onSuccess, onError, onCancel }
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(null);
-  const [selectedCurrency, setSelectedCurrency] = useState('NGN');
+  const [selectedCurrency, setSelectedCurrency] = useState('KES');
   const [email, setEmail] = useState(user?.email || '');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

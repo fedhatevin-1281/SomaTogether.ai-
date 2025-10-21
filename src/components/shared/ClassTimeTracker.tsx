@@ -12,6 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 import SessionTimeService from '../../services/sessionTimeService';
+import { tokenService } from '../../services/tokenService';
 
 interface ClassTimeTrackerProps {
   sessionId: string;

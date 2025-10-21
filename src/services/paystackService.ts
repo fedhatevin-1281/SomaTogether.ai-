@@ -74,6 +74,13 @@ export class PaystackService {
       secretKey: import.meta.env.VITE_PAYSTACK_SECRET_KEY || '',
       baseUrl: 'https://api.paystack.co'
     };
+    
+    // Log configuration status (without exposing keys)
+    console.log('Paystack Service initialized:', {
+      hasPublicKey: !!this.config.publicKey,
+      hasSecretKey: !!this.config.secretKey,
+      baseUrl: this.config.baseUrl
+    });
   }
 
   public static getInstance(): PaystackService {
@@ -95,6 +102,22 @@ export class PaystackService {
     metadata?: any;
   }): Promise<{ success: boolean; data?: PaystackInitializeResponse; error?: string }> {
     try {
+      // Check if API keys are configured
+      if (!this.config.secretKey) {
+        return { success: false, error: 'Paystack secret key not configured. Please set VITE_PAYSTACK_SECRET_KEY in your environment variables.' };
+      }
+      
+      if (!this.config.publicKey) {
+        return { success: false, error: 'Paystack public key not configured. Please set VITE_PAYSTACK_PUBLIC_KEY in your environment variables.' };
+      }
+
+      console.log('Initializing Paystack payment:', {
+        email: data.email,
+        amount: data.amount,
+        currency: data.currency || 'KES',
+        reference: data.reference || this.generateReference()
+      });
+
       const response = await fetch(`${this.config.baseUrl}/transaction/initialize`, {
         method: 'POST',
         headers: {
@@ -104,7 +127,7 @@ export class PaystackService {
         body: JSON.stringify({
           email: data.email,
           amount: data.amount,
-          currency: data.currency || 'NGN',
+          currency: data.currency || 'KES', // Changed from NGN to KES
           reference: data.reference || this.generateReference(),
           callback_url: data.callback_url,
           metadata: data.metadata || {}

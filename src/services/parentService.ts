@@ -180,6 +180,11 @@ class ParentService {
    */
   static async getChildProgress(childId: string): Promise<ChildProgress | null> {
     try {
+      if (!childId) {
+        console.error('Child ID is required');
+        return null;
+      }
+
       // Get child basic info
       const { data: childData, error: childError } = await supabase
         .from('students')

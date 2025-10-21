@@ -97,6 +97,21 @@ export default function AuthScreen() {
     loadEducationData();
   }, []);
 
+  // Handle URL parameters for login/signup mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const screen = urlParams.get('screen');
+    const mode = urlParams.get('mode');
+    
+    if (screen === 'login') {
+      if (mode === 'signup') {
+        setActiveTab('signup');
+      } else {
+        setActiveTab('signin');
+      }
+    }
+  }, []);
+
   const loadEducationData = async () => {
     setLoadingEducationData(true);
     try {

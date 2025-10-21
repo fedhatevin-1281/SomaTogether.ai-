@@ -642,9 +642,16 @@ export function StepByStepSignup({ onSubmit, loading = false, error, success }: 
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="sw">Swahili</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                    <SelectItem value="ar">Arabic</SelectItem>
+                    <SelectItem value="sw">Kiswahili (Swahili)</SelectItem>
+                    <SelectItem value="fr">Français (French)</SelectItem>
+                    <SelectItem value="ar">العربية (Arabic)</SelectItem>
+                    <SelectItem value="am">አማርኛ (Amharic)</SelectItem>
+                    <SelectItem value="ha">Hausa</SelectItem>
+                    <SelectItem value="yo">Yoruba</SelectItem>
+                    <SelectItem value="ig">Igbo</SelectItem>
+                    <SelectItem value="zu">IsiZulu</SelectItem>
+                    <SelectItem value="xh">IsiXhosa</SelectItem>
+                    <SelectItem value="af">Afrikaans</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -8,27 +8,30 @@ export interface Assignment {
   title: string;
   description: string;
   instructions?: string;
-  attachments: any[];
-  resources: any[];
+  attachments?: any[];
+  resources?: any[];
   max_points: number;
   due_date?: string;
   is_published: boolean;
   status: 'draft' | 'published' | 'closed';
   difficulty_level: 'easy' | 'medium' | 'hard';
   estimated_time_minutes?: number;
-  metadata: any;
+  metadata?: any;
   created_at: string;
   updated_at: string;
   // Joined data
-  subject?: {
-    name: string;
-    category: string;
-  };
   teacher?: {
+    id: string;
     full_name: string;
     avatar_url?: string;
   };
+  subject?: {
+    id: string;
+    name: string;
+    category: string;
+  };
   class?: {
+    id: string;
     title: string;
   };
 }
@@ -39,336 +42,434 @@ export interface AssignmentSubmission {
   student_id: string;
   class_id?: string;
   content?: string;
-  attachments: any[];
+  attachments?: any[];
   points_earned?: number;
   max_points: number;
   feedback?: string;
   grade?: string;
   status: 'submitted' | 'graded' | 'returned' | 'late';
-  submitted_at: string;
+  submitted_at?: string;
   graded_at?: string;
   due_date?: string;
   is_late: boolean;
-  metadata: any;
+  metadata?: any;
   created_at: string;
   updated_at: string;
   // Joined data
   assignment?: Assignment;
   student?: {
+    id: string;
     full_name: string;
     avatar_url?: string;
   };
+}
+
+export interface CreateAssignmentData {
+  teacher_id: string;
+  class_id?: string;
+  subject_id: string;
+  title: string;
+  description: string;
+  instructions?: string;
+  attachments?: any[];
+  resources?: any[];
+  max_points?: number;
+  due_date?: string;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
+  estimated_time_minutes?: number;
+}
+
+export interface SubmitAssignmentData {
+  assignment_id: string;
+  student_id: string;
+  class_id?: string;
+  content?: string;
+  attachments?: any[];
 }
 
 export class AssignmentService {
   /**
    * Create a new assignment
    */
-  static async createAssignment(assignmentData: {
-    teacher_id: string;
-    class_id?: string;
-    subject_id: string;
-    title: string;
-    description: string;
-    instructions?: string;
-    attachments?: any[];
-    resources?: any[];
-    max_points?: number;
-    due_date?: string;
-    is_published?: boolean;
-    difficulty_level?: 'easy' | 'medium' | 'hard';
-    estimated_time_minutes?: number;
-  }): Promise<Assignment> {
-    const { data, error } = await supabase
-      .from('assignments')
-      .insert({
-        ...assignmentData,
-        attachments: assignmentData.attachments || [],
-        resources: assignmentData.resources || [],
-        max_points: assignmentData.max_points || 100,
-        is_published: assignmentData.is_published || false,
-        difficulty_level: assignmentData.difficulty_level || 'medium',
-        status: 'draft',
-        metadata: {}
-      })
-      .select(`
-        *,
-        subjects (
-          name,
-          category
-        ),
-        teachers!teacher_id (
-          profiles (
-            full_name,
-            avatar_url
+  static async createAssignment(assignmentData: CreateAssignmentData): Promise<Assignment> {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert({
+          ...assignmentData,
+          max_points: assignmentData.max_points || 100,
+          difficulty_level: assignmentData.difficulty_level || 'medium',
+          is_published: false,
+          status: 'draft',
+          attachments: assignmentData.attachments || [],
+          resources: assignmentData.resources || []
+        })
+        .select(`
+          *,
+          teachers!assignments_teacher_id_fkey (
+            id,
+            profiles!teachers_id_fkey (
+              full_name,
+              avatar_url
+            )
+          ),
+          subjects!assignments_subject_id_fkey (
+            id,
+            name,
+            category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
           )
-        ),
-        classes (
-          title
-        )
-      `)
-      .single();
+        `)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return {
-      ...data,
-      subject: data.subjects,
-      teacher: data.teachers?.profiles,
-      class: data.classes
-    };
-  }
-
-  /**
-   * Update an assignment
-   */
-  static async updateAssignment(
-    assignmentId: string,
-    updates: Partial<Assignment>
-  ): Promise<Assignment> {
-    const { data, error } = await supabase
-      .from('assignments')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', assignmentId)
-      .select(`
-        *,
-        subjects (
-          name,
-          category
-        ),
-        teachers!teacher_id (
-          profiles (
-            full_name,
-            avatar_url
-          )
-        ),
-        classes (
-          title
-        )
-      `)
-      .single();
-
-    if (error) throw error;
-
-    return {
-      ...data,
-      subject: data.subjects,
-      teacher: data.teachers?.profiles,
-      class: data.classes
-    };
+      return {
+        ...data,
+        teacher: data.teachers?.profiles,
+        subject: data.subjects,
+        class: data.classes
+      };
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      throw error;
+    }
   }
 
   /**
    * Publish an assignment
    */
   static async publishAssignment(assignmentId: string): Promise<Assignment> {
-    return this.updateAssignment(assignmentId, {
-      is_published: true,
-      status: 'published'
-    });
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .update({
+          is_published: true,
+          status: 'published'
+        })
+        .eq('id', assignmentId)
+        .select(`
+          *,
+          teachers!assignments_teacher_id_fkey (
+            id,
+            profiles!teachers_id_fkey (
+              full_name,
+              avatar_url
+            )
+          ),
+          subjects!assignments_subject_id_fkey (
+            id,
+            name,
+            category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...data,
+        teacher: data.teachers?.profiles,
+        subject: data.subjects,
+        class: data.classes
+      };
+    } catch (error) {
+      console.error('Error publishing assignment:', error);
+      throw error;
+    }
   }
 
   /**
    * Get assignments for a teacher
    */
   static async getTeacherAssignments(teacherId: string): Promise<Assignment[]> {
-    const { data, error } = await supabase
-      .from('assignments')
-      .select(`
-        *,
-        subjects (
-          name,
-          category
-        ),
-        classes (
-          title
-        )
-      `)
-      .eq('teacher_id', teacherId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .select(`
+          *,
+          subjects!assignments_subject_id_fkey (
+            id,
+            name,
+            category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
+          )
+        `)
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return (data || []).map(assignment => ({
-      ...assignment,
-      subject: assignment.subjects,
-      class: assignment.classes
-    }));
+      return (data || []).map(assignmentData => ({
+        ...assignmentData,
+        subject: assignmentData.subjects,
+        class: assignmentData.classes
+      }));
+    } catch (error) {
+      console.error('Error fetching teacher assignments:', error);
+      throw error;
+    }
   }
 
   /**
-   * Get assignments for a student (from accepted teachers)
+   * Get assignments for a student
    */
   static async getStudentAssignments(studentId: string): Promise<Assignment[]> {
-    // First, get all classes where the student is enrolled
-    const { data: classes, error: classesError } = await supabase
-      .from('classes')
-      .select('teacher_id')
-      .eq('student_id', studentId)
-      .eq('status', 'active');
-
-    if (classesError) throw classesError;
-
-    if (!classes || classes.length === 0) {
-      return [];
-    }
-
-    const teacherIds = classes.map(cls => cls.teacher_id);
-
-    // Get published assignments from these teachers
-    const { data, error } = await supabase
-      .from('assignments')
-      .select(`
-        *,
-        subjects (
-          name,
-          category
-        ),
-        teachers!teacher_id (
-          profiles (
-            full_name,
-            avatar_url
+    try {
+      // Get assignments from classes the student is enrolled in
+      const { data, error } = await supabase
+        .from('assignments')
+        .select(`
+          *,
+          teachers!assignments_teacher_id_fkey (
+            id,
+            profiles!teachers_id_fkey (
+              full_name,
+              avatar_url
+            )
+          ),
+          subjects!assignments_subject_id_fkey (
+            id,
+            name,
+            category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
           )
-        ),
-        classes (
-          title
-        )
-      `)
-      .in('teacher_id', teacherIds)
-      .eq('is_published', true)
-      .eq('status', 'published')
-      .order('due_date', { ascending: true });
+        `)
+        .eq('is_published', true)
+        .eq('status', 'published')
+        .or(`class_id.in.(
+          select id from classes where student_id.eq.${studentId}
+        )`)
+        .order('due_date', { ascending: true, nullsFirst: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return (data || []).map(assignment => ({
-      ...assignment,
-      subject: assignment.subjects,
-      teacher: assignment.teachers?.profiles,
-      class: assignment.classes
-    }));
+      return (data || []).map(assignmentData => ({
+        ...assignmentData,
+        teacher: assignmentData.teachers?.profiles,
+        subject: assignmentData.subjects,
+        class: assignmentData.classes
+      }));
+    } catch (error) {
+      console.error('Error fetching student assignments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get assignment by ID
+   */
+  static async getAssignmentById(assignmentId: string): Promise<Assignment | null> {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .select(`
+          *,
+          teachers!assignments_teacher_id_fkey (
+            id,
+            profiles!teachers_id_fkey (
+              full_name,
+              avatar_url
+            )
+          ),
+          subjects!assignments_subject_id_fkey (
+            id,
+            name,
+            category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
+          )
+        `)
+        .eq('id', assignmentId)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...data,
+        teacher: data.teachers?.profiles,
+        subject: data.subjects,
+        class: data.classes
+      };
+    } catch (error) {
+      console.error('Error fetching assignment:', error);
+      return null;
+    }
   }
 
   /**
    * Submit an assignment
    */
-  static async submitAssignment(submissionData: {
-    assignment_id: string;
-    student_id: string;
-    class_id?: string;
-    content?: string;
-    attachments?: any[];
-    due_date?: string;
-  }): Promise<AssignmentSubmission> {
-    const { data, error } = await supabase
-      .from('assignment_submissions')
-      .insert({
-        ...submissionData,
-        attachments: submissionData.attachments || [],
-        max_points: 100, // Will be updated from assignment
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-        is_late: submissionData.due_date ? 
-          new Date() > new Date(submissionData.due_date) : false,
-        metadata: {}
-      })
-      .select(`
-        *,
-        assignments (
+  static async submitAssignment(submissionData: SubmitAssignmentData): Promise<AssignmentSubmission> {
+    try {
+      // Get assignment details
+      const assignment = await this.getAssignmentById(submissionData.assignment_id);
+      if (!assignment) {
+        throw new Error('Assignment not found');
+      }
+
+      // Check if already submitted
+      const { data: existingSubmission } = await supabase
+        .from('assignment_submissions')
+        .select('id')
+        .eq('assignment_id', submissionData.assignment_id)
+        .eq('student_id', submissionData.student_id)
+        .single();
+
+      if (existingSubmission) {
+        throw new Error('Assignment already submitted');
+      }
+
+      // Check if due date has passed
+      const isLate = assignment.due_date ? new Date() > new Date(assignment.due_date) : false;
+
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .insert({
+          ...submissionData,
+          max_points: assignment.max_points,
+          due_date: assignment.due_date,
+          is_late: isLate,
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          attachments: submissionData.attachments || []
+        })
+        .select(`
           *,
-          subjects (
-            name,
-            category
+          assignments!assignment_submissions_assignment_id_fkey (
+            *,
+            teachers!assignments_teacher_id_fkey (
+              id,
+              profiles!teachers_id_fkey (
+                full_name,
+                avatar_url
+              )
+            ),
+            subjects!assignments_subject_id_fkey (
+              id,
+              name,
+              category
+            )
           ),
-          teachers!teacher_id (
-            profiles (
+          students!assignment_submissions_student_id_fkey (
+            id,
+            profiles!students_id_fkey (
               full_name,
               avatar_url
             )
           )
-        )
-      `)
-      .single();
+        `)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return {
-      ...data,
-      assignment: data.assignments,
-      max_points: data.assignments?.max_points || 100
-    };
+      return {
+        ...data,
+        assignment: data.assignments,
+        student: data.students?.profiles
+      };
+    } catch (error) {
+      console.error('Error submitting assignment:', error);
+      throw error;
+    }
   }
 
   /**
-   * Get assignment submissions for a teacher
+   * Get submissions for an assignment
    */
-  static async getTeacherSubmissions(teacherId: string): Promise<AssignmentSubmission[]> {
-    const { data, error } = await supabase
-      .from('assignment_submissions')
-      .select(`
-        *,
-        assignments!assignment_id (
+  static async getAssignmentSubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .select(`
           *,
-          subjects (
-            name,
-            category
+          assignments!assignment_submissions_assignment_id_fkey (
+            *,
+            teachers!assignments_teacher_id_fkey (
+              id,
+              profiles!teachers_id_fkey (
+                full_name,
+                avatar_url
+              )
+            )
+          ),
+          students!assignment_submissions_student_id_fkey (
+            id,
+            profiles!students_id_fkey (
+              full_name,
+              avatar_url
+            )
           )
-        ),
-        students!student_id (
-          profiles (
-            full_name,
-            avatar_url
-          )
-        )
-      `)
-      .eq('assignments.teacher_id', teacherId)
-      .order('submitted_at', { ascending: false });
+        `)
+        .eq('assignment_id', assignmentId)
+        .order('submitted_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return (data || []).map(submission => ({
-      ...submission,
-      assignment: submission.assignments,
-      student: submission.students?.profiles,
-      max_points: submission.assignments?.max_points || 100
-    }));
+      return (data || []).map(submissionData => ({
+        ...submissionData,
+        assignment: submissionData.assignments,
+        student: submissionData.students?.profiles
+      }));
+    } catch (error) {
+      console.error('Error fetching assignment submissions:', error);
+      throw error;
+    }
   }
 
   /**
-   * Get student's assignment submissions
+   * Get student's submissions
    */
   static async getStudentSubmissions(studentId: string): Promise<AssignmentSubmission[]> {
-    const { data, error } = await supabase
-      .from('assignment_submissions')
-      .select(`
-        *,
-        assignments (
+    try {
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .select(`
           *,
-          subjects (
-            name,
-            category
-          ),
-          teachers!teacher_id (
-            profiles (
-              full_name,
-              avatar_url
+          assignments!assignment_submissions_assignment_id_fkey (
+            *,
+            teachers!assignments_teacher_id_fkey (
+              id,
+              profiles!teachers_id_fkey (
+                full_name,
+                avatar_url
+              )
+            ),
+            subjects!assignments_subject_id_fkey (
+              id,
+              name,
+              category
             )
           )
-        )
-      `)
-      .eq('student_id', studentId)
-      .order('submitted_at', { ascending: false });
+        `)
+        .eq('student_id', studentId)
+        .order('submitted_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return (data || []).map(submission => ({
-      ...submission,
-      assignment: submission.assignments,
-      max_points: submission.assignments?.max_points || 100
-    }));
+      return (data || []).map(submissionData => ({
+        ...submissionData,
+        assignment: submissionData.assignments
+      }));
+    } catch (error) {
+      console.error('Error fetching student submissions:', error);
+      throw error;
+    }
   }
 
   /**
@@ -376,89 +477,133 @@ export class AssignmentService {
    */
   static async gradeSubmission(
     submissionId: string,
-    gradeData: {
-      points_earned: number;
-      grade?: string;
-      feedback?: string;
-    }
+    pointsEarned: number,
+    feedback?: string,
+    grade?: string
   ): Promise<AssignmentSubmission> {
-    const { data, error } = await supabase
-      .from('assignment_submissions')
-      .update({
-        ...gradeData,
-        status: 'graded',
-        graded_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', submissionId)
-      .select(`
-        *,
-        assignments (
+    try {
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .update({
+          points_earned: pointsEarned,
+          feedback: feedback,
+          grade: grade,
+          status: 'graded',
+          graded_at: new Date().toISOString()
+        })
+        .eq('id', submissionId)
+        .select(`
           *,
-          subjects (
+          assignments!assignment_submissions_assignment_id_fkey (
+            *,
+            teachers!assignments_teacher_id_fkey (
+              id,
+              profiles!teachers_id_fkey (
+                full_name,
+                avatar_url
+              )
+            )
+          ),
+          students!assignment_submissions_student_id_fkey (
+            id,
+            profiles!students_id_fkey (
+              full_name,
+              avatar_url
+            )
+          )
+        `)
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...data,
+        assignment: data.assignments,
+        student: data.students?.profiles
+      };
+    } catch (error) {
+      console.error('Error grading submission:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update assignment
+   */
+  static async updateAssignment(
+    assignmentId: string,
+    updates: Partial<Assignment>
+  ): Promise<Assignment> {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignmentId)
+        .select(`
+          *,
+          teachers!assignments_teacher_id_fkey (
+            id,
+            profiles!teachers_id_fkey (
+              full_name,
+              avatar_url
+            )
+          ),
+          subjects!assignments_subject_id_fkey (
+            id,
             name,
             category
+          ),
+          classes!assignments_class_id_fkey (
+            id,
+            title
           )
-        ),
-        students!student_id (
-          profiles (
-            full_name,
-            avatar_url
-          )
-        )
-      `)
-      .single();
+        `)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return {
-      ...data,
-      assignment: data.assignments,
-      student: data.students?.profiles,
-      max_points: data.assignments?.max_points || 100
-    };
+      return {
+        ...data,
+        teacher: data.teachers?.profiles,
+        subject: data.subjects,
+        class: data.classes
+      };
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      throw error;
+    }
   }
 
   /**
-   * Get available subjects for assignments
+   * Get assignment statistics
    */
-  static async getSubjects(): Promise<Array<{ id: string; name: string; category: string }>> {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('id, name, category')
-      .eq('is_active', true)
-      .order('name');
+  static async getAssignmentStats(assignmentId: string): Promise<{
+    totalSubmissions: number;
+    gradedSubmissions: number;
+    averageScore?: number;
+    lateSubmissions: number;
+  }> {
+    try {
+      const submissions = await this.getAssignmentSubmissions(assignmentId);
+      
+      const totalSubmissions = submissions.length;
+      const gradedSubmissions = submissions.filter(s => s.status === 'graded').length;
+      const lateSubmissions = submissions.filter(s => s.is_late).length;
+      
+      const gradedSubsWithScores = submissions.filter(s => s.points_earned !== null);
+      const averageScore = gradedSubsWithScores.length > 0
+        ? gradedSubsWithScores.reduce((sum, s) => sum + (s.points_earned || 0), 0) / gradedSubsWithScores.length
+        : undefined;
 
-    if (error) throw error;
-    return data || [];
-  }
-
-  /**
-   * Get teacher's classes for assignment assignment
-   */
-  static async getTeacherClasses(teacherId: string): Promise<Array<{ id: string; title: string; student_name: string }>> {
-    const { data, error } = await supabase
-      .from('classes')
-      .select(`
-        id,
-        title,
-        students!classes_student_id_fkey (
-          profiles (
-            full_name
-          )
-        )
-      `)
-      .eq('teacher_id', teacherId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return (data || []).map((cls: any) => ({
-      id: cls.id,
-      title: cls.title,
-      student_name: cls.students?.profiles?.full_name || 'Unknown Student'
-    }));
+      return {
+        totalSubmissions,
+        gradedSubmissions,
+        averageScore,
+        lateSubmissions
+      };
+    } catch (error) {
+      console.error('Error getting assignment stats:', error);
+      throw error;
+    }
   }
 }
-

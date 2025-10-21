@@ -34,6 +34,9 @@ import { ParentSettings } from './components/parent/ParentSettings';
 import { ParentMessages } from './components/parent/ParentMessages';
 import { StudentMessages } from './components/student/StudentMessages';
 import { TeacherRequestManagement } from './components/teacher/TeacherRequestManagement';
+import { ClassManagement } from './components/teacher/ClassManagement';
+import { StudentClasses } from './components/student/StudentClasses';
+import { SessionManagement } from './components/teacher/SessionManagement';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import AuthScreen from './components/auth/AuthScreen';
 import { TeacherOnboarding } from './components/teacher/TeacherOnboarding';
@@ -41,7 +44,7 @@ import { StudentOnboarding } from './components/student/StudentOnboarding';
 import { FloatingAIButton } from './components/shared/FloatingAIButton';
 
 export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
-export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management';
+export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'student-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management' | 'class-management' | 'session-management';
 export type AdminScreen = 'dashboard' | 'user-management' | 'teacher-verification' | 'payment-management' | 'analytics' | 'content-moderation' | 'system-settings';
 
 function AppContent() {
@@ -73,9 +76,27 @@ function AppContent() {
       // and go directly to dashboard for all logged-in users
       setCurrentScreen('dashboard');
     } else if (!user && !loading) {
-      setCurrentScreen('landing');
+      // Check URL parameters for login/signup mode
+      const urlParams = new URLSearchParams(window.location.search);
+      const screen = urlParams.get('screen');
+      
+      if (screen === 'login') {
+        setCurrentScreen('login');
+      } else {
+        setCurrentScreen('landing');
+      }
     }
   }, [user, profile, loading]);
+
+  // Handle URL parameter changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const screen = urlParams.get('screen');
+    
+    if (screen === 'login' && !user) {
+      setCurrentScreen('login');
+    }
+  }, [user]);
 
   const [currentClassInfo, setCurrentClassInfo] = useState<any>(null);
   const handleScreenChange = (screen: AppScreen | AdminScreen, classInfo?: any) => {
@@ -84,9 +105,28 @@ function AppContent() {
   };
 
   const renderContent = () => {
-    // Landing removed: show login screen for unauthenticated users
-    if (!isLoggedIn && currentScreen === 'landing') {
-      return <AuthScreen />;
+    // Check if we have URL parameters for login/signup - if so, show the React app
+    const urlParams = new URLSearchParams(window.location.search);
+    const screen = urlParams.get('screen');
+    
+    console.log('App renderContent:', { isLoggedIn, currentScreen, screen, urlParams: window.location.search });
+    
+    // If we have login parameters, show the React app instead of redirecting
+    if (!isLoggedIn && screen === 'login') {
+      // Don't redirect, show the React login screen
+      console.log('Showing React login screen');
+    } else if (!isLoggedIn && currentScreen === 'landing') {
+      // Only redirect to HTML landing page if no specific screen is requested
+      console.log('Redirecting to HTML landing page');
+      window.location.href = '/landing-page.html';
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-4">Redirecting to landing page...</h2>
+            <p className="text-slate-600">If you are not redirected automatically, <a href="/landing-page.html" className="text-blue-500 hover:underline">click here</a>.</p>
+          </div>
+        </div>
+      );
     }
 
     // Teacher onboarding
@@ -138,6 +178,8 @@ function AppContent() {
           return <TeacherBrowse />;
         case 'my-classes':
           return <MyClasses onScreenChange={handleScreenChange} />;
+        case 'student-classes':
+          return <StudentClasses onBack={() => handleScreenChange('dashboard')} />;
         case 'assignments':
           return <Assignments onBack={() => handleScreenChange('dashboard')} />;
         case 'ai-assistant':
@@ -189,6 +231,10 @@ function AppContent() {
           return <TeacherSettings />;
         case 'teacher-request-management':
           return <TeacherRequestManagement onBack={() => handleScreenChange('dashboard')} />;
+        case 'class-management':
+          return <ClassManagement onBack={() => handleScreenChange('dashboard')} />;
+        case 'session-management':
+          return <SessionManagement onBack={() => handleScreenChange('dashboard')} />;
         default:
           return <TeacherDashboard onScreenChange={handleScreenChange} />;
       }

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Calendar, Clock, Users, Video, ExternalLink, Copy, CheckCircle, AlertCircle } from 'lucide-react';
-import { zoomService } from '../../services/zoomService';
+import zoomService from '../../services/zoomService';
 
 interface ZoomMeeting {
   id: string;

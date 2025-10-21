@@ -28,6 +28,8 @@ export interface TeacherSignupData {
     instagram?: string;
   };
   tsc_number?: string;
+  education_system_id?: string;
+  education_level_id?: string;
 
   // Teacher Preferences (from teacher_preferences table)
   preferred_student_ages: string[];
@@ -133,6 +135,8 @@ export class TeacherSignupService {
         languages: signupData.languages,
         social_links: signupData.social_links,
         tsc_number: signupData.tsc_number,
+        education_system_id: signupData.education_system_id,
+        education_level_id: signupData.education_level_id,
         is_available: true,
         verification_status: 'pending',
         created_at: new Date().toISOString(),
@@ -161,15 +165,21 @@ export class TeacherSignupService {
         sms_notifications: signupData.sms_notifications,
         push_notifications: signupData.push_notifications,
         marketing_emails: signupData.marketing_emails,
+        timezone: signupData.timezone,
+        working_hours: {},
+        vacation_mode: false,
+        vacation_start_date: null,
+        vacation_end_date: null,
+        preferred_payment_method: signupData.preferred_payment_method,
+        auto_withdraw: signupData.auto_withdraw,
+        withdraw_threshold: signupData.withdraw_threshold,
         profile_visibility: signupData.profile_visibility,
         show_contact_info: signupData.show_contact_info,
         show_social_links: signupData.show_social_links,
         show_verification_badges: signupData.show_verification_badges,
-        preferred_payment_method: signupData.preferred_payment_method,
-        auto_withdraw: signupData.auto_withdraw,
-        withdraw_threshold: signupData.withdraw_threshold,
-        timezone: signupData.timezone,
         language: signupData.language,
+        date_format: 'MM/DD/YYYY',
+        time_format: '12h',
         currency: signupData.currency,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -195,7 +205,7 @@ export class TeacherSignupService {
           years_experience: skill.years_experience,
           is_certified: skill.is_certified,
           certification_body: skill.certification_body,
-          certification_date: skill.certification_date,
+          certification_date: skill.certification_date ? new Date(skill.certification_date).toISOString().split('T')[0] : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }));
@@ -336,7 +346,10 @@ export class TeacherSignupService {
         balance: 0.00,
         currency: signupData.currency,
         tokens: 0,
+        frozen_amount: 0.00,
         is_active: true,
+        locked_balance: 0.00,
+        token_balance: 0.00,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -448,5 +461,7 @@ export class TeacherSignupService {
     return null;
   }
 }
+
+
 
 

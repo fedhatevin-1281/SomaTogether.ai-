@@ -699,6 +699,46 @@ export function TeacherSettings() {
               </div>
 
               <div className="space-y-4">
+                <Label>Profile Visibility</Label>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="profile_visibility">Who can see your profile?</Label>
+                    <Select
+                      value={preferencesForm.profile_visibility}
+                      onValueChange={(value: 'public' | 'private' | 'students_only') => setPreferencesForm(prev => ({ ...prev, profile_visibility: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Public - Anyone can see your profile</SelectItem>
+                        <SelectItem value="students_only">Students Only - Only students can see your profile</SelectItem>
+                        <SelectItem value="private">Private - No one can see your profile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show_contact_info">Show Contact Information</Label>
+                    <Switch
+                      id="show_contact_info"
+                      checked={preferencesForm.show_contact_info}
+                      onCheckedChange={(checked) => setPreferencesForm(prev => ({ ...prev, show_contact_info: checked }))}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show_social_links">Show Social Links</Label>
+                    <Switch
+                      id="show_social_links"
+                      checked={preferencesForm.show_social_links}
+                      onCheckedChange={(checked) => setPreferencesForm(prev => ({ ...prev, show_social_links: checked }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 <Label>Notifications</Label>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

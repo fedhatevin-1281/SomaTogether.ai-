@@ -6,9 +6,7 @@ Add these to your `.env` file:
 
 ```bash
 # Paystack Live Configuration
-VITE_PAYSTACK_PUBLIC_KEY=your_live_public_key_here
-VITE_PAYSTACK_SECRET_KEY=your_live_secret_key_here
-PAYSTACK_WEBHOOK_SECRET=your_webhook_secret_here
+
 
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_url

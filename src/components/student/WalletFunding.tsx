@@ -7,7 +7,7 @@ import { Badge } from '../ui/badge';
 import { Loader2, DollarSign, CreditCard, Smartphone, Globe, X } from 'lucide-react';
 import { PaymentMethodSelector } from '../payment/PaymentMethodSelector';
 import { PaystackPayment } from '../payment/PaystackPayment';
-import { PaymentService } from '../../services/paymentService';
+import PaymentService from '../../services/paymentService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface WalletFundingProps {

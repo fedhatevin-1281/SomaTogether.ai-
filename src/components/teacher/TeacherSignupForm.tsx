@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Settings
 } from 'lucide-react';
+import { EducationService, EducationSystem, EducationLevel, Subject } from '../../services/educationService';
 
 interface TeacherSignupData {
   // Basic Profile Information (from profiles table)
@@ -58,6 +59,8 @@ interface TeacherSignupData {
     instagram?: string;
   };
   tsc_number?: string;
+  education_system_id?: string;
+  education_level_id?: string;
 
   // Teacher Preferences (from teacher_preferences table)
   preferred_student_ages: string[];
@@ -117,6 +120,13 @@ interface TeacherSignupFormProps {
 
 export function TeacherSignupForm({ onSubmit, loading = false, error, success }: TeacherSignupFormProps) {
   const [activeTab, setActiveTab] = useState('basic');
+  
+  // Education data state
+  const [educationSystems, setEducationSystems] = useState<EducationSystem[]>([]);
+  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loadingEducationData, setLoadingEducationData] = useState(false);
+  
   const [formData, setFormData] = useState<TeacherSignupData>({
     full_name: '',
     email: '',
@@ -124,10 +134,10 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
     date_of_birth: '',
     location: '',
     bio: '',
-    timezone: 'UTC',
+    timezone: 'Africa/Nairobi',
     language: 'en',
     hourly_rate: 25,
-    currency: 'USD',
+    currency: 'KES',
     subjects: [],
     specialties: [],
     education: [],
@@ -136,6 +146,8 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
     languages: ['en'],
     social_links: {},
     tsc_number: '',
+    education_system_id: '',
+    education_level_id: '',
     preferred_student_ages: [],
     preferred_class_duration: 60,
     max_students_per_class: 1,
@@ -170,9 +182,51 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
     certification_date: ''
   });
 
+  // Load education data when component mounts
+  useEffect(() => {
+    loadEducationData();
+  }, []);
+
+  const loadEducationData = async () => {
+    setLoadingEducationData(true);
+    try {
+      console.log('Loading education data...');
+      const [systems, subjectsData] = await Promise.all([
+        EducationService.getEducationSystems(),
+        EducationService.getSubjects()
+      ]);
+      console.log('Education systems loaded:', systems);
+      console.log('Subjects loaded:', subjectsData);
+      setEducationSystems(systems);
+      setSubjects(subjectsData);
+    } catch (error) {
+      console.error('Error loading education data:', error);
+    } finally {
+      setLoadingEducationData(false);
+    }
+  };
+
+  // Load education levels when system is selected
+  const handleEducationSystemChange = async (systemId: string) => {
+    if (systemId) {
+      try {
+        const levels = await EducationService.getEducationLevels(systemId);
+        setEducationLevels(levels);
+      } catch (error) {
+        console.error('Error loading education levels:', error);
+      }
+    } else {
+      setEducationLevels([]);
+    }
+  };
+
   // Dropdown options
   const timezoneOptions = [
     { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    { value: 'Africa/Nairobi', label: 'Nairobi (EAT - East Africa Time)' },
+    { value: 'Africa/Lagos', label: 'Lagos (WAT - West Africa Time)' },
+    { value: 'Africa/Johannesburg', label: 'Johannesburg (SAST - South Africa Time)' },
+    { value: 'Africa/Cairo', label: 'Cairo (EET - Eastern European Time)' },
     { value: 'America/New_York', label: 'Eastern Time (ET)' },
     { value: 'America/Chicago', label: 'Central Time (CT)' },
     { value: 'America/Denver', label: 'Mountain Time (MT)' },
@@ -187,8 +241,17 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
 
   const languageOptions = [
     { value: 'en', label: 'English' },
-    { value: 'es', label: 'Español (Spanish)' },
+    { value: 'sw', label: 'Kiswahili (Swahili)' },
     { value: 'fr', label: 'Français (French)' },
+    { value: 'ar', label: 'العربية (Arabic)' },
+    { value: 'am', label: 'አማርኛ (Amharic)' },
+    { value: 'ha', label: 'Hausa' },
+    { value: 'yo', label: 'Yoruba' },
+    { value: 'ig', label: 'Igbo' },
+    { value: 'zu', label: 'IsiZulu' },
+    { value: 'xh', label: 'IsiXhosa' },
+    { value: 'af', label: 'Afrikaans' },
+    { value: 'es', label: 'Español (Spanish)' },
     { value: 'de', label: 'Deutsch (German)' },
     { value: 'it', label: 'Italiano (Italian)' },
     { value: 'pt', label: 'Português (Portuguese)' },
@@ -196,9 +259,7 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
     { value: 'zh', label: '中文 (Chinese)' },
     { value: 'ja', label: '日本語 (Japanese)' },
     { value: 'ko', label: '한국어 (Korean)' },
-    { value: 'ar', label: 'العربية (Arabic)' },
-    { value: 'hi', label: 'हिन्दी (Hindi)' },
-    { value: 'sw', label: 'Kiswahili' }
+    { value: 'hi', label: 'हिन्दी (Hindi)' }
   ];
 
   const currencyOptions = [
@@ -526,6 +587,53 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <Label htmlFor="education_system">Education System</Label>
+                    <Select
+                      value={formData.education_system_id || ''}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, education_system_id: value, education_level_id: '' });
+                        if (value) {
+                          handleEducationSystemChange(value);
+                        }
+                      }}
+                      disabled={loadingEducationData}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingEducationData ? "Loading systems..." : "Select education system"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {educationSystems.map((system) => (
+                          <SelectItem key={system.id} value={system.id}>
+                            {system.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="education_level">Education Level</Label>
+                    <Select
+                      value={formData.education_level_id || ''}
+                      onValueChange={(value) => setFormData({ ...formData, education_level_id: value })}
+                      disabled={!formData.education_system_id || loadingEducationData}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={!formData.education_system_id ? "Select system first" : "Select education level"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {educationLevels.map((level) => (
+                          <SelectItem key={level.id} value={level.id}>
+                            {level.level_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="hourly_rate">Hourly Rate *</Label>
                     <div className="flex">
                       <Select
@@ -636,6 +744,69 @@ export function TeacherSignupForm({ onSubmit, loading = false, error, success }:
                     <Button type="button" onClick={addEducation} size="sm">
                       <Plus className="w-4 h-4" />
                     </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Teaching Subjects</Label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.teacher_subjects.map((subject, index) => {
+                      const subjectData = subjects.find(s => s.id === subject.subject_id);
+                      return (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {subjectData?.name || subject.subject_id}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSubjects = formData.teacher_subjects.filter((_, i) => i !== index);
+                              setFormData({ ...formData, teacher_subjects: newSubjects });
+                            }}
+                            className="ml-1 hover:text-red-500"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <Select
+                      value=""
+                      onValueChange={(subjectId) => {
+                        if (subjectId && !formData.teacher_subjects.find(s => s.subject_id === subjectId)) {
+                          const newSubject = {
+                            subject_id: subjectId,
+                            proficiency_level: 'intermediate' as const,
+                            years_experience: 0,
+                            is_primary: false
+                          };
+                          setFormData({
+                            ...formData,
+                            teacher_subjects: [...formData.teacher_subjects, newSubject]
+                          });
+                        }
+                      }}
+                      disabled={loadingEducationData}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingEducationData ? "Loading subjects..." : "Add a subject..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.length === 0 ? (
+                          <SelectItem value="no-subjects" disabled>
+                            {loadingEducationData ? "Loading subjects..." : "No subjects available"}
+                          </SelectItem>
+                        ) : (
+                          subjects
+                            .filter(subject => !formData.teacher_subjects.find(s => s.subject_id === subject.id))
+                            .map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.name} ({subject.category})
+                              </SelectItem>
+                            ))
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

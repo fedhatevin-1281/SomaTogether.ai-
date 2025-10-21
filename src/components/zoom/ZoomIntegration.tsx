@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Calendar, Clock, Users, Video, Settings, CheckCircle, AlertCircle } from 'lucide-react';
-import { zoomService, ZoomMeeting } from '../../services/zoomService';
+import zoomService, { ZoomMeeting } from '../../services/zoomService';
 
 interface ZoomIntegrationProps {
   teacherId: string;

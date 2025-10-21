@@ -18,6 +18,7 @@ import {
   Plus,
   Edit3,
   Trash2,
+  X,
   Check,
   CheckCheck,
   Loader2

@@ -28,6 +28,14 @@ export interface TokenTransaction {
   created_at: string;
 }
 
+export interface TokenPackage {
+  id: string;
+  name: string;
+  tokens: number;
+  price_usd: number;
+  bonus: number;
+}
+
 export interface TokenPricing {
   user_type: 'student' | 'teacher';
   tokens_per_dollar: number;
@@ -98,6 +106,97 @@ class TokenService {
   static readonly CLASS_TOKENS_REQUIRED = 10; // 1 hour class = 10 tokens
   static readonly TEACHER_EARNING_PER_TOKEN = 0.04; // $0.04 per token
   static readonly STUDENT_COST_PER_TOKEN = 0.10; // $0.10 per token
+  static readonly SESSION_RATE = 10; // 10 tokens per session
+
+  /**
+   * Get token packages for purchase
+   */
+  static getTokenPackages() {
+    return [
+      { id: 'starter', name: 'Starter Pack', tokens: 250, price_usd: 25, bonus: 0 },
+      { id: 'popular', name: 'Popular Pack', tokens: 550, price_usd: 50, bonus: 50 },
+      { id: 'premium', name: 'Premium Pack', tokens: 1200, price_usd: 100, bonus: 200 },
+      { id: 'family', name: 'Family Pack', tokens: 2500, price_usd: 200, bonus: 500 }
+    ];
+  }
+
+  /**
+   * Calculate purchase amount for tokens
+   */
+  static calculatePurchaseAmount(tokens: number, userType: 'student' | 'teacher'): number {
+    if (userType === 'student') {
+      return tokens * this.STUDENT_COST_PER_TOKEN;
+    } else {
+      return tokens * this.TEACHER_EARNING_PER_TOKEN;
+    }
+  }
+
+  /**
+   * Validate token purchase
+   */
+  static validateTokenPurchase(tokens: number, userType: 'student' | 'teacher'): boolean {
+    return tokens > 0 && tokens <= 10000; // Max 10,000 tokens per purchase
+  }
+
+  /**
+   * Complete token purchase (placeholder)
+   */
+  static async completeTokenPurchase(
+    userId: string,
+    tokens: number,
+    amountUSD: number,
+    paymentMethodId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    // This would integrate with payment processing
+    return { success: true };
+  }
+
+  /**
+   * Get withdrawal requests for user
+   */
+  static async getWithdrawalRequests(userId: string): Promise<any[]> {
+    // Placeholder implementation
+    return [];
+  }
+
+  /**
+   * Get token balance for user
+   */
+  static async getTokenBalance(userId: string): Promise<number> {
+    // Placeholder implementation
+    return 0;
+  }
+
+  /**
+   * Validate withdrawal request
+   */
+  static validateWithdrawalRequest(amount: number): { valid: boolean; error?: string } {
+    if (amount <= 0) return { valid: false, error: 'Amount must be greater than 0' };
+    if (amount < 25) return { valid: false, error: 'Minimum withdrawal is $25' };
+    return { valid: true };
+  }
+
+  /**
+   * Process withdrawal request
+   */
+  static async processWithdrawalRequest(
+    userId: string,
+    amount: number,
+    paymentMethodId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    // Placeholder implementation
+    return { success: true };
+  }
+
+  /**
+   * Calculate withdrawal amount
+   */
+  static calculateWithdrawalAmount(tokens: number): { usd: number; processingFee: number; netAmount: number } {
+    const usd = tokens * this.TEACHER_EARNING_PER_TOKEN;
+    const processingFee = usd * 0.025; // 2.5% fee
+    const netAmount = usd - processingFee;
+    return { usd, processingFee, netAmount };
+  }
 
   /**
    * Get token pricing for user type

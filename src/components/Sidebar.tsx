@@ -15,7 +15,8 @@ import {
   Shield,
   CreditCard,
   Eye,
-  Star
+  Star,
+  Calendar
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserRole, AppScreen } from '../App';
@@ -31,7 +32,7 @@ const sidebarItems = {
   student: [
     { icon: Home, label: 'Dashboard', screen: 'dashboard' as AppScreen },
     { icon: Users, label: 'Browse Teachers', screen: 'teacher-browse' as AppScreen },
-    { icon: BookOpen, label: 'My Classes', screen: 'my-classes' as AppScreen },
+    { icon: BookOpen, label: 'My Classes', screen: 'student-classes' as AppScreen },
     { icon: FileText, label: 'Assignments', screen: 'assignments' as AppScreen },
     { icon: Bot, label: 'AI Assistant', screen: 'ai-assistant' as AppScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AppScreen },
@@ -40,6 +41,8 @@ const sidebarItems = {
   ],
   teacher: [
     { icon: Home, label: 'Dashboard', screen: 'dashboard' as AppScreen },
+    { icon: BookOpen, label: 'Class Management', screen: 'class-management' as AppScreen },
+    { icon: Calendar, label: 'Session Management', screen: 'session-management' as AppScreen },
     { icon: UserCheck, label: 'Student Requests', screen: 'teacher-requests' as AppScreen },
     { icon: Users, label: 'My Students', screen: 'my-students' as AppScreen },
     { icon: FileText, label: 'Upload Assignment', screen: 'upload-assignment' as AppScreen },
