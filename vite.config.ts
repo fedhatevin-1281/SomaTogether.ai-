@@ -2,9 +2,28 @@
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
+  import { copyFileSync, existsSync, mkdirSync } from 'fs';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'copy-landing-page',
+      writeBundle() {
+        // Copy landing page to build directory
+        const buildDir = 'build';
+        const publicDir = 'public';
+        
+        if (existsSync(`${publicDir}/landing-page.html`)) {
+          if (!existsSync(buildDir)) {
+            mkdirSync(buildDir, { recursive: true });
+          }
+          copyFileSync(`${publicDir}/landing-page.html`, `${buildDir}/landing-page.html`);
+          console.log('✅ Copied landing-page.html to build directory');
+        }
+      }
+    }
+  ],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {

@@ -26,7 +26,15 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/landing-page.html",
+      "destination": "/landing-page.html"
+    },
+    {
+      "source": "/",
+      "destination": "/landing-page.html"
+    },
+    {
+      "source": "/((?!landing-page\\.html).*)",
       "destination": "/index.html"
     }
   ]
