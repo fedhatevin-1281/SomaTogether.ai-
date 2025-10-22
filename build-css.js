@@ -10,6 +10,14 @@ execSync('npx tailwindcss -i ./src/landing-styles.css -o ./src/landing-styles-bu
 
 // Copy CSS files to build directory
 console.log('Copying CSS files to build directory...');
+
+// Ensure build directory exists
+const buildDir = './build';
+if (!fs.existsSync(buildDir)) {
+  fs.mkdirSync(buildDir, { recursive: true });
+  console.log('Created build directory');
+}
+
 fs.copyFileSync('./src/landing-styles-built.css', './build/landing-styles-built.css');
 fs.copyFileSync('./src/landing-styles.css', './build/landing-styles.css');
 
