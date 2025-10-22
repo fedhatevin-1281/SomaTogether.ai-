@@ -64,22 +64,8 @@
     </div>
 
     <script>
-        // Check if we're in development mode
-        const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        if (isDevelopment) {
-            // In development, redirect to the React app
-            window.location.href = '/app';
-        } else {
-            // In production, redirect to landing page
-            window.location.href = '/landing-page.html';
-        }
-        
-        // Fallback error handling
-        setTimeout(() => {
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('error').textContent = 'Unable to load the application. Please refresh the page.';
-        }, 5000);
+        // Always redirect to landing page first
+        window.location.href = '/landing-page.html';
     </script>
 </body>
 </html>
