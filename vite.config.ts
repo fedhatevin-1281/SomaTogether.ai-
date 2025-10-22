@@ -26,6 +26,12 @@ export default defineConfig({
           console.log('✅ Copied landing-page.html to build directory');
         }
         
+        // Copy app page
+        if (existsSync(`${publicDir}/app.html`)) {
+          copyFileSync(`${publicDir}/app.html`, `${buildDir}/app.html`);
+          console.log('✅ Copied app.html to build directory');
+        }
+        
         // Copy CSS files
         if (existsSync(`${srcDir}/landing-styles-built.css`)) {
           copyFileSync(`${srcDir}/landing-styles-built.css`, `${buildDir}/landing-styles-built.css`);
@@ -95,6 +101,10 @@ export default defineConfig({
       fs: {
         allow: ['..']
       }
+    },
+    preview: {
+      port: 3000,
+      open: true
     },
     publicDir: 'public',
   });
