@@ -169,6 +169,7 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
                           className="bg-white"
                           value={newStudentEmail}
                           onChange={(e) => setNewStudentEmail(e.target.value)}
+                          autoComplete="email"
                         />
                       </div>
                       <div>
@@ -221,6 +222,7 @@ export function LoginScreen({ onLogin, currentRole }: LoginScreenProps) {
                           className="bg-white"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
+                          autoComplete="email"
                         />
                       </div>
                       <div>

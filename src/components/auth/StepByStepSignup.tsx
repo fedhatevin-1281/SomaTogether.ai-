@@ -368,6 +368,7 @@ export function StepByStepSignup({ onSubmit, loading = false, error, success }: 
                     className="pl-10"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    autoComplete="email"
                   />
                 </div>
               </div>

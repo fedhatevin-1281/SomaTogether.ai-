@@ -547,6 +547,7 @@ export default function AuthScreen() {
                         value={signInData.email}
                         onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
                         disabled={loading}
+                        autoComplete="email"
                       />
                     </div>
                   </div>
