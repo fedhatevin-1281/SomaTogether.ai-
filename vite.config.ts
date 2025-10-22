@@ -5,6 +5,7 @@
   import { copyFileSync, existsSync, mkdirSync } from 'fs';
 
 export default defineConfig({
+  root: '.',
   plugins: [
     react(),
     {
@@ -95,4 +96,5 @@ export default defineConfig({
         allow: ['..']
       }
     },
+    publicDir: 'public',
   });

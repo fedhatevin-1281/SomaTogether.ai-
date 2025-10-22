@@ -6,7 +6,7 @@ const timestamp = Date.now();
 
 // Build CSS
 console.log('Building CSS...');
-execSync('npx tailwindcss -i ./src/landing-styles-minimal.css -o ./src/landing-styles-built.css', { stdio: 'inherit' });
+execSync('npx tailwindcss -i ./src/landing-styles-complete.css -o ./src/landing-styles-built.css', { stdio: 'inherit' });
 
 // Copy CSS files to build directory
 console.log('Copying CSS files to build directory...');
