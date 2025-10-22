@@ -90,6 +90,7 @@
             "sonner": "^2.0.3",
             "stripe": "^19.1.0",
             "tailwind-merge": "*",
+            "tailwindcss": "^3.4.0",
             "vaul": "^1.1.2"
       },
       "devDependencies": {
@@ -98,6 +99,7 @@
             "@types/react-dom": "^19.2.0",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "autoprefixer": "^10.4.21",
+            "chokidar": "^4.0.3",
             "concurrently": "^9.2.1",
             "terser": "^5.44.0",
             "typescript": "^5.9.3",
@@ -110,6 +112,8 @@
             "server": "node start-server.js",
             "server:dev": "node server.js",
             "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
-            "start": "node start-both-servers.js"
+            "start": "node start-both-servers.js",
+            "build:css": "node build-css.js",
+            "watch:css": "node watch-css.js"
       }
 }

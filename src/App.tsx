@@ -76,14 +76,23 @@ function AppContent() {
       // and go directly to dashboard for all logged-in users
       setCurrentScreen('dashboard');
     } else if (!user && !loading) {
-      // Check URL parameters for login/signup mode
-      const urlParams = new URLSearchParams(window.location.search);
-      const screen = urlParams.get('screen');
+      // Check if we're on the app route
+      const currentPath = window.location.pathname;
       
-      if (screen === 'login') {
-        setCurrentScreen('login');
+      if (currentPath.startsWith('/app')) {
+        // Check URL parameters for login/signup mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const screen = urlParams.get('screen');
+        
+        if (screen === 'login') {
+          setCurrentScreen('login');
+        } else {
+          setCurrentScreen('login');
+        }
       } else {
-        setCurrentScreen('landing');
+        // If not on app route, redirect to landing page
+        window.location.href = '/';
+        return;
       }
     }
   }, [user, profile, loading]);
@@ -115,18 +124,6 @@ function AppContent() {
     if (!isLoggedIn && screen === 'login') {
       // Don't redirect, show the React login screen
       console.log('Showing React login screen');
-    } else if (!isLoggedIn && currentScreen === 'landing') {
-      // Only redirect to HTML landing page if no specific screen is requested
-      console.log('Redirecting to HTML landing page');
-      window.location.href = '/landing-page.html';
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">Redirecting to landing page...</h2>
-            <p className="text-slate-600">If you are not redirected automatically, <a href="/landing-page.html" className="text-blue-500 hover:underline">click here</a>.</p>
-          </div>
-        </div>
-      );
     }
 
     // Teacher onboarding

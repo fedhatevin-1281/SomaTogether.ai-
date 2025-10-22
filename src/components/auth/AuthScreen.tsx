@@ -239,6 +239,20 @@ export default function AuthScreen() {
         phone: signUpData.phone || undefined,
         date_of_birth: signUpData.date_of_birth || undefined,
         location: signUpData.location || undefined,
+        bio: signUpData.bio || undefined,
+        timezone: 'UTC',
+        language: signUpData.preferred_language || 'en',
+        currency: 'USD',
+        // Student specific fields
+        education_system_id: signUpData.education_system_id || undefined,
+        education_level_id: signUpData.education_level_id || undefined,
+        school_name: signUpData.school_name || undefined,
+        interests: signUpData.interests || [],
+        preferred_subjects: signUpData.preferred_subjects || [],
+        // Teacher specific fields
+        max_children: signUpData.max_children || 5,
+        preferred_curriculums: signUpData.preferred_curriculums || [],
+        availability: signUpData.availability || [],
       });
 
       if (error) {
@@ -253,7 +267,8 @@ export default function AuthScreen() {
           setError(error.message || 'Failed to create account');
         }
       } else {
-        setSuccess('Account created successfully! Please check your email to verify your account.');
+        setSuccess('Account created successfully! You are now logged in.');
+        // Clear form
         setSignUpData({
           email: '',
           password: '',
@@ -263,8 +278,17 @@ export default function AuthScreen() {
           phone: '',
           date_of_birth: '',
           location: '',
+          bio: '',
+          education_system_id: '',
+          education_level_id: '',
+          school_name: '',
+          interests: [],
+          preferred_language: 'en',
+          preferred_subjects: [],
+          max_children: 5,
+          preferred_curriculums: [],
+          availability: [],
         });
-        setActiveTab('signin');
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');

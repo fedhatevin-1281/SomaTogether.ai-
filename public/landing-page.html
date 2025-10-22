@@ -3,72 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>SomaTogether.ai - AI-Powered Education Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="src/landing-styles-built.css?v=1761105353937" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <style>
-        @keyframes gradient-shift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-size: 400% 400%;
-            animation: gradient-shift 8s ease infinite;
-        }
-        
-        .dark {
-            color-scheme: dark;
-        }
-        
-        .dark .dark\:bg-slate-900 {
-            background-color: #0f172a;
-        }
-        
-        .dark .dark\:text-slate-100 {
-            color: #f1f5f9;
-        }
-        
-        .dark .dark\:text-slate-400 {
-            color: #94a3b8;
-        }
-        
-        .dark .dark\:bg-slate-800 {
-            background-color: #1e293b;
-        }
-        
-        .dark .dark\:border-slate-700 {
-            border-color: #334155;
-        }
-    </style>
 </head>
-<body class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+<body class="light bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-50">
         <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 via-purple-500 to-green-500 rounded-xl flex items-center justify-center">
-                        <i data-lucide="brain" class="w-6 h-6 text-white"></i>
+                <div class="flex items-center gap-3">
+                    <img src="logo.svg" alt="SomaTogether.ai Logo" class="w-12 h-12">
+                    <div>
+                        <span class="text-xl font-bold text-slate-900 dark:text-slate-100">SomaTogether.ai</span>
+                        <div class="text-xs text-slate-600 dark:text-slate-400 -mt-1">AI-Powered Education</div>
                     </div>
-                    <span class="text-xl font-semibold text-slate-900 dark:text-slate-100">SomaTogether.ai</span>
                 </div>
                 <div class="flex items-center gap-4">
                     <button id="theme-toggle" class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <i data-lucide="moon" class="h-5 w-5 text-slate-700 dark:text-slate-300" id="theme-icon"></i>
                     </button>
-                    <button class="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100" onclick="redirectToLogin()">Log In</button>
-                    <button class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-md" onclick="redirectToSignup()">Get Started</button>
+                    <a href="/app?screen=login" class="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Log In</a>
+                    <a href="/app?screen=login" class="px-6 py-2 soma-gradient hover:opacity-90 text-white rounded-md shadow-lg hover:shadow-xl transition-all duration-300">Get Started</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="pt-40 pb-20 px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div class="max-w-7xl mx-auto">
+    <section class="relative pt-40 pb-20 px-6 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <!-- Video Background -->
+        <div class="absolute inset-0 w-full h-full">
+            <video 
+                autoplay 
+                muted 
+                loop 
+                playsinline 
+                class="w-full h-full object-cover"
+                style="filter: blur(8px);"
+            >
+                <source src="11025555-hd_4096_2160_25fps.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="relative z-10 max-w-7xl mx-auto">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium mb-4">
@@ -78,19 +61,21 @@
                     <h1 class="text-5xl font-semibold text-slate-900 dark:text-slate-100 mb-6 leading-tight">
                         Personalized Learning,
                         <br />
-                        <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 bg-clip-text text-transparent">
+                        <span class="soma-gradient-text">
                             Powered by AI
                         </span>
                     </h1>
-                    <p class="text-xl text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
-                        Connect with qualified teachers for 1-on-1 learning sessions enhanced by intelligent matching, 
-                        adaptive learning paths, and comprehensive AI-powered educational support.
-                    </p>
+                    <div class="bg-white/10 dark:bg-slate-800/10 backdrop-blur-md border border-white/20 dark:border-slate-700/30 rounded-xl p-6 mb-8 shadow-xl">
+                        <p class="text-xl text-white dark:text-slate-100 leading-relaxed drop-shadow-sm">
+                            Connect with qualified teachers for 1-on-1 learning sessions enhanced by intelligent matching, 
+                            adaptive learning paths, and comprehensive AI-powered educational support.
+                        </p>
+                    </div>
                     <div class="flex items-center gap-4">
-                        <button class="px-8 py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-md flex items-center gap-2" onclick="redirectToSignup()">
+                        <a href="/app?screen=login" class="px-8 py-6 soma-gradient hover:opacity-90 text-white rounded-md flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300">
                             Start Learning Today
                             <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                        </button>
+                        </a>
                         <button class="px-8 py-6 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-md" onclick="scrollToSection('demo')">
                             Watch Demo
                         </button>
@@ -98,14 +83,16 @@
                 </div>
                 <div class="relative">
                     <div class="relative rounded-2xl overflow-hidden shadow-2xl">
-                        <img src="https://images.unsplash.com/photo-1758874573116-2bc02232eef1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkZW50JTIwbGVhcm5pbmclMjBvbmxpbmV8ZW58MXx8fHwxNzYxMDE0NjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080" 
-                             alt="Student learning online" 
-                             class="w-full h-auto">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-center justify-center">
-                            <button class="bg-white/90 hover:bg-white text-slate-900 rounded-full w-16 h-16 p-0 flex items-center justify-center">
-                                <i data-lucide="play" class="w-6 h-6 ml-1" fill="currentColor"></i>
-                            </button>
-                        </div>
+                        <video 
+                            autoplay 
+                            muted 
+                            loop 
+                            playsinline 
+                            class="w-full h-auto"
+                        >
+                            <source src="11025549-hd_4096_2160_25fps.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                     <!-- Floating stats cards -->
                     <div class="absolute -bottom-6 -left-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4">
@@ -168,7 +155,7 @@
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-blue-500 bg-blue-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="brain" class="w-6 h-6 text-blue-500"></i>
                     </div>
@@ -176,7 +163,7 @@
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Intelligent algorithm matches students with optimal teachers based on learning style, subject needs, and personality compatibility.</p>
                 </div>
 
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-purple-500 bg-purple-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="sparkles" class="w-6 h-6 text-purple-500"></i>
                     </div>
@@ -184,7 +171,7 @@
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">AI creates adaptive learning journeys based on student progress, strengths, and areas for improvement.</p>
                 </div>
 
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-green-500 bg-green-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="trending-up" class="w-6 h-6 text-green-500"></i>
                     </div>
@@ -192,7 +179,7 @@
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">AI-powered insights for all stakeholders with real-time progress tracking and performance metrics.</p>
                 </div>
 
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-red-500 bg-red-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="video" class="w-6 h-6 text-red-500"></i>
                     </div>
@@ -200,7 +187,7 @@
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Seamless 1-on-1 video sessions via Zoom integration with AI-enhanced teaching tools.</p>
                 </div>
 
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-blue-500 bg-blue-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="wallet" class="w-6 h-6 text-blue-500"></i>
                     </div>
@@ -208,12 +195,390 @@
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Innovative payment system with AI-optimized pricing and seamless Paystack integration.</p>
                 </div>
 
-                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg">
+                <div class="p-6 border-none shadow-sm hover:shadow-md transition-shadow dark:bg-slate-800 rounded-lg hover-lift glow-effect">
                     <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-green-500 bg-green-500 bg-opacity-10 dark:bg-opacity-20">
                         <i data-lucide="shield" class="w-6 h-6 text-green-500"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">AI-Verified Teachers</h3>
                     <p class="text-slate-600 dark:text-slate-400 leading-relaxed">Comprehensive verification process with AI-assisted background checks and quality assurance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="py-20 px-6 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                    How Everyone Benefits
+                </h2>
+                <p class="text-lg text-slate-600 dark:text-slate-400">
+                    Discover the unique advantages and features designed for each member of our learning community
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Student Benefits -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="graduation-cap" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-2">For Students</h3>
+                        <p class="text-slate-600 dark:text-slate-400">Personalized learning experiences that adapt to your pace and style</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Browse & Select Teachers</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Browse through verified teachers and select the ones that match your learning needs</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Adaptive Learning Paths</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Content that adjusts to your progress and learning pace</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Interactive Sessions</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Engaging 1-on-1 video sessions with screen sharing and virtual whiteboard</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">AI Reference Material</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Access AI-powered study materials and reference guides to supplement your learning</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Progress Tracking</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Real-time insights into your learning progress and achievements</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teacher Benefits -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="user-check" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-2">For Teachers</h3>
+                        <p class="text-slate-600 dark:text-slate-400">Powerful tools and opportunities to grow your teaching practice</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Student Discovery</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Students can discover and book your sessions through our browse section</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">AI Teaching Assistant</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">AI-powered tools to help with lesson planning and student assessment</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Flexible Scheduling</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Set your own hours and teach from anywhere in the world</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Earn from the Platform</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Earn 40% of session revenue directly from the platform with potential for high income</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parent Benefits -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="users" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-2">For Parents</h3>
+                        <p class="text-slate-600 dark:text-slate-400">Stay connected and informed about your child's learning journey</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Real-Time Progress</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Track your child's learning progress and achievements in real-time</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Teacher Communication</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Direct communication with your child's teachers and learning insights</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Learning Analytics</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Detailed reports on strengths, areas for improvement, and recommendations</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                                <i data-lucide="check" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100">Safe Learning Environment</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">AI-verified teachers and secure platform for peace of mind</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="py-20 px-6 bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-4xl mx-auto mb-16">
+                <h2 class="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-6">
+                    About SomaTogether.ai
+                </h2>
+                <p class="text-xl text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
+                    An AI-powered educational ecosystem redefining how students, teachers, and parents connect and learn. 
+                    We believe learning is a family journey — but the student leads the way.
+                </p>
+                <p class="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Built for Africa's future of learning, SomaTogether.ai bridges technology and human connection, 
+                    ensuring every child has access to personalized, high-quality education — anytime, anywhere.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="text-center p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="globe" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">🌍 Our Mission</h3>
+                    <p class="text-slate-600 dark:text-slate-400">
+                        To make personalized, high-quality learning accessible to every student by combining human teaching with the power of artificial intelligence.
+                    </p>
+                </div>
+
+                <div class="text-center p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="lightbulb" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">💡 Our Vision</h3>
+                    <p class="text-slate-600 dark:text-slate-400">
+                        To become Africa's leading AI learning hub — empowering students, supporting teachers, and engaging parents through intelligent, connected education.
+                    </p>
+                </div>
+
+                <div class="text-center p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="settings" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">⚙️ What We Do</h3>
+                    <p class="text-slate-600 dark:text-slate-400">
+                        Connect students with verified, AI-recommended teachers and provide adaptive learning paths with real-time insights for all stakeholders.
+                    </p>
+                </div>
+            </div>
+
+            <!-- What We Do Details -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg">
+                <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6 text-center">Our Services</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="users" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">AI Teacher Matching</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Connect students with verified, AI-recommended teachers for live sessions</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="route" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Adaptive Learning</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Offer adaptive learning paths and AI-generated study materials</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="bar-chart" class="w-4 h-4 text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Progress Analytics</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Provide parents with real-time insights and progress analytics</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="tool" class="w-4 h-4 text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">AI Teaching Tools</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Enable teachers with AI-powered planning and performance tools</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="wallet" class="w-4 h-4 text-yellow-600 dark:text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Smart Payments</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Simplify payments through smart token systems and multi-currency support</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i data-lucide="heart" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Family Engagement</h4>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">Engage parents in their child's learning journey with real-time updates</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Leadership Section -->
+    <section class="py-20 px-6 bg-white dark:bg-slate-900">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                    👥 Our Leadership Team
+                </h2>
+                <p class="text-lg text-slate-600 dark:text-slate-400">
+                    Meet the visionary leaders driving Africa's educational transformation
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div class="text-center group">
+                    <div class="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-300">
+                        <span class="text-4xl font-bold text-white">TF</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">Tevin Fedha</h3>
+                    <p class="text-blue-600 dark:text-blue-400 font-medium mb-2">Founder & CEO</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Visionary leader driving educational innovation across Africa</p>
+                </div>
+
+                <div class="text-center group">
+                    <div class="w-32 h-32 bg-gradient-to-br from-purple-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-300">
+                        <span class="text-4xl font-bold text-white">GC</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">George Chune</h3>
+                    <p class="text-purple-600 dark:text-purple-400 font-medium mb-2">Co-Founder & CPO</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Product strategist shaping the future of AI education</p>
+                </div>
+
+                <div class="text-center group">
+                    <div class="w-32 h-32 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-300">
+                        <span class="text-4xl font-bold text-white">IL</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">Isabella Laura</h3>
+                    <p class="text-green-600 dark:text-green-400 font-medium mb-2">Chief Engineer & CTO</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Technical architect building the AI learning infrastructure</p>
+                </div>
+
+                <div class="text-center group">
+                    <div class="w-32 h-32 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-300">
+                        <span class="text-4xl font-bold text-white">MA</span>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">Matilda Abungu</h3>
+                    <p class="text-red-600 dark:text-red-400 font-medium mb-2">Finance Officer & COO</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Operations leader ensuring sustainable growth and impact</p>
+                </div>
+            </div>
+
+            <!-- Operations & Advisory -->
+            <div class="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-8">
+                <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6 text-center">Operations & Advisory</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-2xl font-bold text-white">DF</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Derrick Fedha</h4>
+                        <p class="text-indigo-600 dark:text-indigo-400 text-sm">Head of Documentation & Records</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-2xl font-bold text-white">EJ</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Evans Jumba</h4>
+                        <p class="text-green-600 dark:text-green-400 text-sm">Director & Strategic Advisor</p>
+                        <p class="text-xs text-slate-600 dark:text-slate-400">Ministry of Education, Kenya</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-pink-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-2xl font-bold text-white">P</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Peace</h4>
+                        <p class="text-pink-600 dark:text-pink-400 text-sm">Social Media Lead & Brand Development Strategist</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,13 +685,13 @@
                 Join thousands of students and teachers already experiencing the future of education
             </p>
             <div class="flex items-center justify-center gap-4">
-                <button class="bg-white text-slate-900 hover:bg-slate-100 px-8 py-6 rounded-md flex items-center gap-2" onclick="redirectToSignup()">
+                <a href="/app?screen=login" class="bg-white text-slate-900 hover:bg-slate-100 px-8 py-6 rounded-md flex items-center gap-2 transition-colors">
                     Get Started Free
                     <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-                <button class="border border-white text-white hover:bg-white/10 px-8 py-6 rounded-md" onclick="redirectToLogin()">
+                </a>
+                <a href="/app?screen=login" class="border border-white text-white hover:bg-white/10 px-8 py-6 rounded-md transition-colors">
                     Sign In
-                </button>
+                </a>
             </div>
         </div>
     </section>
@@ -336,14 +701,15 @@
         <div class="max-w-7xl mx-auto">
             <div class="grid md:grid-cols-4 gap-8 mb-8">
                 <div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 via-purple-500 to-green-500 rounded-lg flex items-center justify-center">
-                            <i data-lucide="brain" class="w-5 h-5 text-white"></i>
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="logo.svg" alt="SomaTogether.ai Logo" class="w-10 h-10">
+                        <div>
+                            <span class="font-bold text-white text-lg">SomaTogether.ai</span>
+                            <div class="text-xs text-slate-400 -mt-1">AI-Powered Education</div>
                         </div>
-                        <span class="font-semibold text-white">SomaTogether.ai</span>
                     </div>
-                    <p class="text-sm">
-                        AI-powered educational platform connecting students with qualified teachers.
+                    <p class="text-sm text-slate-400">
+                        An AI-powered educational ecosystem redefining how students, teachers, and parents connect and learn across Africa.
                     </p>
                 </div>
                 <div>
@@ -380,6 +746,30 @@
         </div>
     </footer>
 
+    <!-- AI Mascot -->
+    <div class="ai-mascot" id="ai-mascot">
+        <div class="mascot-body">
+            <div class="mascot-eyes">
+                <div class="eye">
+                    <div class="pupil" id="left-pupil"></div>
+                </div>
+                <div class="eye">
+                    <div class="pupil" id="right-pupil"></div>
+                </div>
+            </div>
+            <div class="mouth"></div>
+            <div class="sparkles">
+                <div class="sparkle"></div>
+                <div class="sparkle"></div>
+                <div class="sparkle"></div>
+                <div class="sparkle"></div>
+            </div>
+        </div>
+        <div class="chat-bubble hidden" id="chat-bubble">
+            Hi! I'm your AI learning companion! 🚀
+        </div>
+    </div>
+
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
@@ -393,19 +783,29 @@
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             html.classList.add('dark');
+            html.classList.remove('light');
             themeIcon.setAttribute('data-lucide', 'sun');
+        } else {
+            html.classList.add('light');
+            html.classList.remove('dark');
+            themeIcon.setAttribute('data-lucide', 'moon');
         }
 
         themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
             const isDark = html.classList.contains('dark');
             
             if (isDark) {
-                localStorage.setItem('theme', 'dark');
-                themeIcon.setAttribute('data-lucide', 'sun');
-            } else {
+                // Switch to light mode
+                html.classList.remove('dark');
+                html.classList.add('light');
                 localStorage.setItem('theme', 'light');
                 themeIcon.setAttribute('data-lucide', 'moon');
+            } else {
+                // Switch to dark mode
+                html.classList.remove('light');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
             }
             
             lucide.createIcons();
@@ -538,25 +938,123 @@
             console.log(`Scrolling to ${section}`);
         }
 
-        // Redirect to the main React app
-        function redirectToApp() {
-            window.location.href = '/';
-        }
-
-        // Redirect to login page in React app
-        function redirectToLogin() {
-            console.log('Redirecting to login page');
-            window.location.href = '/?screen=login';
-        }
-
-        // Redirect to signup page in React app
-        function redirectToSignup() {
-            console.log('Redirecting to signup page');
-            window.location.href = '/?screen=login&mode=signup';
-        }
-
         // Initialize pricing on page load
         updatePricing();
+
+        // AI Mascot Interactive Features
+        const aiMascot = document.getElementById('ai-mascot');
+        const chatBubble = document.getElementById('chat-bubble');
+        const leftPupil = document.getElementById('left-pupil');
+        const rightPupil = document.getElementById('right-pupil');
+        
+        // Messages for different interactions
+        const messages = [
+            "Hi! I'm your AI learning companion! 🚀",
+            "Ready to learn something amazing today? ✨",
+            "Let's explore the future of education together! 🌟",
+            "I'm here to help you succeed! 💪",
+            "Learning is an adventure - let's begin! 🎯",
+            "Your success is my mission! 🎓",
+            "Together we can achieve anything! 🌈"
+        ];
+        
+        let currentMessageIndex = 0;
+        let isBubbleVisible = false;
+        
+        // Mascot click interaction
+        aiMascot.addEventListener('click', () => {
+            if (!isBubbleVisible) {
+                showRandomMessage();
+            } else {
+                hideBubble();
+            }
+        });
+        
+        // Mouse follow effect for pupils
+        document.addEventListener('mousemove', (e) => {
+            const mascotRect = aiMascot.getBoundingClientRect();
+            const mascotCenterX = mascotRect.left + mascotRect.width / 2;
+            const mascotCenterY = mascotRect.top + mascotRect.height / 2;
+            
+            const deltaX = e.clientX - mascotCenterX;
+            const deltaY = e.clientY - mascotCenterY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            // Limit pupil movement
+            const maxDistance = 3;
+            const pupilX = Math.max(-maxDistance, Math.min(maxDistance, deltaX * 0.1));
+            const pupilY = Math.max(-maxDistance, Math.min(maxDistance, deltaY * 0.1));
+            
+            leftPupil.style.transform = `translate(calc(-50% + ${pupilX}px), calc(-50% + ${pupilY}px))`;
+            rightPupil.style.transform = `translate(calc(-50% + ${pupilX}px), calc(-50% + ${pupilY}px))`;
+        });
+        
+        // Show random message
+        function showRandomMessage() {
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            chatBubble.textContent = randomMessage;
+            chatBubble.classList.remove('hidden');
+            isBubbleVisible = true;
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                hideBubble();
+            }, 3000);
+        }
+        
+        // Hide bubble
+        function hideBubble() {
+            chatBubble.classList.add('hidden');
+            isBubbleVisible = false;
+        }
+        
+        // Periodic random messages
+        setInterval(() => {
+            if (!isBubbleVisible && Math.random() < 0.3) {
+                showRandomMessage();
+            }
+        }, 10000);
+        
+        // Add hover effects for interactive elements
+        const interactiveElements = document.querySelectorAll('button, .group, .p-6');
+        interactiveElements.forEach(element => {
+            element.addEventListener('mouseenter', () => {
+                if (!isBubbleVisible) {
+                    chatBubble.textContent = "Click me to learn more! 👆";
+                    chatBubble.classList.remove('hidden');
+                    isBubbleVisible = true;
+                }
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                if (isBubbleVisible && chatBubble.textContent === "Click me to learn more! 👆") {
+                    hideBubble();
+                }
+            });
+        });
+        
+        // Add scroll-based animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // Observe all sections for scroll animations
+        document.querySelectorAll('section').forEach(section => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(section);
+        });
     </script>
 </body>
 </html>

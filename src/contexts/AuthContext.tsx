@@ -150,25 +150,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        // If profile doesn't exist, create it
+        // If profile doesn't exist, create it using the database function
         if (error.code === 'PGRST116') {
           console.log('Profile not found, creating new profile...');
           const { data: userData } = await supabase.auth.getUser();
           if (userData.user) {
-            const { error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                email: userData.user.email || '',
-                full_name: userData.user.user_metadata?.full_name || 'User',
-                role: userData.user.user_metadata?.role || 'student',
-                timezone: 'UTC',
-                language: 'en',
-                is_verified: false,
-                is_active: true,
+            const { data: createResult, error: createError } = await supabase
+              .rpc('create_user_profile', {
+                user_id: userId,
+                user_email: userData.user.email || '',
+                user_full_name: userData.user.user_metadata?.full_name || 'User',
+                user_role: userData.user.user_metadata?.role || 'student',
+                user_phone: userData.user.user_metadata?.phone || null,
+                user_date_of_birth: userData.user.user_metadata?.date_of_birth || null,
+                user_location: userData.user.user_metadata?.location || null,
+                user_bio: userData.user.user_metadata?.bio || null,
+                user_timezone: userData.user.user_metadata?.timezone || 'UTC',
+                user_language: userData.user.user_metadata?.language || 'en',
+                user_currency: userData.user.user_metadata?.currency || 'USD'
               });
 
-            if (createError) {
+            if (createError || !createResult) {
               console.error('Error creating profile:', createError);
             } else {
               // Fetch the newly created profile
@@ -257,14 +259,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('User created successfully:', data.user.id);
       
-      // Wait a moment for the trigger to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for the trigger to complete and then fetch the profile
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Check if profile was created by trigger using the helper function
-      const { data: profileExists, error: checkError } = await supabase
-        .rpc('check_profile_exists', { user_id: data.user.id });
+      // Try to fetch the profile that should have been created by the trigger
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
 
-      if (checkError || !profileExists) {
+      if (profileError || !profile) {
         console.log('Profile not found, creating manually as fallback...');
         
         // Fallback: Use the helper function to create profile
@@ -292,6 +297,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.log('Profile created successfully by trigger');
       }
+
+      // Set the user and profile in state
+      setUser(data.user);
+      setSession(data.session);
+      await fetchUserProfile(data.user.id);
 
       return { error: null };
     } catch (error) {
