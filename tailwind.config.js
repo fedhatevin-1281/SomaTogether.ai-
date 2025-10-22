@@ -2,7 +2,8 @@
 module.exports = {
   content: [
     "./index.html",
-    "./landing-page.html",
+    "./public/landing-page.html",
+    "./test-tailwind.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
