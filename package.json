@@ -108,12 +108,14 @@
       },
       "scripts": {
             "dev": "vite",
+            "dev:static": "node static-server.js",
             "dev:local": "node local-server.js",
-            "build": "vite build",
+            "build": "vite build && npm run build:css",
             "preview": "vite preview",
             "server": "node start-server.js",
             "server:dev": "node server.js",
-            "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
-            "start": "node start-both-servers.js"
+            "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
+            "start": "node start-both-servers.js",
+            "build:css": "node build-css.js"
       }
 }

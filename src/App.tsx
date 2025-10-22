@@ -78,17 +78,19 @@ function AppContent() {
     } else if (!user && !loading) {
       // Check if we're on the app route
       const currentPath = window.location.pathname;
+      const urlParams = new URLSearchParams(window.location.search);
+      const screen = urlParams.get('screen');
       
-      if (currentPath.startsWith('/app') || currentPath === '/') {
-        // Check URL parameters for login/signup mode
-        const urlParams = new URLSearchParams(window.location.search);
-        const screen = urlParams.get('screen');
-        
+      // Only show React app if we're on an app route or have screen parameter
+      if (currentPath.startsWith('/app') || screen) {
         if (screen === 'login') {
           setCurrentScreen('login');
         } else {
           setCurrentScreen('login');
         }
+      } else {
+        // If not on app route, redirect to landing page
+        window.location.href = '/landing-page.html';
       }
     }
   }, [user, profile, loading]);

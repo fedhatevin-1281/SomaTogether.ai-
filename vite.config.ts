@@ -8,6 +8,60 @@ export default defineConfig({
   root: '.',
   plugins: [
     react(),
+    {
+      name: 'copy-landing-page-only',
+      writeBundle() {
+        // Copy only landing page and CSS files to build directory
+        const buildDir = 'build';
+        const publicDir = 'public';
+        const srcDir = 'src';
+        
+        if (!existsSync(buildDir)) {
+          mkdirSync(buildDir, { recursive: true });
+        }
+        
+        // Copy landing page
+        if (existsSync(`${publicDir}/landing-page.html`)) {
+          copyFileSync(`${publicDir}/landing-page.html`, `${buildDir}/landing-page.html`);
+          console.log('✅ Copied landing-page.html to build directory');
+        }
+        
+        // Copy index.html redirect
+        if (existsSync(`${publicDir}/index.html`)) {
+          copyFileSync(`${publicDir}/index.html`, `${buildDir}/index.html`);
+          console.log('✅ Copied index.html to build directory');
+        }
+        
+        // Copy CSS files
+        if (existsSync(`${srcDir}/landing-styles-built.css`)) {
+          copyFileSync(`${srcDir}/landing-styles-built.css`, `${buildDir}/landing-styles-built.css`);
+          console.log('✅ Copied landing-styles-built.css to build directory');
+        }
+        
+        if (existsSync(`${srcDir}/landing-styles.css`)) {
+          copyFileSync(`${srcDir}/landing-styles.css`, `${buildDir}/landing-styles.css`);
+          console.log('✅ Copied landing-styles.css to build directory');
+        }
+        
+        // Copy static assets
+        const staticFiles = ['logo.svg', 'favicon.ico', 'favicon.svg', 'ai-mascot.svg'];
+        staticFiles.forEach(file => {
+          if (existsSync(`${publicDir}/${file}`)) {
+            copyFileSync(`${publicDir}/${file}`, `${buildDir}/${file}`);
+            console.log(`✅ Copied ${file} to build directory`);
+          }
+        });
+        
+        // Copy video files
+        const videoFiles = ['11025555-hd_4096_2160_25fps.mp4', '11025549-hd_4096_2160_25fps.mp4'];
+        videoFiles.forEach(file => {
+          if (existsSync(`${publicDir}/${file}`)) {
+            copyFileSync(`${publicDir}/${file}`, `${buildDir}/${file}`);
+            console.log(`✅ Copied ${file} to build directory`);
+          }
+        });
+      }
+    }
   ],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -21,6 +75,10 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: false,
     rollupOptions: {
+      input: {
+        main: 'index.html',
+        landing: 'public/landing-page.html'
+      },
       output: {
         manualChunks: {
           // Keep React ecosystem together to prevent module resolution issues
