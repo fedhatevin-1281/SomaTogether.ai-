@@ -89,11 +89,8 @@ function AppContent() {
         } else {
           setCurrentScreen('login');
         }
-      } else {
-        // If not on app route, redirect to landing page
-        window.location.href = '/';
-        return;
       }
+      // Note: We don't redirect from root path - let Vercel handle routing to landing page
     }
   }, [user, profile, loading]);
 
