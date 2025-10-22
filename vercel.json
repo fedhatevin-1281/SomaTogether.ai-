@@ -26,19 +26,16 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/landing-page.html"
+    },
+    {
       "source": "/app",
       "destination": "/index.html"
     },
     {
       "source": "/app/(.*)",
       "destination": "/index.html"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/landing-page.html",
-      "permanent": false
     }
   ]
 }

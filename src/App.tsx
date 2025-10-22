@@ -79,7 +79,7 @@ function AppContent() {
       // Check if we're on the app route
       const currentPath = window.location.pathname;
       
-      if (currentPath.startsWith('/app')) {
+      if (currentPath.startsWith('/app') || currentPath === '/') {
         // Check URL parameters for login/signup mode
         const urlParams = new URLSearchParams(window.location.search);
         const screen = urlParams.get('screen');
@@ -90,7 +90,6 @@ function AppContent() {
           setCurrentScreen('login');
         }
       }
-      // Note: We don't redirect from root path - let Vercel handle routing to landing page
     }
   }, [user, profile, loading]);
 
