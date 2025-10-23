@@ -49,11 +49,8 @@ try {
     console.log('✅ Copied landing-page.html to build directory');
   }
   
-  // Copy index.html redirect
-  if (fs.existsSync('./public/index.html')) {
-    fs.copyFileSync('./public/index.html', './build/index.html');
-    console.log('✅ Copied index.html to build directory');
-  }
+  // Don't copy index.html here - it's already handled by Vite build process
+  // The built index.html with correct asset references is already in build directory
   
   // Copy static assets
   const staticFiles = ['logo.svg', 'favicon.ico', 'favicon.svg', 'ai-mascot.svg'];

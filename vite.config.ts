@@ -26,10 +26,10 @@ export default defineConfig({
           console.log('✅ Copied landing-page.html to build directory');
         }
         
-        // Copy index.html redirect
-        if (existsSync(`${publicDir}/index.html`)) {
-          copyFileSync(`${publicDir}/index.html`, `${buildDir}/index.html`);
-          console.log('✅ Copied index.html to build directory');
+        // Copy the built index.html from build/public/index.html
+        if (existsSync(`${buildDir}/public/index.html`)) {
+          copyFileSync(`${buildDir}/public/index.html`, `${buildDir}/index.html`);
+          console.log('✅ Copied built index.html to build directory');
         }
         
         // Copy CSS files
@@ -76,7 +76,7 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       input: {
-        main: 'index.html',
+        main: 'public/index.html',
         landing: 'public/landing-page.html'
       },
       output: {
