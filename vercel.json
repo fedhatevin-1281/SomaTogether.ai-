@@ -5,11 +5,19 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
       "source": "/app/(.*)",
       "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/",
+      "destination": "/landing-page.html"
+    },
+    {
+      "source": "/landing-page.html",
       "destination": "/landing-page.html"
     }
   ]
