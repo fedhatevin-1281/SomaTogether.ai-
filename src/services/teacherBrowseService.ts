@@ -75,6 +75,12 @@ export interface TeacherProfile {
   // Profile completion indicators
   profile_completion_percentage?: number;
   needs_profile_completion?: boolean;
+  // Preferred curriculums
+  preferred_curriculums?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+  }>;
 }
 
 export interface TeacherBrowseFilters {
@@ -143,6 +149,17 @@ class TeacherBrowseService {
             vacation_mode,
             vacation_start_date,
             vacation_end_date
+          ),
+          teacher_subjects (
+            subject_id,
+            proficiency_level,
+            years_experience,
+            is_primary,
+            subjects (
+              id,
+              name,
+              category
+            )
           )
         `)
         .eq('is_available', true);
@@ -222,12 +239,12 @@ class TeacherBrowseService {
           id: teacher.id,
           full_name: profile?.full_name || 'Unknown Teacher',
           email: profile?.email || '',
-          avatar_url: teacher.profile_image_url || profile?.avatar_url || '/default-avatar.png',
-          bio: profile?.bio || teacher.teaching_philosophy || '',
-          location: profile?.location || '',
+          avatar_url: teacher.profile_image_url || profile?.avatar_url || null,
+          bio: profile?.bio || teacher.teaching_philosophy || null,
+          location: profile?.location || null,
           timezone: profile?.timezone || teacher.timezone || 'UTC',
-          is_verified: profile?.is_verified || (teacher.verification_status === 'verified'),
-          last_login_at: profile?.last_login_at || teacher.updated_at,
+          is_verified: profile?.is_verified || false,
+          last_login_at: profile?.last_login_at || teacher.updated_at || null,
           hourly_rate: teacher.hourly_rate || 0,
           currency: teacher.currency || 'USD',
           subjects: teacher.subjects || [],
@@ -241,15 +258,15 @@ class TeacherBrowseService {
           max_students: teacher.max_students || 20,
           is_available: teacher.is_available || false,
           verification_status: teacher.verification_status || 'pending',
-          profile_image_url: teacher.profile_image_url,
-          cover_image_url: teacher.cover_image_url,
-          teaching_philosophy: teacher.teaching_philosophy || '',
+          profile_image_url: teacher.profile_image_url || null,
+          cover_image_url: teacher.cover_image_url || null,
+          teaching_philosophy: teacher.teaching_philosophy || null,
           certifications: teacher.certifications || [],
-          languages: teacher.languages || ['en'],
+          languages: teacher.languages || [],
           social_links: teacher.social_links || {},
           preferred_student_ages: preferences?.preferred_student_ages || [],
-          preferred_class_duration: preferences?.preferred_class_duration || 60,
-          max_students_per_class: preferences?.max_students_per_class || 1,
+          preferred_class_duration: preferences?.preferred_class_duration || null,
+          max_students_per_class: preferences?.max_students_per_class || null,
           auto_accept_bookings: preferences?.auto_accept_bookings || false,
           require_student_approval: preferences?.require_student_approval || true,
           profile_visibility: preferences?.profile_visibility || 'public',
@@ -257,12 +274,18 @@ class TeacherBrowseService {
           show_social_links: preferences?.show_social_links || true,
           show_verification_badges: preferences?.show_verification_badges || true,
           vacation_mode: preferences?.vacation_mode || false,
-          vacation_start_date: preferences?.vacation_start_date,
-          vacation_end_date: preferences?.vacation_end_date,
-          teacher_subjects: [],
+          vacation_start_date: preferences?.vacation_start_date || null,
+          vacation_end_date: preferences?.vacation_end_date || null,
+          teacher_subjects: teacher.teacher_subjects?.map((ts: any) => ({
+            subject_id: ts.subject_id,
+            subject_name: ts.subjects?.name || 'Unknown Subject',
+            proficiency_level: ts.proficiency_level,
+            years_experience: ts.years_experience,
+            is_primary: ts.is_primary
+          })) || [],
           teacher_skills: [],
           is_online: this.isTeacherOnline(profile?.last_login_at),
-          last_seen: profile?.last_login_at,
+          last_seen: profile?.last_login_at || null,
           // Profile completion indicators
           profile_completion_percentage: this.calculateProfileCompletion(teacher, profile),
           needs_profile_completion: this.needsProfileCompletion(teacher, profile)
@@ -359,6 +382,21 @@ class TeacherBrowseService {
       
       const preferences = data.teacher_preferences?.[0];
 
+      // Get preferred curriculums
+      const { data: onboardingData } = await supabase
+        .from('teacher_onboarding_responses')
+        .select(`
+          teacher_preferred_curriculums(
+            education_systems(
+              id,
+              name,
+              description
+            )
+          )
+        `)
+        .eq('teacher_id', teacherId)
+        .single();
+
       // Get recent reviews
       const { data: reviewsData } = await supabase
         .from('reviews')
@@ -440,6 +478,7 @@ class TeacherBrowseService {
           comment: review.comment,
           created_at: review.created_at
         })),
+        preferred_curriculums: onboardingData?.teacher_preferred_curriculums?.map((c: any) => c.education_systems) || [],
         is_online: this.isTeacherOnline(profile.last_login_at),
         last_seen: profile.last_login_at
       };

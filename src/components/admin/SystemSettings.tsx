@@ -4,13 +4,14 @@ import { Button } from '../ui/button';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { ArrowLeft, Shield, Settings, Bell } from 'lucide-react';
+import { ArrowLeft, Shield, Settings, Bell, Moon, Sun } from 'lucide-react';
 
 interface SystemSettingsProps {
   onBack: () => void;
 }
 
 export function SystemSettings({ onBack }: SystemSettingsProps) {
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -104,6 +105,7 @@ export function SystemSettings({ onBack }: SystemSettingsProps) {
             </div>
           </div>
         </Card>
+
 
         <Card className="p-6">
           <h3 className="font-bold text-lg mb-6">System Actions</h3>

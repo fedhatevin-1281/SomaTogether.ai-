@@ -527,6 +527,42 @@ export class ClassService {
     updates?: Partial<ClassSession>
   ): Promise<ClassSession> {
     try {
+      // If marking as completed, get session details first to check if tokens need to be deducted
+      // Tokens are ONLY deducted for Zoom class sessions (sessions with zoom_meeting_id)
+      if (status === 'completed') {
+        const { data: sessionBeforeUpdate, error: fetchError } = await supabase
+          .from('class_sessions')
+          .select('student_id, tokens_charged, tokens_deducted_at, zoom_meeting_id')
+          .eq('id', sessionId)
+          .single();
+
+        // Only deduct tokens if this is a Zoom class (has zoom_meeting_id) and not already deducted
+        if (!fetchError && sessionBeforeUpdate && sessionBeforeUpdate.zoom_meeting_id && !sessionBeforeUpdate.tokens_deducted_at && sessionBeforeUpdate.tokens_charged) {
+          // Deduct tokens from student when Zoom class session is completed
+          const { error: deductError } = await supabase
+            .rpc('deduct_tokens', {
+              user_uuid: sessionBeforeUpdate.student_id,
+              amount: sessionBeforeUpdate.tokens_charged,
+              description: 'Zoom class session payment',
+              related_entity_type: 'class_session',
+              related_entity_id: sessionId
+            });
+
+          if (deductError) {
+            console.error('Error deducting student tokens:', deductError);
+            // Don't fail the status update, but log the error
+          } else {
+            // Update session with deduction timestamp
+            await supabase
+              .from('class_sessions')
+              .update({
+                tokens_deducted_at: new Date().toISOString()
+              })
+              .eq('id', sessionId);
+          }
+        }
+      }
+
       const updateData = {
         status,
         ...updates

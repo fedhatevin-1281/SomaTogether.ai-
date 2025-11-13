@@ -103,12 +103,8 @@ class SessionTimeService {
         return { success: false, error: 'Failed to update session status' };
       }
 
-      // Deduct tokens from student
-      const deductResult = await this.deductStudentTokens(sessionId, session.student_id, session.tokens_charged);
-      if (!deductResult.success) {
-        console.error('Error deducting student tokens:', deductResult.error);
-        // Don't fail the session start, just log the error
-      }
+      // Note: Tokens will be deducted when the session is completed, not at start
+      // This ensures students only pay for completed sessions
 
       console.log('Session started successfully:', tracker.id);
 
@@ -268,6 +264,18 @@ class SessionTimeService {
         return { success: false, error: 'Failed to update time tracker' };
       }
 
+      // Get session details before updating (to get student_id, tokens_charged, and zoom_meeting_id)
+      const { data: session, error: sessionFetchError } = await supabase
+        .from('class_sessions')
+        .select('student_id, tokens_charged, tokens_deducted_at, zoom_meeting_id')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionFetchError || !session) {
+        console.error('Error fetching session:', sessionFetchError);
+        return { success: false, error: 'Failed to fetch session details' };
+      }
+
       // Update session
       const { error: sessionUpdateError } = await supabase
         .from('class_sessions')
@@ -282,6 +290,19 @@ class SessionTimeService {
       if (sessionUpdateError) {
         console.error('Error updating session:', sessionUpdateError);
         return { success: false, error: 'Failed to update session' };
+      }
+
+      // Deduct tokens from student ONLY if this is a Zoom class (has zoom_meeting_id) and not already deducted
+      if (session.zoom_meeting_id && !session.tokens_deducted_at && session.tokens_charged) {
+        const deductResult = await this.deductStudentTokens(
+          sessionId,
+          session.student_id,
+          session.tokens_charged
+        );
+        if (!deductResult.success) {
+          console.error('Error deducting student tokens:', deductResult.error);
+          // Don't fail the session end, but log the error
+        }
       }
 
       // Credit tokens to teacher if session lasted at least 1 hour

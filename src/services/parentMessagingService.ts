@@ -142,6 +142,33 @@ class ParentMessagingService {
             ? conv.messages[conv.messages.length - 1]
             : null;
 
+          // Get unread count - messages not read by this parent
+          let unreadCount = 0;
+          try {
+            const { data: unreadMessages, error: unreadError } = await supabase
+              .from('messages')
+              .select('id')
+              .eq('conversation_id', conv.id)
+              .neq('sender_id', parentId) // Only count messages not sent by parent
+              .eq('is_deleted', false);
+
+            if (!unreadError && unreadMessages && unreadMessages.length > 0) {
+              // Check which messages have been read by this parent
+              const messageIds = unreadMessages.map(m => m.id);
+              const { data: readMessages } = await supabase
+                .from('message_reads')
+                .select('message_id')
+                .in('message_id', messageIds)
+                .eq('user_id', parentId);
+
+              const readMessageIds = new Set((readMessages || []).map(r => r.message_id));
+              unreadCount = messageIds.filter(id => !readMessageIds.has(id)).length;
+            }
+          } catch (error) {
+            console.error('Error calculating unread count:', error);
+            unreadCount = 0;
+          }
+
           return {
             ...conv,
             other_participant: otherParticipant,
@@ -150,7 +177,7 @@ class ParentMessagingService {
               sender_name: lastMessage.profiles?.full_name || 'Unknown',
               created_at: lastMessage.created_at
             } : undefined,
-            unread_count: 0 // TODO: Implement unread count logic
+            unread_count: unreadCount
           };
         })
       );

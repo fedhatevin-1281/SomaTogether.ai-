@@ -448,6 +448,7 @@ CREATE TABLE public.profiles (
   location text,
   timezone text DEFAULT 'UTC'::text,
   language text DEFAULT 'en'::text,
+  theme text DEFAULT 'light'::text CHECK (theme = ANY (ARRAY['light'::text, 'dark'::text])),
   is_verified boolean DEFAULT false,
   is_active boolean DEFAULT true,
   last_login_at timestamp with time zone,

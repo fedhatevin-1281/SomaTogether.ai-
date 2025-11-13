@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -32,7 +33,10 @@ import { PaymentHistory } from './components/parent/PaymentHistory';
 import { ParentReports } from './components/parent/ParentReports';
 import { ParentSettings } from './components/parent/ParentSettings';
 import { ParentMessages } from './components/parent/ParentMessages';
+import { ParentHelpSupport } from './components/parent/ParentHelpSupport';
 import { StudentMessages } from './components/student/StudentMessages';
+import { StudentHelpSupport } from './components/student/StudentHelpSupport';
+import { TeacherHelpSupport } from './components/teacher/TeacherHelpSupport';
 import { TeacherRequestManagement } from './components/teacher/TeacherRequestManagement';
 import { ClassManagement } from './components/teacher/ClassManagement';
 import { StudentClasses } from './components/student/StudentClasses';
@@ -44,7 +48,7 @@ import { StudentOnboarding } from './components/student/StudentOnboarding';
 import { FloatingAIButton } from './components/shared/FloatingAIButton';
 
 export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
-export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'student-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management' | 'class-management' | 'session-management';
+export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'student-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management' | 'class-management' | 'session-management' | 'parent-help-support' | 'student-help-support' | 'teacher-help-support';
 export type AdminScreen = 'dashboard' | 'user-management' | 'teacher-verification' | 'payment-management' | 'analytics' | 'content-moderation' | 'system-settings';
 
 function AppContent() {
@@ -188,6 +192,8 @@ function AppContent() {
           return <StudentSettings />;
         case 'student-profile':
           return <PublicProfile />;
+        case 'student-help-support':
+          return <StudentHelpSupport onBack={() => handleScreenChange('dashboard')} />;
         default:
           return <StudentDashboard currentScreen={currentScreen} onScreenChange={handleScreenChange} />;
       }
@@ -230,6 +236,8 @@ function AppContent() {
           return <ClassManagement onBack={() => handleScreenChange('dashboard')} />;
         case 'session-management':
           return <SessionManagement onBack={() => handleScreenChange('dashboard')} />;
+        case 'teacher-help-support':
+          return <TeacherHelpSupport onBack={() => handleScreenChange('dashboard')} />;
         default:
           return <TeacherDashboard onScreenChange={handleScreenChange} />;
       }
@@ -255,6 +263,8 @@ function AppContent() {
           return <ParentMessages onBack={() => handleScreenChange('dashboard')} />;
         case 'settings':
           return <ParentSettings />;
+        case 'parent-help-support':
+          return <ParentHelpSupport onBack={() => handleScreenChange('dashboard')} />;
         default:
           return <ParentDashboard onScreenChange={handleScreenChange} />;
       }
@@ -295,14 +305,14 @@ function AppContent() {
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50">
         <Sidebar
           currentRole={currentRole}
           onScreenChange={handleScreenChange}
           currentScreen={currentScreen}
           isCollapsed={isSidebarCollapsed}
         />
-        <main className={`flex-1 p-6 transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <main className={`flex-1 p-6 transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} bg-slate-50 min-h-full`}>
           {renderContent()}
         </main>
       </div>

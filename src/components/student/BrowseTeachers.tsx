@@ -159,7 +159,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Browse Teachers</h1>
+          <h1 className="text-3xl font-bold text-foreground">Browse Teachers</h1>
           <p className="text-gray-600 mt-1">
             Find and connect with qualified teachers for your learning needs
           </p>
@@ -247,7 +247,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
                       )}
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{teacher.full_name}</CardTitle>
+                      <CardTitle className="text-lg text-foreground">{teacher.full_name}</CardTitle>
                       <div className="flex items-center space-x-2 mt-1">
                         <div className="flex items-center">
                           <Star className="h-4 w-4 text-yellow-500 fill-current" />
@@ -331,14 +331,14 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => {
                       setSelectedTeacher(teacher);
                       setRequestDialogOpen(true);
                     }}
                   >
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Request
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Book Session
                   </Button>
                 </div>
               </CardContent>
@@ -374,7 +374,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
                   )}
                 </div>
                 <div>
-                  <div className="font-semibold">{selectedTeacher.full_name}</div>
+                  <div className="font-semibold text-foreground">{selectedTeacher.full_name}</div>
                   <div className="text-sm text-gray-600">
                     {formatPrice(selectedTeacher.hourly_rate, selectedTeacher.currency)}/hr
                   </div>
@@ -441,8 +441,9 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Sending this request will cost <strong>10 tokens</strong>. 
-                Tokens will be refunded if the teacher declines your request.
+                This will link you to the teacher. The Zoom class will cost <strong>10 tokens</strong>. 
+                Tokens will be deducted after the Zoom class is completed. 
+                You need at least 10 tokens to send this request.
               </AlertDescription>
             </Alert>
       </div>

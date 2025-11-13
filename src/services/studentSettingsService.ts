@@ -22,6 +22,7 @@ export interface StudentSettingsData {
     learning_style?: string;
     education_system_id?: string;
     education_level_id?: string;
+    timezone?: string;
   };
   preferences: {
     email_notifications: boolean;
@@ -170,7 +171,7 @@ export class StudentSettingsService {
           avatar_url: profile.avatar_url,
           bio: profile.bio,
           location: profile.location,
-          timezone: profile.timezone || 'UTC',
+          timezone: profile.timezone || student.timezone || 'UTC',
           language: profile.language || 'en',
           date_of_birth: profile.date_of_birth
         },
@@ -182,7 +183,8 @@ export class StudentSettingsService {
           preferred_languages: student.preferred_languages || ['en'],
           learning_style: student.learning_style,
           education_system_id: student.education_system_id,
-          education_level_id: student.education_level_id
+          education_level_id: student.education_level_id,
+          timezone: student.timezone || profile.timezone || 'UTC'
         },
         preferences: {
           email_notifications: preferences.email_notifications,
@@ -260,6 +262,7 @@ export class StudentSettingsService {
           learning_style: studentData.learning_style,
           education_system_id: studentData.education_system_id,
           education_level_id: studentData.education_level_id,
+          timezone: studentData.timezone || undefined, // Update timezone in students table if provided
           updated_at: new Date().toISOString()
         })
         .eq('id', studentId);
@@ -283,28 +286,64 @@ export class StudentSettingsService {
     try {
       console.log('Updating student preferences:', preferencesData);
 
-      const { error } = await supabase
+      // Use upsert to create if doesn't exist, update if it does
+      // First check if preferences exist
+      const { data: existingPrefs } = await supabase
         .from('student_preferences')
-        .update({
-          email_notifications: preferencesData.email_notifications,
-          sms_notifications: preferencesData.sms_notifications,
-          push_notifications: preferencesData.push_notifications,
-          class_reminders: preferencesData.class_reminders,
-          assignment_due_reminders: preferencesData.assignment_due_reminders,
-          teacher_messages: preferencesData.teacher_messages,
-          weekly_progress_reports: preferencesData.weekly_progress_reports,
-          marketing_emails: preferencesData.marketing_emails,
-          profile_visibility: preferencesData.profile_visibility,
-          show_online_status: preferencesData.show_online_status,
-          allow_teacher_contact: preferencesData.allow_teacher_contact,
-          share_progress_with_parents: preferencesData.share_progress_with_parents,
-          updated_at: new Date().toISOString()
-        })
-        .eq('student_id', studentId);
+        .select('student_id')
+        .eq('student_id', studentId)
+        .single();
 
-      if (error) {
-        console.error('Error updating student preferences:', error);
-        throw error;
+      if (existingPrefs) {
+        // Update existing preferences
+        const { error } = await supabase
+          .from('student_preferences')
+          .update({
+            email_notifications: preferencesData.email_notifications,
+            sms_notifications: preferencesData.sms_notifications,
+            push_notifications: preferencesData.push_notifications,
+            class_reminders: preferencesData.class_reminders,
+            assignment_due_reminders: preferencesData.assignment_due_reminders,
+            teacher_messages: preferencesData.teacher_messages,
+            weekly_progress_reports: preferencesData.weekly_progress_reports,
+            marketing_emails: preferencesData.marketing_emails,
+            profile_visibility: preferencesData.profile_visibility,
+            show_online_status: preferencesData.show_online_status,
+            allow_teacher_contact: preferencesData.allow_teacher_contact,
+            share_progress_with_parents: preferencesData.share_progress_with_parents,
+            updated_at: new Date().toISOString()
+          })
+          .eq('student_id', studentId);
+
+        if (error) {
+          console.error('Error updating student preferences:', error);
+          throw error;
+        }
+      } else {
+        // Insert new preferences
+        const { error } = await supabase
+          .from('student_preferences')
+          .insert({
+            student_id: studentId,
+            email_notifications: preferencesData.email_notifications,
+            sms_notifications: preferencesData.sms_notifications,
+            push_notifications: preferencesData.push_notifications,
+            class_reminders: preferencesData.class_reminders,
+            assignment_due_reminders: preferencesData.assignment_due_reminders,
+            teacher_messages: preferencesData.teacher_messages,
+            weekly_progress_reports: preferencesData.weekly_progress_reports,
+            marketing_emails: preferencesData.marketing_emails,
+            profile_visibility: preferencesData.profile_visibility,
+            show_online_status: preferencesData.show_online_status,
+            allow_teacher_contact: preferencesData.allow_teacher_contact,
+            share_progress_with_parents: preferencesData.share_progress_with_parents,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) {
+          console.error('Error creating student preferences:', error);
+          throw error;
+        }
       }
 
       console.log('Student preferences updated successfully');
@@ -410,6 +449,53 @@ export class StudentSettingsService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Upload failed'
+      };
+    }
+  }
+
+  /**
+   * Update user password
+   */
+  static async updatePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('Updating user password');
+
+      // Verify current password by attempting to sign in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !user.email) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        return { success: false, error: 'Current password is incorrect' };
+      }
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        return { success: false, error: updateError.message || 'Failed to update password' };
+      }
+
+      console.log('Password updated successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
       };
     }
   }

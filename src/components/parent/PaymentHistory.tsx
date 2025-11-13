@@ -1,69 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { ArrowLeft, Download, CreditCard, Calendar } from 'lucide-react';
+import { ArrowLeft, Download, CreditCard, Calendar, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import ParentService from '../../services/parentService';
 
 interface PaymentHistoryProps {
   onBack?: () => void;
 }
 
 export function PaymentHistory({ onBack }: PaymentHistoryProps) {
-  const payments = [
-    {
-      id: 1,
-      date: '2025-10-01',
-      teacher: 'Dr. Sarah Johnson',
-      subject: 'Mathematics',
-      amount: 180,
-      sessions: 4,
-      status: 'paid',
-      method: 'Credit Card'
-    },
-    {
-      id: 2,
-      date: '2025-09-28',
-      teacher: 'Prof. Michael Chen',
-      subject: 'Physics',
-      amount: 150,
-      sessions: 3,
-      status: 'paid',
-      method: 'PayPal'
-    },
-    {
-      id: 3,
-      date: '2025-09-25',
-      teacher: 'Ms. Emily Davis',
-      subject: 'Literature',
-      amount: 105,
-      sessions: 3,
-      status: 'paid',
-      method: 'Credit Card'
-    },
-    {
-      id: 4,
-      date: '2025-09-20',
-      teacher: 'Dr. Sarah Johnson',
-      subject: 'Mathematics',
-      amount: 225,
-      sessions: 5,
-      status: 'paid',
-      method: 'Credit Card'
-    }
-  ];
+  const { user } = useAuth();
+  const [payments, setPayments] = useState<any[]>([]);
+  const [monthlySpending, setMonthlySpending] = useState<any[]>([]);
+  const [summary, setSummary] = useState({
+    thisMonth: 0,
+    averageMonthly: 0,
+    totalPaid: 0,
+    pending: 0,
+    thisMonthSessions: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const monthlySpending = [
-    { month: 'Jan', amount: 420 },
-    { month: 'Feb', amount: 380 },
-    { month: 'Mar', amount: 450 },
-    { month: 'Apr', amount: 510 },
-    { month: 'May', amount: 340 },
-    { month: 'Jun', amount: 390 },
-    { month: 'Jul', amount: 480 },
-    { month: 'Aug', amount: 350 },
-    { month: 'Sep', amount: 435 },
-    { month: 'Oct', amount: 350 }
-  ];
+  useEffect(() => {
+    const loadPaymentHistory = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const data = await ParentService.getPaymentHistory(user.id);
+        setPayments(data.payments);
+        setMonthlySpending(data.monthlySpending);
+        setSummary(data.summary);
+      } catch (error) {
+        console.error('Error loading payment history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPaymentHistory();
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -73,6 +51,15 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
       default: return 'bg-slate-100 text-slate-800';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading payment history...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,8 +82,8 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">This Month</p>
-              <p className="text-2xl font-bold">$350</p>
-              <p className="text-xs text-purple-600">12 sessions</p>
+              <p className="text-2xl font-bold">${summary.thisMonth.toFixed(2)}</p>
+              <p className="text-xs text-purple-600">{summary.thisMonthSessions} sessions</p>
             </div>
           </div>
         </Card>
@@ -108,7 +95,7 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Average Monthly</p>
-              <p className="text-2xl font-bold">$411</p>
+              <p className="text-2xl font-bold">${summary.averageMonthly.toFixed(2)}</p>
               <p className="text-xs text-green-600">Last 6 months</p>
             </div>
           </div>
@@ -121,7 +108,7 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Total Paid</p>
-              <p className="text-2xl font-bold">$4,113</p>
+              <p className="text-2xl font-bold">${summary.totalPaid.toFixed(2)}</p>
               <p className="text-xs text-blue-600">All time</p>
             </div>
           </div>
@@ -134,8 +121,10 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Pending</p>
-              <p className="text-2xl font-bold">$0</p>
-              <p className="text-xs text-orange-600">All caught up!</p>
+              <p className="text-2xl font-bold">${summary.pending.toFixed(2)}</p>
+              <p className="text-xs text-orange-600">
+                {summary.pending === 0 ? 'All caught up!' : 'Needs attention'}
+              </p>
             </div>
           </div>
         </Card>
@@ -152,7 +141,10 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
             </Button>
           </div>
           <div className="space-y-4">
-            {payments.map((payment) => (
+            {payments.length === 0 ? (
+              <p className="text-slate-500 text-center py-4">No payment history available</p>
+            ) : (
+              payments.map((payment) => (
               <div key={payment.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -171,7 +163,8 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
                   <span>{payment.method}</span>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
@@ -179,7 +172,10 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
         <Card className="p-6">
           <h3 className="font-bold text-lg mb-6">Monthly Spending Trend</h3>
           <div className="space-y-3">
-            {monthlySpending.slice(-6).map((month, index) => (
+            {monthlySpending.length === 0 ? (
+              <p className="text-slate-500 text-center py-4">No spending data available</p>
+            ) : (
+              monthlySpending.slice(-6).map((month, index) => (
               <div key={index} className="flex items-center justify-between">
                 <span className="text-sm text-slate-600 w-12">{month.month}</span>
                 <div className="flex-1 mx-4">
@@ -190,9 +186,10 @@ export function PaymentHistory({ onBack }: PaymentHistoryProps) {
                     ></div>
                   </div>
                 </div>
-                <span className="font-medium text-sm w-16 text-right">${month.amount}</span>
+                <span className="font-medium text-sm w-16 text-right">${month.amount.toFixed(2)}</span>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </div>

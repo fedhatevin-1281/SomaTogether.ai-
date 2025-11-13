@@ -226,6 +226,25 @@ export class AssignmentService {
    */
   static async getStudentAssignments(studentId: string): Promise<Assignment[]> {
     try {
+      // First, get all classes for this student
+      const { data: studentClasses, error: classesError } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('status', 'active');
+
+      if (classesError) {
+        console.error('Error fetching student classes:', classesError);
+        throw classesError;
+      }
+
+      // If student has no classes, return empty array
+      if (!studentClasses || studentClasses.length === 0) {
+        return [];
+      }
+
+      const classIds = studentClasses.map(c => c.id);
+
       // Get assignments from classes the student is enrolled in
       const { data, error } = await supabase
         .from('assignments')
@@ -248,11 +267,9 @@ export class AssignmentService {
             title
           )
         `)
+        .in('class_id', classIds)
         .eq('is_published', true)
         .eq('status', 'published')
-        .or(`class_id.in.(
-          select id from classes where student_id.eq.${studentId}
-        )`)
         .order('due_date', { ascending: true, nullsFirst: false });
 
       if (error) throw error;

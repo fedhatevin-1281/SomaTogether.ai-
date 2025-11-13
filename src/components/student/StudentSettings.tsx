@@ -25,14 +25,17 @@ import {
   Plus,
   X,
   Target,
-  Heart
+  Heart,
+  Moon,
+  Sun,
+  Palette
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import StudentSettingsService, { StudentSettingsData } from '../../services/studentSettingsService';
 import { toast } from 'sonner';
 
 export function StudentSettings() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,6 +44,13 @@ export function StudentSettings() {
   const [profileImageRef] = useState(React.createRef<HTMLInputElement>());
   const [newInterest, setNewInterest] = useState('');
   const [newLearningGoal, setNewLearningGoal] = useState('');
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Dropdown options based on database schema
   const timezoneOptions = [
@@ -177,8 +187,8 @@ export function StudentSettings() {
           phone: data.profile.phone || '',
           bio: data.profile.bio || '',
           location: data.profile.location || '',
-          timezone: data.profile.timezone,
-          language: data.profile.language,
+          timezone: data.student.timezone || data.profile.timezone || 'UTC',
+          language: data.profile.language || 'en',
           dateOfBirth: data.profile.date_of_birth || '',
           gradeLevel: data.student.grade_level || '',
           schoolName: data.student.school_name || '',
@@ -251,56 +261,167 @@ export function StudentSettings() {
   };
 
   const handleSaveSettings = async () => {
-    if (!profile?.id || !settingsData) return;
+    if (!profile?.id) {
+      toast.error('User not found. Please log in again.');
+      return;
+    }
     
     try {
       setSaving(true);
       setError(null);
 
+      // Validate required fields
+      if (!formData.firstName.trim() || !formData.lastName.trim()) {
+        setError('First name and last name are required');
+        toast.error('Please enter your first and last name');
+        return;
+      }
+
       // Update profile
       await StudentSettingsService.updateStudentProfile(profile.id, {
         full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-        phone: formData.phone,
-        bio: formData.bio,
-        location: formData.location,
-        timezone: formData.timezone,
-        language: formData.language,
+        phone: formData.phone || null,
+        bio: formData.bio || null,
+        location: formData.location || null,
+        timezone: formData.timezone || 'UTC',
+        language: formData.language || 'en',
         date_of_birth: formData.dateOfBirth || null
       });
 
-      // Update student data
+      // Update student data (including timezone)
       await StudentSettingsService.updateStudentData(profile.id, {
-        grade_level: formData.gradeLevel,
-        school_name: formData.schoolName,
-        learning_style: formData.learningStyle,
-        interests: formData.interests,
-        learning_goals: formData.learningGoals,
-        preferred_languages: formData.preferredLanguages
+        grade_level: formData.gradeLevel || null,
+        school_name: formData.schoolName || null,
+        learning_style: formData.learningStyle || null,
+        interests: formData.interests || [],
+        learning_goals: formData.learningGoals || [],
+        preferred_languages: formData.preferredLanguages.length > 0 ? formData.preferredLanguages : ['en'],
+        timezone: formData.timezone || 'UTC' // Also update timezone in students table
       });
 
       // Update preferences
       await StudentSettingsService.updateStudentPreferences(profile.id, {
-        email_notifications: notifications.emailNotifications,
-        push_notifications: notifications.pushNotifications,
-        sms_notifications: notifications.smsNotifications,
-        class_reminders: notifications.classReminders,
-        assignment_due_reminders: notifications.assignmentDues,
-        teacher_messages: notifications.teacherMessages,
-        weekly_progress_reports: notifications.weeklyReports,
-        marketing_emails: notifications.marketingEmails,
-        profile_visibility: privacy.profileVisibility,
-        show_online_status: privacy.showOnlineStatus,
-        allow_teacher_contact: privacy.allowTeacherContact,
-        share_progress_with_parents: privacy.shareProgressWithParents
+        email_notifications: notifications.emailNotifications ?? true,
+        push_notifications: notifications.pushNotifications ?? true,
+        sms_notifications: notifications.smsNotifications ?? false,
+        class_reminders: notifications.classReminders ?? true,
+        assignment_due_reminders: notifications.assignmentDues ?? true,
+        teacher_messages: notifications.teacherMessages ?? true,
+        weekly_progress_reports: notifications.weeklyReports ?? false,
+        marketing_emails: notifications.marketingEmails ?? false,
+        profile_visibility: privacy.profileVisibility || 'public',
+        show_online_status: privacy.showOnlineStatus ?? true,
+        allow_teacher_contact: privacy.allowTeacherContact ?? true,
+        share_progress_with_parents: privacy.shareProgressWithParents ?? true
       });
 
       toast.success('Settings saved successfully!');
+      
+      // Refresh profile data to reflect changes
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+      
+      // Reload settings to get updated data
+      const updatedData = await StudentSettingsService.getStudentSettings(profile.id);
+      setSettingsData(updatedData);
+      
+      // Update form data with reloaded data to ensure consistency
+      const nameParts = updatedData.profile.full_name.split(' ');
+      setFormData(prev => ({
+        ...prev,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        email: updatedData.profile.email,
+        phone: updatedData.profile.phone || '',
+        bio: updatedData.profile.bio || '',
+        location: updatedData.profile.location || '',
+        timezone: updatedData.student.timezone || updatedData.profile.timezone || 'UTC',
+        language: updatedData.profile.language || 'en',
+        dateOfBirth: updatedData.profile.date_of_birth || '',
+        gradeLevel: updatedData.student.grade_level || '',
+        schoolName: updatedData.student.school_name || '',
+        learningStyle: updatedData.student.learning_style || '',
+        interests: updatedData.student.interests || [],
+        learningGoals: updatedData.student.learning_goals || [],
+        preferredLanguages: updatedData.student.preferred_languages || ['en']
+      }));
+      
+      setNotifications({
+        emailNotifications: updatedData.preferences.email_notifications,
+        pushNotifications: updatedData.preferences.push_notifications,
+        smsNotifications: updatedData.preferences.sms_notifications,
+        classReminders: updatedData.preferences.class_reminders,
+        assignmentDues: updatedData.preferences.assignment_due_reminders,
+        teacherMessages: updatedData.preferences.teacher_messages,
+        weeklyReports: updatedData.preferences.weekly_progress_reports,
+        marketingEmails: updatedData.preferences.marketing_emails
+      });
+      
+      setPrivacy({
+        profileVisibility: updatedData.preferences.profile_visibility,
+        showOnlineStatus: updatedData.preferences.show_online_status,
+        allowTeacherContact: updatedData.preferences.allow_teacher_contact,
+        shareProgressWithParents: updatedData.preferences.share_progress_with_parents
+      });
     } catch (err) {
       console.error('Error saving settings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save settings');
-      toast.error('Failed to save settings');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save settings';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    setPasswordError(null);
+    
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long');
+      return;
+    }
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setPasswordError('New password must be different from current password');
+      return;
+    }
+    
+    try {
+      setUpdatingPassword(true);
+      const result = await StudentSettingsService.updatePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+      
+      if (result.success) {
+        toast.success('Password updated successfully!');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        setPasswordError(result.error || 'Failed to update password');
+        toast.error(result.error || 'Failed to update password');
+      }
+    } catch (err) {
+      console.error('Error updating password:', err);
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password');
+      toast.error('Failed to update password');
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -626,6 +747,9 @@ export function StudentSettings() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter current password"
                 autoComplete="current-password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                disabled={updatingPassword}
               />
               <Button
                 type="button"
@@ -643,8 +767,11 @@ export function StudentSettings() {
             <Input 
               id="newPassword" 
               type={showPassword ? "text" : "password"}
-              placeholder="Enter new password"
+              placeholder="Enter new password (min. 6 characters)"
               autoComplete="new-password"
+              value={passwordData.newPassword}
+              onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+              disabled={updatingPassword}
             />
           </div>
           <div>
@@ -654,11 +781,33 @@ export function StudentSettings() {
               type={showPassword ? "text" : "password"}
               placeholder="Confirm new password"
               autoComplete="new-password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+              disabled={updatingPassword}
             />
           </div>
-          <Button variant="outline" className="mt-4">
-            <Lock className="w-4 h-4 mr-2" />
-            Update Password
+          {passwordError && (
+            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+              {passwordError}
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={handleUpdatePassword}
+            disabled={updatingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+          >
+            {updatingPassword ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 mr-2" />
+                Update Password
+              </>
+            )}
           </Button>
         </div>
       </Card>
@@ -699,6 +848,20 @@ export function StudentSettings() {
             />
           </div>
 
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Smartphone className="w-4 h-4 text-gray-500" />
+              <div>
+                <p className="font-medium">SMS Notifications</p>
+                <p className="text-sm text-gray-600">Receive notifications via text message</p>
+              </div>
+            </div>
+            <Switch 
+              checked={notifications.smsNotifications}
+              onCheckedChange={(checked) => setNotifications({...notifications, smsNotifications: checked})}
+            />
+          </div>
+
           <Separator />
 
           <div className="space-y-3">
@@ -708,7 +871,8 @@ export function StudentSettings() {
               { key: 'classReminders', label: 'Class Reminders', desc: '15 minutes before scheduled classes' },
               { key: 'assignmentDues', label: 'Assignment Due Dates', desc: '1 day before assignments are due' },
               { key: 'teacherMessages', label: 'Teacher Messages', desc: 'When teachers send you messages' },
-              { key: 'weeklyReports', label: 'Weekly Progress Reports', desc: 'Summary of your weekly performance' }
+              { key: 'weeklyReports', label: 'Weekly Progress Reports', desc: 'Summary of your weekly performance' },
+              { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive promotional emails and updates' }
             ].map(({ key, label, desc }) => (
               <div key={key} className="flex items-center justify-between">
                 <div>
@@ -813,7 +977,7 @@ export function StudentSettings() {
             </Select>
           </div>
           <div>
-            <Label htmlFor="language">Language</Label>
+            <Label htmlFor="language">Primary Language</Label>
             <Select 
               value={formData.language} 
               onValueChange={(value) => setFormData({...formData, language: value})}
@@ -831,35 +995,63 @@ export function StudentSettings() {
             </Select>
           </div>
         </div>
-      </Card>
 
-      {/* Payment & Billing */}
-      <Card className="p-6">
-        <div className="flex items-center space-x-4 mb-6">
-          <CreditCard className="w-5 h-5 text-blue-600" />
-          <h2 className="text-lg font-semibold">Payment & Billing</h2>
-        </div>
+        <Separator className="my-4" />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-6 bg-blue-600 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">VISA</span>
-              </div>
-              <div>
-                <p className="font-medium">•••• •••• •••• 1234</p>
-                <p className="text-sm text-gray-600">Expires 12/26</p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm">Update</Button>
+
+        <div>
+          <Label htmlFor="preferredLanguages">Preferred Languages</Label>
+          <p className="text-sm text-gray-600 mb-2">Select all languages you're comfortable with</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.preferredLanguages.map((lang) => {
+              const langOption = languageOptions.find(opt => opt.value === lang);
+              return (
+                <Badge key={lang} variant="secondary" className="flex items-center gap-1">
+                  {langOption?.label || lang}
+                  <button
+                    onClick={() => {
+                      if (formData.preferredLanguages.length > 1) {
+                        setFormData({
+                          ...formData,
+                          preferredLanguages: formData.preferredLanguages.filter(l => l !== lang)
+                        });
+                      }
+                    }}
+                    className="ml-1 hover:text-red-500"
+                    disabled={formData.preferredLanguages.length === 1}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              );
+            })}
           </div>
-          
-          <Button variant="outline" className="w-full">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Add Payment Method
-          </Button>
+          <Select
+            onValueChange={(value) => {
+              if (!formData.preferredLanguages.includes(value)) {
+                setFormData({
+                  ...formData,
+                  preferredLanguages: [...formData.preferredLanguages, value]
+                });
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Add a language..." />
+            </SelectTrigger>
+            <SelectContent>
+              {languageOptions
+                .filter(opt => !formData.preferredLanguages.includes(opt.value))
+                .map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
+
     </div>
   );
 }

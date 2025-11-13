@@ -232,8 +232,8 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading messages...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+        <span className="ml-2 text-foreground">Loading messages...</span>
       </div>
     );
   }
@@ -259,7 +259,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
             </Button>
           )}
           <div>
-            <h1 className="text-2xl font-bold">Messages</h1>
+            <h1 className="text-2xl font-bold text-foreground">Messages</h1>
             <p className="text-slate-600">Chat with AI assistant and teachers</p>
           </div>
         </div>
@@ -270,7 +270,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg border border-slate-200">
         <Button
           variant={activeTab === 'conversations' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('conversations')}
@@ -319,10 +319,10 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                   conversations.map((conv) => (
                     <div
                       key={conv.id}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-3 rounded-lg cursor-pointer transition-colors border ${
                         selectedConversation?.id === conv.id
-                          ? 'bg-purple-100 border border-purple-200'
-                          : 'hover:bg-gray-50'
+                          ? 'bg-purple-100 border-purple-200'
+                          : 'hover:bg-gray-50 border-transparent'
                       }`}
                       onClick={() => handleSelectConversation(conv)}
                     >
@@ -338,7 +338,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
+                          <p className="font-medium text-sm truncate text-foreground">
                             {conv.other_participant?.name || 'Unknown'}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
@@ -365,7 +365,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                   teachers.map((teacher) => (
                     <div
                       key={teacher.id}
-                      className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent"
                       onClick={() => handleStartChatWithTeacher(teacher)}
                     >
                       <div className="flex items-center space-x-3">
@@ -376,7 +376,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{teacher.name}</p>
+                          <p className="font-medium text-sm truncate text-foreground">{teacher.name}</p>
                           <p className="text-xs text-gray-500">
                             {teacher.subjects.slice(0, 2).join(', ')}
                             {teacher.subjects.length > 2 && '...'}
@@ -408,9 +408,9 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                   <p className="text-gray-600 text-sm text-center py-4">No session requests</p>
                 ) : (
                   sessionRequests.map((request) => (
-                    <div key={request.id} className="p-3 rounded-lg border">
+                    <div key={request.id} className="p-3 rounded-lg border border-border bg-card">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="font-medium text-sm">{request.teacher?.full_name}</p>
+                        <p className="font-medium text-sm text-foreground">{request.teacher?.full_name}</p>
                         <div className="flex items-center space-x-1">
                           {getStatusIcon(request.status)}
                           <Badge className={getStatusColor(request.status)}>
@@ -440,7 +440,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
           {selectedConversation ? (
             <Card className="h-[600px] flex flex-col">
               {/* Chat Header */}
-              <div className="p-4 border-b flex items-center space-x-3">
+              <div className="p-4 border-b border-border flex items-center space-x-3 bg-card">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={selectedConversation.other_participant?.avatar_url} />
                   <AvatarFallback>
@@ -452,7 +452,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{selectedConversation.other_participant?.name}</p>
+                  <p className="font-medium text-foreground">{selectedConversation.other_participant?.name}</p>
                   <p className="text-xs text-gray-500">
                     {selectedConversation.other_participant?.role === 'ai' ? 'AI Assistant' : 'Teacher'}
                   </p>
@@ -460,7 +460,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4">
+              <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -500,7 +500,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t">
+              <div className="p-4 border-t border-border bg-card">
                 <div className="flex space-x-2">
                   <Input
                     placeholder="Type your message..."
@@ -512,6 +512,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                   <Button 
                     onClick={handleSendMessage} 
                     disabled={!newMessage.trim() || aiLoading}
+                    className="bg-purple-600 hover:bg-purple-700"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -522,7 +523,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
             <Card className="h-[600px] flex items-center justify-center">
               <div className="text-center text-gray-500">
                 <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium mb-2">Select a conversation</p>
+                <p className="text-lg font-medium mb-2 text-foreground">Select a conversation</p>
                 <p className="text-sm">Choose a conversation from the list to start chatting</p>
               </div>
             </Card>

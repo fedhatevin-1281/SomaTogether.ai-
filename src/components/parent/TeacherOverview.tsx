@@ -5,29 +5,83 @@ import { Badge } from '../ui/badge';
 import { ArrowLeft, Star, MessageSquare, Calendar, DollarSign, Loader2 } from 'lucide-react';
 import { TeacherProfile } from '../../services/teacherBrowseService';
 import TeacherBrowseService from '../../services/teacherBrowseService';
+import ParentService from '../../services/parentService';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../supabaseClient';
 
 interface TeacherOverviewProps {
   onBack?: () => void;
 }
 
 export function TeacherOverview({ onBack }: TeacherOverviewProps) {
+  const { user } = useAuth();
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTeachers();
-  }, []);
+    if (user?.id) {
+      fetchTeachers();
+    }
+  }, [user]);
 
   const fetchTeachers = async () => {
+    if (!user?.id) return;
+
     try {
       setLoading(true);
       setError(null);
       
-      // Import the service dynamically to avoid circular dependencies
-      // Using static import instead of dynamic import
-      const result = await TeacherBrowseService.getTeachers({}, 1, 10);
-      setTeachers(result.teachers);
+      // Get parent's children
+      const children = await ParentService.getChildren(user.id);
+      const childrenIds = children.map(child => child.id);
+
+      if (childrenIds.length === 0) {
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get active classes for parent's children
+      const { data: activeClasses, error: classesError } = await supabase
+        .from('classes')
+        .select('teacher_id')
+        .in('student_id', childrenIds)
+        .eq('status', 'active');
+
+      if (classesError) {
+        console.error('Error fetching classes:', classesError);
+        setError('Failed to load teacher information.');
+        setLoading(false);
+        return;
+      }
+
+      if (!activeClasses || activeClasses.length === 0) {
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get unique teacher IDs
+      const uniqueTeacherIds = [...new Set(activeClasses.map(c => c.teacher_id).filter(Boolean))];
+
+      if (uniqueTeacherIds.length === 0) {
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch teacher profiles for only these teachers
+      const teachersData: TeacherProfile[] = await Promise.all(
+        uniqueTeacherIds.map(async (teacherId) => {
+          const profile = await TeacherBrowseService.getTeacherProfile(teacherId);
+          return profile;
+        })
+      );
+
+      // Filter out null values
+      const validTeachers = teachersData.filter((teacher): teacher is TeacherProfile => teacher !== null);
+      setTeachers(validTeachers);
     } catch (error: any) {
       console.error('Error fetching teachers:', error);
       setError('Failed to load teachers. Please try again.');
@@ -107,7 +161,11 @@ export function TeacherOverview({ onBack }: TeacherOverviewProps) {
                     <div>
                       <h3 className="font-bold text-lg">{teacher.full_name}</h3>
                       <p className="text-slate-600">
-                        {teacher.subjects.length > 0 ? teacher.subjects.join(', ') : 'General Tutoring'}
+                        {teacher.teacher_subjects && teacher.teacher_subjects.length > 0
+                          ? teacher.teacher_subjects.map(ts => ts.subject_name).join(', ')
+                          : teacher.subjects && teacher.subjects.length > 0
+                          ? teacher.subjects.join(', ')
+                          : 'No subjects listed'}
                       </p>
                       <div className="flex items-center space-x-1 mt-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -135,7 +193,7 @@ export function TeacherOverview({ onBack }: TeacherOverviewProps) {
                   <div className="mt-4">
                     <h4 className="font-medium mb-2">Specialties</h4>
                     <div className="flex flex-wrap gap-1">
-                      {teacher.specialties.length > 0 ? (
+                      {teacher.specialties && teacher.specialties.length > 0 ? (
                         teacher.specialties.slice(0, 3).map((specialty, index) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             {specialty}
@@ -143,7 +201,7 @@ export function TeacherOverview({ onBack }: TeacherOverviewProps) {
                         ))
                       ) : (
                         <Badge variant="secondary" className="text-xs">
-                          General Teaching
+                          No specialties listed
                         </Badge>
                       )}
                     </div>
@@ -174,11 +232,11 @@ export function TeacherOverview({ onBack }: TeacherOverviewProps) {
                 {/* Feedback & Actions */}
                 <div className="lg:col-span-1">
                   <h4 className="font-medium mb-4">Teacher Info</h4>
-                  <div className="bg-slate-50 p-4 rounded-lg mb-4">
-                    <p className="text-slate-700 text-sm">
-                      {teacher.bio || teacher.teaching_philosophy || 'Professional educator ready to help students learn.'}
-                    </p>
-                  </div>
+                    <div className="bg-slate-50 p-4 rounded-lg mb-4">
+                      <p className="text-slate-700 text-sm">
+                        {teacher.bio || teacher.teaching_philosophy || 'No bio available.'}
+                      </p>
+                    </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">

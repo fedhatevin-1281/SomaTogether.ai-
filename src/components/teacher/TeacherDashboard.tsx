@@ -151,7 +151,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
     return (
       <Alert className="m-4">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
+        <AlertDescription className="text-foreground">{error}</AlertDescription>
       </Alert>
     );
   }
@@ -311,23 +311,43 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => onScreenChange && onScreenChange('session-management')}
+                  >
                     <Calendar className="h-4 w-4 mr-2" />
                     Schedule New Session
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => onScreenChange && onScreenChange('upload-assignment')}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     Create Assignment
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => onScreenChange && onScreenChange('messages')}
+                  >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     View Messages
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => onScreenChange && onScreenChange('my-students')}
+                  >
                     <Users className="h-4 w-4 mr-2" />
                     Manage Students
                   </Button>
-                  <Button className="w-full justify-start" variant="outline">
+                  <Button 
+                    className="w-full justify-start" 
+                    variant="outline"
+                    onClick={() => onScreenChange && onScreenChange('settings')}
+                  >
                     <Video className="h-4 w-4 mr-2" />
                     Zoom Integration
                   </Button>
@@ -363,7 +383,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="font-medium text-sm text-foreground">{notification.title}</p>
                               <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
                               <p className="text-xs text-gray-500 mt-1">
                                 {new Date(notification.created_at).toLocaleDateString()}
@@ -404,7 +424,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                 ) : (
                   <div className="space-y-4">
                     {activeClasses.map((classItem) => (
-                      <div key={classItem.id} className="p-4 border rounded-lg">
+                      <div key={classItem.id} className="p-4 border border-border rounded-lg bg-card">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -413,14 +433,14 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                               </span>
                             </div>
                             <div>
-                              <h3 className="font-medium">{classItem.title}</h3>
+                              <h3 className="font-medium text-foreground">{classItem.title}</h3>
                               <p className="text-sm text-gray-600">
                                 {classItem.student_name} • {classItem.subject_name}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">
+                            <p className="font-medium text-foreground">
                               {formatCurrency(classItem.hourly_rate, classItem.currency)}/hr
                             </p>
                             <Badge className={getStatusColor(classItem.status)}>
@@ -452,14 +472,14 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                 ) : (
                   <div className="space-y-4">
                     {upcomingSessions.map((session) => (
-                      <div key={session.id} className="p-4 border rounded-lg">
+                      <div key={session.id} className="p-4 border border-border rounded-lg bg-card">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                               <Play className="h-5 w-5 text-green-600" />
                             </div>
                             <div>
-                              <h3 className="font-medium">{session.title}</h3>
+                              <h3 className="font-medium text-foreground">{session.title}</h3>
                               <p className="text-sm text-gray-600">
                                 {session.student_name} • {session.subject_name}
                               </p>
@@ -469,7 +489,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">
+                            <p className="font-medium text-foreground">
                               {formatCurrency(session.rate)}/hr
                             </p>
                             <Button size="sm" variant="outline">
@@ -501,10 +521,10 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                 ) : (
                   <div className="space-y-4">
                     {recentAssignments.map((assignment) => (
-                      <div key={assignment.id} className="p-4 border rounded-lg">
+                      <div key={assignment.id} className="p-4 border border-border rounded-lg bg-card">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="font-medium">{assignment.title}</h3>
+                            <h3 className="font-medium text-foreground">{assignment.title}</h3>
                             <p className="text-sm text-gray-600 mt-1">{assignment.description}</p>
                             <div className="flex items-center space-x-4 mt-2">
                               <span className="text-xs text-gray-500">
@@ -529,7 +549,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                             </div>
                           </div>
                           <div className="text-right ml-4">
-                            <p className="text-sm font-medium">{assignment.max_points} pts</p>
+                            <p className="text-sm font-medium text-foreground">{assignment.max_points} pts</p>
                             <p className="text-xs text-gray-500">
                               Due: {assignment.due_date ? formatDate(assignment.due_date) : 'No due date'}
                             </p>
@@ -559,7 +579,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                 ) : (
                   <div className="space-y-4">
                     {recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                      <div key={activity.id} className="flex items-start space-x-4 p-4 border border-border rounded-lg bg-card">
                         <div className="flex-shrink-0">
                           {activity.type === 'session' && (
                             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -588,7 +608,7 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium">{activity.title}</h4>
+                          <h4 className="font-medium text-foreground">{activity.title}</h4>
                           <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             {formatDate(activity.timestamp)}

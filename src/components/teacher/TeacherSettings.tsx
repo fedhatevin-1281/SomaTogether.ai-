@@ -31,7 +31,9 @@ import {
   Languages,
   Link,
   Eye,
-  EyeOff
+  EyeOff,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { TeacherSettingsService, TeacherProfile, TeacherPreferences, TeacherSubject, TeacherSkill, Subject } from '../../services/teacherSettingsService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -737,6 +739,7 @@ export function TeacherSettings() {
                   </div>
                 </div>
               </div>
+
 
               <div className="space-y-4">
                 <Label>Notifications</Label>

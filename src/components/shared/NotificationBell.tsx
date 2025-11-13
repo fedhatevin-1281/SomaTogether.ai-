@@ -62,38 +62,43 @@ const NotificationBell: React.FC = () => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('NotificationBell clicked, opening notification center');
     setIsOpen(true);
     setHasNewNotifications(false);
   };
 
   return (
-    <>
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClick}
-          className={`relative h-9 w-9 p-0 ${
-            hasNewNotifications ? 'animate-pulse' : ''
-          }`}
-        >
-          <Bell className={`h-5 w-5 ${
-            hasNewNotifications ? 'text-blue-600' : 'text-gray-600'
-          }`} />
-          {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </div>
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        onClick={handleClick}
+        className={`relative h-9 w-9 p-0 ${
+          hasNewNotifications ? 'animate-pulse' : ''
+        }`}
+      >
+        <Bell className={`h-5 w-5 ${
+          hasNewNotifications ? 'text-blue-600' : 'text-gray-600'
+        }`} />
+        {unreadCount > 0 && (
+          <Badge 
+            variant="destructive" 
+            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs pointer-events-none"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Badge>
+        )}
+      </Button>
 
-      <NotificationCenter isOpen={isOpen} onClose={() => setIsOpen(false)} />
-    </>
+      <NotificationCenter isOpen={isOpen} onClose={() => {
+        console.log('Closing notification center');
+        setIsOpen(false);
+      }} />
+    </div>
   );
 };
 

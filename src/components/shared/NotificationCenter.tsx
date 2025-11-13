@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Check, Trash2, Settings, Mail, Phone, MessageSquare, CreditCard, AlertTriangle, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -131,6 +131,21 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, onClose]);
 
   // Load notifications
   const loadNotifications = async () => {
@@ -138,16 +153,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
 
     try {
       setLoading(true);
+      console.log('Loading notifications for user:', user.id, 'unreadOnly:', activeTab === 'unread');
       const result = await NotificationService.getNotifications(
         user.id,
         50,
         0,
         activeTab === 'unread'
       );
-      setNotifications(result.notifications);
+      console.log('Notifications loaded:', result.notifications.length, 'notifications');
+      setNotifications(result.notifications || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
       toast.error('Failed to load notifications');
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -236,6 +254,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
 
     // Add listener for real-time notifications
     const handleNewNotification = (notification: Notification) => {
+      console.log('New notification received:', notification);
       setNotifications(prev => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
       
@@ -256,14 +275,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
     return () => {
       NotificationService.removeListener(handleNewNotification);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Reload when tab changes
+  // Reload when tab changes or dropdown opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && user?.id) {
       loadNotifications();
+      loadUnreadCount();
     }
-  }, [activeTab, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isOpen, user?.id]);
 
   // Periodic unread count update
   useEffect(() => {
@@ -280,39 +302,41 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
   const displayNotifications = activeTab === 'unread' ? unreadNotifications : notifications;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
-      
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <h2 className="text-lg font-semibold">Notifications</h2>
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {unreadCount}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                disabled={unreadCount === 0}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+    <div 
+      ref={dropdownRef}
+      className="absolute right-0 mt-2 w-96 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-[600px] flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex flex-col max-h-[600px]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+          <div className="flex items-center space-x-2">
+            <Bell className="h-5 w-5 text-slate-600" />
+            <h3 className="font-semibold text-slate-900">Notifications</h3>
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
           </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0}
+              className="h-6 w-6 p-0"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
           {/* Tabs */}
-          <div className="flex border-b">
+          <div className="flex border-b border-slate-200">
             <button
               onClick={() => setActiveTab('all')}
               className={`flex-1 px-4 py-2 text-sm font-medium ${
@@ -335,8 +359,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             </button>
           </div>
 
-          {/* Content */}
-          <ScrollArea className="flex-1">
+        {/* Content */}
+        <ScrollArea className="flex-1 max-h-[400px]">
             {loading ? (
               <div className="p-4">
                 <div className="space-y-4">
@@ -356,7 +380,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             ) : displayNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                 <Bell className="h-12 w-12 mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">
+                <p className="text-lg font-medium mb-2 text-gray-900">
                   {activeTab === 'unread' ? 'No unread notifications' : 'No notifications'}
                 </p>
                 <p className="text-sm text-center">
@@ -367,7 +391,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
                 </p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-slate-100">
                 {displayNotifications.map((notification) => (
                   <NotificationItem
                     key={notification.id}
@@ -380,21 +404,20 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             )}
           </ScrollArea>
 
-          {/* Footer */}
-          <div className="p-4 border-t bg-gray-50">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                // Navigate to notification settings
-                console.log('Open notification settings');
-              }}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Notification Settings
-            </Button>
-          </div>
+        {/* Footer */}
+        <div className="p-3 border-t border-slate-100">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              // Navigate to notification settings
+              console.log('Open notification settings');
+            }}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Notification Settings
+          </Button>
         </div>
       </div>
     </div>

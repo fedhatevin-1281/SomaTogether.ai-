@@ -113,6 +113,10 @@ class NotificationService {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
+      // Filter out expired notifications
+      const now = new Date().toISOString();
+      query = query.or(`expires_at.is.null,expires_at.gt.${now}`);
+
       if (unreadOnly) {
         query = query.eq('is_read', false);
       }

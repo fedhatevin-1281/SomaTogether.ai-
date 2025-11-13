@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +8,14 @@ import { Separator } from '../ui/separator';
 import { Avatar } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 import { 
   User, 
   Bell, 
@@ -25,42 +33,76 @@ import {
   Calendar,
   DollarSign,
   Users,
-  BookOpen
+  BookOpen,
+  Loader2,
+  Moon,
+  Sun
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../supabaseClient';
+import ParentService, { ChildData } from '../../services/parentService';
 
 export function ParentSettings() {
+  const { user, profile } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    firstName: 'Jennifer',
-    lastName: 'Thompson',
-    email: 'jennifer.thompson@email.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Oak Street, Springfield, IL 62701',
-    emergencyContact: 'Michael Thompson - +1 (555) 987-6543',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    emergencyContact: '',
     relationship: 'Mother',
-    occupation: 'Marketing Manager'
+    occupation: ''
   });
 
-  const [children, setChildren] = useState([
-    {
-      id: 1,
-      name: 'Alex Thompson',
-      age: 16,
-      grade: '10th Grade',
-      school: 'Springfield High School',
-      subjects: ['Mathematics', 'Physics', 'Chemistry'],
-      primaryTeacher: 'Dr. Sarah Johnson'
-    },
-    {
-      id: 2,
-      name: 'Emma Thompson',
-      age: 14,
-      grade: '8th Grade', 
-      school: 'Springfield Middle School',
-      subjects: ['Algebra', 'English', 'History'],
-      primaryTeacher: 'Mr. David Wilson'
+  const [children, setChildren] = useState<ChildData[]>([]);
+  const [showAddChildDialog, setShowAddChildDialog] = useState(false);
+  const [addingChild, setAddingChild] = useState(false);
+  const isOpeningRef = useRef(false);
+  
+  // Debug: Log dialog state changes
+  useEffect(() => {
+    console.log('Dialog state is now:', showAddChildDialog);
+  }, [showAddChildDialog]);
+  
+  // Handler for dialog open change
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    console.log('Dialog onOpenChange called with:', open, 'isOpeningRef:', isOpeningRef.current, 'current state:', showAddChildDialog, 'addingChild:', addingChild);
+    
+    // If trying to close
+    if (!open) {
+      // If we just opened and ref is still true, ignore the close and reset the ref
+      if (isOpeningRef.current) {
+        console.log('Ignoring immediate close after opening - isOpeningRef is still true');
+        // Reset the ref now since we've caught the immediate close attempt
+        setTimeout(() => {
+          isOpeningRef.current = false;
+          console.log('Reset isOpeningRef to false (after preventing close)');
+        }, 500);
+        return;
+      }
+      // If we're adding, prevent closing
+      if (addingChild) {
+        console.log('Preventing close - currently adding child');
+        return;
+      }
+      // Otherwise, allow closing
+      console.log('Allowing dialog to close');
+      setShowAddChildDialog(false);
+      setAddChildError(null);
+      setAddChildSuccess(false);
+      setNewChildData({ name: '', email: '' });
     }
-  ]);
+    // Note: We don't handle the open=true case here because we control that via button click
+  }, [showAddChildDialog, addingChild]);
+  const [addChildError, setAddChildError] = useState<string | null>(null);
+  const [addChildSuccess, setAddChildSuccess] = useState(false);
+  const [newChildData, setNewChildData] = useState({
+    name: '',
+    email: '',
+  });
 
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -85,12 +127,125 @@ export function ParentSettings() {
 
   const [preferences, setPreferences] = useState({
     preferredLanguage: 'English',
-    timezone: 'UTC-6 (CST)',
+    timezone: 'UTC',
     currency: 'USD',
     sessionRemindersTime: '15',
     reportFrequency: 'weekly',
     communicationMethod: 'email'
   });
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user || !profile) return;
+      
+      try {
+        setLoading(true);
+        
+        // Load profile data
+        const nameParts = (profile.full_name || '').split(' ');
+        setFormData({
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          address: profile.location || '',
+          emergencyContact: '',
+          relationship: 'Mother',
+          occupation: ''
+        });
+
+        // Load preferences from profile
+        setPreferences({
+          preferredLanguage: profile.language || 'English',
+          timezone: profile.timezone || 'UTC',
+          currency: 'USD',
+          sessionRemindersTime: '15',
+          reportFrequency: 'weekly',
+          communicationMethod: 'email'
+        });
+
+        // Load children
+        const childrenData = await ParentService.getChildren(user.id);
+        setChildren(childrenData);
+
+        // Get parent data if exists
+        const { data: parentData } = await supabase
+          .from('parents')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        // TODO: Load notification and privacy preferences from database
+        // These would typically be in a parent_preferences table
+        
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [user, profile]);
+
+  const handleAddChild = async () => {
+    if (!user) return;
+
+    if (!newChildData.name.trim() || !newChildData.email.trim()) {
+      setAddChildError('Please enter both name and email');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newChildData.email.trim())) {
+      setAddChildError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setAddingChild(true);
+      setAddChildError(null);
+      setAddChildSuccess(false);
+
+      const result = await ParentService.linkChildToParent(
+        user.id,
+        newChildData.email.trim(),
+        newChildData.name.trim()
+      );
+
+      if (result.success) {
+        setAddChildSuccess(true);
+        setNewChildData({ name: '', email: '' });
+        
+        // Refresh children list
+        const childrenData = await ParentService.getChildren(user.id);
+        setChildren(childrenData);
+
+        // Close dialog after a short delay
+        setTimeout(() => {
+          setShowAddChildDialog(false);
+          setAddChildSuccess(false);
+        }, 1500);
+      } else {
+        setAddChildError(result.error || 'Failed to add child');
+      }
+    } catch (error) {
+      console.error('Error adding child:', error);
+      setAddChildError('An unexpected error occurred. Please try again.');
+    } finally {
+      setAddingChild(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading settings...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -100,7 +255,10 @@ export function ParentSettings() {
           <h1 className="text-2xl font-semibold text-gray-900">Parent Settings</h1>
           <p className="text-gray-600">Manage your account and children's educational preferences</p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700">
+        <Button className="bg-purple-600 hover:bg-purple-700" onClick={async () => {
+          // TODO: Implement save functionality
+          console.log('Saving settings...', { formData, notifications, privacy, preferences });
+        }}>
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
@@ -116,8 +274,13 @@ export function ParentSettings() {
         <div className="flex items-start space-x-6 mb-6">
           <div className="relative">
             <Avatar className="w-24 h-24">
-              <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=96&h=96&fit=crop&crop=face" 
-                   alt="Profile" className="w-full h-full object-cover" />
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-purple-100 flex items-center justify-center">
+                  <User className="w-12 h-12 text-purple-600" />
+                </div>
+              )}
             </Avatar>
             <Button size="sm" className="absolute -bottom-2 -right-2 p-1 rounded-full bg-purple-600 hover:bg-purple-700">
               <Camera className="w-3 h-3" />
@@ -126,16 +289,16 @@ export function ParentSettings() {
           <div className="flex-1 space-y-3">
             <div className="flex items-center space-x-2">
               <Badge className="bg-purple-100 text-purple-800">Parent Account</Badge>
-              <Badge className="bg-green-100 text-green-800">2 Active Children</Badge>
+              <Badge className="bg-green-100 text-green-800">{children.length} Active {children.length === 1 ? 'Child' : 'Children'}</Badge>
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
-                <span>Member since Jan 2023</span>
+                <span>Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently'}</span>
               </div>
               <div className="flex items-center">
                 <BookOpen className="w-4 h-4 mr-1" />
-                <span>5 Active Tutoring Sessions</span>
+                <span>Active Tutoring Sessions</span>
               </div>
             </div>
           </div>
@@ -230,55 +393,201 @@ export function ParentSettings() {
             <UserPlus className="w-5 h-5 text-purple-600" />
             <h2 className="text-lg font-semibold">Children & Students</h2>
           </div>
-          <Button variant="outline" className="text-purple-600 border-purple-200">
+          <Button 
+            type="button"
+            variant="outline" 
+            className="text-purple-600 border-purple-200"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Add Child button clicked, setting dialog to true');
+              // Set ref to true BEFORE any state updates
+              isOpeningRef.current = true;
+              console.log('isOpeningRef set to:', isOpeningRef.current);
+              // Set state immediately
+              setShowAddChildDialog(true);
+              setAddChildError(null);
+              setAddChildSuccess(false);
+              setNewChildData({ name: '', email: '' });
+              console.log('Dialog state should now be true');
+              // Reset ref after a longer delay to ensure onOpenChange has time to check it
+              setTimeout(() => {
+                if (isOpeningRef.current) {
+                  isOpeningRef.current = false;
+                  console.log('Reset isOpeningRef to false (timeout)');
+                }
+              }, 2000);
+            }}
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             Add Child
           </Button>
         </div>
 
         <div className="space-y-4">
-          {children.map((child) => (
-            <div key={child.id} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="w-12 h-12">
-                    <img src={`https://images.unsplash.com/photo-${child.id === 1 ? '1507003211169-0a1dd7243a33' : '1494790108755-2616b612b786'}?w=48&h=48&fit=crop&crop=face`} 
-                         alt={child.name} className="w-full h-full object-cover" />
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">{child.name}</h3>
-                    <p className="text-sm text-gray-600">{child.age} years old • {child.grade}</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">
-                  Edit
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-xs font-medium text-gray-500">School</Label>
-                  <p>{child.school}</p>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-gray-500">Primary Teacher</Label>
-                  <p>{child.primaryTeacher}</p>
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs font-medium text-gray-500">Current Subjects</Label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {child.subjects.map((subject, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {subject}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          {children.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No children registered yet</p>
+              <p className="text-sm text-gray-500 mt-2">Contact support to add your children to the platform</p>
             </div>
-          ))}
+          ) : (
+            children.map((child) => (
+              <div key={child.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="w-12 h-12">
+                      {child.avatar_url ? (
+                        <img src={child.avatar_url} alt={child.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-purple-100 flex items-center justify-center">
+                          <User className="w-6 h-6 text-purple-600" />
+                        </div>
+                      )}
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold">{child.full_name}</h3>
+                      <p className="text-sm text-gray-600">{child.grade_level || 'Student'} • {child.education_level?.level_name || 'Level'}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500">School</Label>
+                    <p>{child.school_name || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-500">Interests</Label>
+                    <p>{child.interests.length > 0 ? child.interests.join(', ') : 'None'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium text-gray-500">Learning Goals</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {child.learning_goals.length > 0 ? (
+                        child.learning_goals.map((goal, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {goal}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-500">No learning goals set</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </Card>
+
+      {/* Add Child Dialog */}
+      <Dialog 
+        open={showAddChildDialog} 
+        onOpenChange={(open) => {
+          // Only handle closing, not opening (opening is controlled by button)
+          if (!open) {
+            handleDialogOpenChange(open);
+          }
+        }}
+      >
+        <DialogContent 
+          className="sm:max-w-[500px]"
+          onEscapeKeyDown={(e) => {
+            if (addingChild || isOpeningRef.current) {
+              e.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(e) => {
+            if (addingChild || isOpeningRef.current) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Add Child</DialogTitle>
+            <DialogDescription>
+              Enter your child's name and email to link them to your account. 
+              If your child already has an account, they will be linked immediately. 
+              If not, a student account will be created for them.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="childName">Child's Full Name</Label>
+              <Input
+                id="childName"
+                placeholder="Enter child's full name"
+                value={newChildData.name}
+                onChange={(e) => setNewChildData({ ...newChildData, name: e.target.value })}
+                disabled={addingChild}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="childEmail">Child's Email</Label>
+              <Input
+                id="childEmail"
+                type="email"
+                placeholder="Enter child's email address"
+                value={newChildData.email}
+                onChange={(e) => setNewChildData({ ...newChildData, email: e.target.value })}
+                disabled={addingChild}
+              />
+            </div>
+
+            {addChildError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{addChildError}</p>
+              </div>
+            )}
+
+            {addChildSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  Child added successfully! They will appear in your dashboard shortly.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddChildDialog(false);
+                setAddChildError(null);
+                setAddChildSuccess(false);
+                setNewChildData({ name: '', email: '' });
+              }}
+              disabled={addingChild}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddChild}
+              disabled={addingChild || !newChildData.name.trim() || !newChildData.email.trim()}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {addingChild ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Child
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Notification Preferences */}
       <Card className="p-6">
@@ -395,6 +704,9 @@ export function ParentSettings() {
           <Globe className="w-5 h-5 text-purple-600" />
           <h2 className="text-lg font-semibold">Account Preferences</h2>
         </div>
+
+
+        <Separator className="my-4" />
 
         <div className="grid grid-cols-2 gap-4">
           <div>

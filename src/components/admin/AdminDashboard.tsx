@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -19,6 +19,7 @@ import { PaymentManagement } from './PaymentManagement';
 import { AdminAnalytics } from './AdminAnalytics';
 import { ContentModeration } from './ContentModeration';
 import { SystemSettings } from './SystemSettings';
+import { AdminService } from '../../services/adminService';
 
 type AdminDashboardProps = {
   currentScreen: AdminScreen;
@@ -54,6 +55,90 @@ export function AdminDashboard({ currentScreen, onScreenChange }: AdminDashboard
 }
 
 function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: AdminScreen) => void, currentScreen: AdminScreen }) {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    monthlyRevenue: 0,
+    activeSessions: 0,
+    pendingReviews: 0,
+    students: 0,
+    verifiedTeachers: 0,
+    parents: 0,
+    successRate: 0,
+    disputes: 0,
+  });
+  const [userGrowth, setUserGrowth] = useState(0);
+  const [revenueGrowth, setRevenueGrowth] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [adminStats, growth, revGrowth, activity] = await Promise.all([
+          AdminService.getAdminStats(),
+          AdminService.getUserCountChange(),
+          AdminService.getRevenueGrowth(),
+          AdminService.getRecentActivity(4),
+        ]);
+
+        setStats(adminStats);
+        setUserGrowth(growth);
+        setRevenueGrowth(revGrowth);
+        setRecentActivity(activity);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toFixed(2)}`;
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'user_registration':
+        return Users;
+      case 'teacher_application':
+        return UserCheck;
+      case 'payment_issue':
+        return CreditCard;
+      case 'content_report':
+        return Eye;
+      default:
+        return Users;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'user_registration':
+        return 'text-blue-600';
+      case 'teacher_application':
+        return 'text-orange-600';
+      case 'payment_issue':
+        return 'text-red-600';
+      case 'content_report':
+        return 'text-purple-600';
+      default:
+        return 'text-slate-600';
+    }
+  };
+
+  const today = new Date().toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+
   return (
     <>
       {/* Welcome Header */}
@@ -65,65 +150,73 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
           </div>
           <div className="text-right">
             <p className="text-red-100">Today</p>
-            <p className="text-2xl font-bold">Oct 4, 2025</p>
+            <p className="text-2xl font-bold">{today}</p>
           </div>
         </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Total Users</p>
-              <p className="text-2xl font-bold">2,487</p>
-              <p className="text-xs text-blue-600">+127 this month</p>
-            </div>
-          </div>
-        </Card>
+      {loading ? (
+        <div className="text-center py-8 text-foreground">Loading dashboard data...</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">Total Users</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalUsers.toLocaleString()}</p>
+                  <p className="text-xs text-blue-600">
+                    {userGrowth > 0 ? '+' : ''}{userGrowth} this month
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Monthly Revenue</p>
-              <p className="text-2xl font-bold">$45.2K</p>
-              <p className="text-xs text-green-600">+18% from last month</p>
-            </div>
-          </div>
-        </Card>
+            <Card className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">Monthly Revenue</p>
+                  <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.monthlyRevenue)}</p>
+                  <p className="text-xs text-green-600">
+                    {revenueGrowth > 0 ? '+' : ''}{revenueGrowth.toFixed(1)}% from last month
+                  </p>
+                </div>
+              </div>
+            </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Active Sessions</p>
-              <p className="text-2xl font-bold">156</p>
-              <p className="text-xs text-purple-600">Live now</p>
-            </div>
-          </div>
-        </Card>
+            <Card className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">Active Sessions</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.activeSessions}</p>
+                  <p className="text-xs text-purple-600">Live now</p>
+                </div>
+              </div>
+            </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Pending Reviews</p>
-              <p className="text-2xl font-bold">12</p>
-              <p className="text-xs text-orange-600">Require attention</p>
-            </div>
+            <Card className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600">Pending Reviews</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.pendingReviews}</p>
+                  <p className="text-xs text-orange-600">Require attention</p>
+                </div>
+              </div>
+            </Card>
           </div>
-        </Card>
-      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -145,7 +238,9 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
           <div className="text-center">
             <UserCheck className="h-8 w-8 mx-auto mb-2" />
             <span className="font-medium">Teacher Verification</span>
-            <Badge className="bg-orange-500 text-white ml-2">12</Badge>
+            {stats.pendingReviews > 0 && (
+              <Badge className="bg-orange-500 text-white ml-2">{stats.pendingReviews}</Badge>
+            )}
           </div>
         </Button>
         <Button 
@@ -164,60 +259,35 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
         {/* Recent Activity */}
         <div className="lg:col-span-2">
           <Card className="p-6">
-            <h2 className="text-xl font-bold mb-6">Recent Platform Activity</h2>
+            <h2 className="text-xl font-bold mb-6 text-foreground">Recent Platform Activity</h2>
             <div className="space-y-4">
-              {[
-                { 
-                  type: 'user_registration', 
-                  message: 'New student registered: Sarah Kim',
-                  time: '5 minutes ago',
-                  priority: 'low',
-                  icon: Users,
-                  color: 'text-blue-600'
-                },
-                { 
-                  type: 'teacher_application', 
-                  message: 'Teacher verification required: Dr. David Wilson',
-                  time: '15 minutes ago',
-                  priority: 'high',
-                  icon: UserCheck,
-                  color: 'text-orange-600'
-                },
-                { 
-                  type: 'payment_issue', 
-                  message: 'Payment dispute reported by parent',
-                  time: '1 hour ago',
-                  priority: 'high',
-                  icon: CreditCard,
-                  color: 'text-red-600'
-                },
-                { 
-                  type: 'content_report', 
-                  message: 'Content flagged for review in Mathematics course',
-                  time: '2 hours ago',
-                  priority: 'medium',
-                  icon: Eye,
-                  color: 'text-purple-600'
-                }
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
-                  <div className="flex items-center space-x-3">
-                    <activity.icon className={`h-5 w-5 ${activity.color}`} />
-                    <div>
-                      <p className="font-medium">{activity.message}</p>
-                      <p className="text-sm text-slate-600">{activity.time}</p>
+              {recentActivity.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">No recent activity</p>
+              ) : (
+                recentActivity.map((activity, index) => {
+                  const IconComponent = getActivityIcon(activity.type);
+                  const color = getActivityColor(activity.type);
+                  return (
+                    <div key={index} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-slate-50 bg-card">
+                      <div className="flex items-center space-x-3">
+                        <IconComponent className={`h-5 w-5 ${color}`} />
+                        <div>
+                          <p className="font-medium text-foreground">{activity.message}</p>
+                          <p className="text-sm text-slate-600">{activity.time}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={activity.priority === 'high' ? 'destructive' : activity.priority === 'medium' ? 'default' : 'secondary'}>
+                          {activity.priority}
+                        </Badge>
+                        <Button variant="outline" size="sm">
+                          Review
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={activity.priority === 'high' ? 'destructive' : activity.priority === 'medium' ? 'default' : 'secondary'}>
-                      {activity.priority}
-                    </Badge>
-                    <Button variant="outline" size="sm">
-                      Review
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
           </Card>
         </div>
@@ -226,7 +296,7 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
         <div className="space-y-6">
           {/* System Health */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">System Health</h3>
+            <h3 className="font-bold mb-4 text-foreground">System Health</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-slate-600">Server Status</span>
@@ -249,53 +319,53 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
 
           {/* Pending Tasks */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">Pending Tasks</h3>
+            <h3 className="font-bold mb-4 text-foreground">Pending Tasks</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-slate-600">Teacher Verifications</span>
-                <Badge className="bg-orange-100 text-orange-800">12</Badge>
+                <Badge className="bg-orange-100 text-orange-800">{stats.pendingReviews}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Content Reviews</span>
-                <Badge className="bg-purple-100 text-purple-800">8</Badge>
+                <Badge className="bg-purple-100 text-purple-800">0</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Payment Disputes</span>
-                <Badge className="bg-red-100 text-red-800">3</Badge>
+                <Badge className="bg-red-100 text-red-800">{stats.disputes}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">User Reports</span>
-                <Badge className="bg-blue-100 text-blue-800">5</Badge>
+                <Badge className="bg-blue-100 text-blue-800">0</Badge>
               </div>
             </div>
           </Card>
 
           {/* Platform Stats */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">Platform Statistics</h3>
+            <h3 className="font-bold mb-4 text-foreground">Platform Statistics</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-600">Active Students</span>
-                <span className="font-medium">1,847</span>
+                <span className="font-medium text-foreground">{stats.students.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Verified Teachers</span>
-                <span className="font-medium">423</span>
+                <span className="font-medium text-foreground">{stats.verifiedTeachers.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Active Parents</span>
-                <span className="font-medium">1,205</span>
+                <span className="font-medium text-foreground">{stats.parents.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Success Rate</span>
-                <span className="font-medium">94.2%</span>
+                <span className="font-medium text-foreground">{stats.successRate.toFixed(1)}%</span>
               </div>
             </div>
           </Card>
 
           {/* Quick Actions */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">Quick Actions</h3>
+            <h3 className="font-bold mb-4 text-foreground">Quick Actions</h3>
             <div className="space-y-2">
               <Button variant="outline" className="w-full justify-start" onClick={() => onNavigate('content-moderation')}>
                 <Eye className="h-4 w-4 mr-2" />
@@ -313,6 +383,8 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
           </Card>
         </div>
       </div>
+        </>
+      )}
     </>
   );
 }

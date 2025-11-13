@@ -57,8 +57,8 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading dashboard...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+        <span className="ml-2 text-foreground">Loading dashboard...</span>
       </div>
     );
   }
@@ -98,53 +98,53 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
+        <Card className="p-6 bg-white border">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Users className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">Active Teachers</p>
-              <p className="text-2xl font-bold">{dashboardData.active_teachers}</p>
+              <p className="text-sm text-gray-600">Active Teachers</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardData.active_teachers}</p>
               <p className="text-xs text-purple-600">Working with your children</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-white border">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">Overall Progress</p>
-              <p className="text-2xl font-bold">{dashboardData.overall_progress}%</p>
+              <p className="text-sm text-gray-600">Overall Progress</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardData.overall_progress}%</p>
               <p className="text-xs text-green-600">Across all subjects</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-white border">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Clock className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">Hours This Week</p>
-              <p className="text-2xl font-bold">{dashboardData.hours_this_week}</p>
+              <p className="text-sm text-gray-600">Hours This Week</p>
+              <p className="text-2xl font-bold text-gray-900">{dashboardData.hours_this_week}</p>
               <p className="text-xs text-blue-600">{dashboardData.monthly_summary.total_sessions} sessions completed</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-white border">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
               <DollarSign className="h-6 w-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">This Month</p>
-              <p className="text-2xl font-bold">${dashboardData.monthly_spending.toFixed(2)}</p>
+              <p className="text-sm text-gray-600">This Month</p>
+              <p className="text-2xl font-bold text-gray-900">${dashboardData.monthly_spending.toFixed(2)}</p>
               <p className="text-xs text-orange-600">{dashboardData.monthly_summary.total_sessions} sessions</p>
             </div>
           </div>
@@ -154,43 +154,43 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Button 
-          className="h-24 bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200"
+          className="h-24 bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 rounded-xl"
           variant="outline"
           onClick={() => onScreenChange('child-progress')}
         >
-          <div className="text-center">
-            <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-            <span className="font-medium">Child Progress</span>
+          <div className="text-center w-full">
+            <BarChart3 className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+            <span className="font-medium text-purple-600">Child Progress</span>
           </div>
         </Button>
         <Button 
-          className="h-24 bg-green-50 text-green-600 hover:bg-green-100 border border-green-200"
+          className="h-24 bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 rounded-xl"
           variant="outline"
           onClick={() => onScreenChange('teacher-overview')}
         >
-          <div className="text-center">
-            <Users className="h-8 w-8 mx-auto mb-2" />
-            <span className="font-medium">Teachers</span>
+          <div className="text-center w-full">
+            <Users className="h-8 w-8 mx-auto mb-2 text-green-600" />
+            <span className="font-medium text-green-600">Teachers</span>
           </div>
         </Button>
         <Button 
-          className="h-24 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
+          className="h-24 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 rounded-xl"
           variant="outline"
           onClick={() => onScreenChange('payment-history')}
         >
-          <div className="text-center">
-            <CreditCard className="h-8 w-8 mx-auto mb-2" />
-            <span className="font-medium">Payments</span>
+          <div className="text-center w-full">
+            <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+            <span className="font-medium text-blue-600">Payments</span>
           </div>
         </Button>
         <Button 
-          className="h-24 bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
+          className="h-24 bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200 rounded-xl"
           variant="outline"
           onClick={() => onScreenChange('reports')}
         >
-          <div className="text-center">
-            <FileText className="h-8 w-8 mx-auto mb-2" />
-            <span className="font-medium">Reports</span>
+          <div className="text-center w-full">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+            <span className="font-medium text-orange-600">Reports</span>
           </div>
         </Button>
       </div>
@@ -198,7 +198,7 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
       {/* Secondary Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Button 
-          className="h-16 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+          className="h-16 bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
           variant="outline"
           onClick={() => onScreenChange('parent-messages')}
         >
@@ -211,7 +211,7 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
           </div>
         </Button>
         <Button 
-          className="h-16 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+          className="h-16 bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
           variant="outline"
           onClick={() => onScreenChange('settings')}
         >
@@ -225,9 +225,9 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Children Overview */}
         <div className="lg:col-span-2">
-          <Card className="p-6">
+          <Card className="p-6 bg-white border">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Children's Progress Overview</h2>
+              <h2 className="text-xl font-bold text-gray-900">Children's Progress Overview</h2>
               <Button variant="outline" size="sm" onClick={() => onScreenChange('child-progress')}>
                 View Details
               </Button>
@@ -242,7 +242,7 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
                 </div>
               ) : (
                 dashboardData.children.map((child, childIndex) => (
-                  <div key={childIndex} className="border rounded-lg p-4">
+                  <div key={childIndex} className="border border-gray-200 rounded-lg p-4 bg-white">
                     <div className="flex items-center space-x-4 mb-4">
                       <img
                         src={child.avatar_url || '/default-avatar.png'}
@@ -250,11 +250,11 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
                         className="w-16 h-16 rounded-full object-cover"
                       />
                       <div>
-                        <h3 className="font-bold text-lg">{child.full_name}</h3>
-                        <p className="text-slate-600">{child.grade_level || 'Student'} • {child.education_level?.level_name || 'Level'}</p>
+                        <h3 className="font-bold text-lg text-gray-900">{child.full_name}</h3>
+                        <p className="text-gray-600">{child.grade_level || 'Student'} • {child.education_level?.level_name || 'Level'}</p>
                         <div className="flex items-center space-x-1 mt-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">Active Student</span>
+                          <span className="text-sm font-medium text-gray-900">Active Student</span>
                         </div>
                       </div>
                     </div>
@@ -264,13 +264,13 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <h5 className="font-medium text-sm">Interests</h5>
-                              <p className="text-xs text-slate-600">{child.interests.join(', ')}</p>
+                              <h5 className="font-medium text-sm text-gray-900">Interests</h5>
+                              <p className="text-xs text-gray-600">{child.interests.join(', ')}</p>
                             </div>
                             <Badge variant="secondary">Learning</Badge>
                           </div>
                           <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
+                            <div className="flex justify-between text-xs text-gray-900">
                               <span>Progress</span>
                               <span>Active</span>
                             </div>
@@ -293,14 +293,14 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
         {/* Right Sidebar */}
         <div className="space-y-6">
           {/* Upcoming Sessions */}
-          <Card className="p-6">
-            <h3 className="font-bold mb-4">Upcoming Sessions</h3>
+          <Card className="p-6 bg-white border">
+            <h3 className="font-bold mb-4 text-gray-900">Upcoming Sessions</h3>
             <div className="space-y-3">
               {dashboardData.upcoming_sessions.length === 0 ? (
                 <p className="text-gray-600 text-sm">No upcoming sessions</p>
               ) : (
                 dashboardData.upcoming_sessions.slice(0, 4).map((session, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
                     <div>
                       <p className="font-medium text-purple-900 text-sm">
                         {new Date(session.scheduled_start).toLocaleString()}
@@ -315,8 +315,8 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
           </Card>
 
           {/* Recent Activity */}
-          <Card className="p-6">
-            <h3 className="font-bold mb-4">Recent Activity</h3>
+          <Card className="p-6 bg-white border">
+            <h3 className="font-bold mb-4 text-gray-900">Recent Activity</h3>
             <div className="space-y-3">
               {dashboardData.recent_activity.length === 0 ? (
                 <p className="text-gray-600 text-sm">No recent activity</p>
@@ -325,8 +325,8 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
                   <div key={index} className="flex items-start space-x-3">
                     <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{item.title}</p>
-                      <p className="text-xs text-slate-600">
+                      <p className="font-medium text-sm text-gray-900">{item.title}</p>
+                      <p className="text-xs text-gray-600">
                         {item.subject} • {new Date(item.timestamp).toLocaleDateString()}
                       </p>
                     </div>
@@ -337,38 +337,38 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
           </Card>
 
           {/* Monthly Summary */}
-          <Card className="p-6">
-            <h3 className="font-bold mb-4">This Month Summary</h3>
+          <Card className="p-6 bg-white border">
+            <h3 className="font-bold mb-4 text-gray-900">This Month Summary</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-slate-600">Total Sessions</span>
-                <span className="font-medium">{dashboardData.monthly_summary.total_sessions}</span>
+                <span className="text-gray-600">Total Sessions</span>
+                <span className="font-medium text-gray-900">{dashboardData.monthly_summary.total_sessions}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Study Hours</span>
-                <span className="font-medium">{dashboardData.monthly_summary.study_hours}h</span>
+                <span className="text-gray-600">Study Hours</span>
+                <span className="font-medium text-gray-900">{dashboardData.monthly_summary.study_hours}h</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Assignments</span>
-                <span className="font-medium">
+                <span className="text-gray-600">Assignments</span>
+                <span className="font-medium text-gray-900">
                   {dashboardData.monthly_summary.assignments_completed}/{dashboardData.monthly_summary.total_assignments} completed
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Average Grades</span>
-                <span className="font-medium">{dashboardData.monthly_summary.average_grades}</span>
+                <span className="text-gray-600">Average Grades</span>
+                <span className="font-medium text-gray-900">{dashboardData.monthly_summary.average_grades}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Amount Spent</span>
-                <span className="font-medium">${dashboardData.monthly_summary.amount_spent.toFixed(2)}</span>
+                <span className="text-gray-600">Amount Spent</span>
+                <span className="font-medium text-gray-900">${dashboardData.monthly_summary.amount_spent.toFixed(2)}</span>
               </div>
             </div>
           </Card>
 
           {/* Teacher Messages */}
-          <Card className="p-6">
+          <Card className="p-6 bg-white border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold">Recent Messages</h3>
+              <h3 className="font-bold text-gray-900">Recent Messages</h3>
               <Button variant="outline" size="sm" onClick={() => onScreenChange('messages')}>
                 View All
               </Button>
@@ -380,12 +380,12 @@ export function ParentDashboard({ onScreenChange }: ParentDashboardProps) {
                 dashboardData.recent_messages.map((message, index) => (
                   <div key={index} className="text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{message.from}</span>
-                      <span className="text-xs text-slate-500">
+                      <span className="font-medium text-gray-900">{message.from}</span>
+                      <span className="text-xs text-gray-500">
                         {new Date(message.timestamp).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-slate-600 mt-1">{message.message}</p>
+                    <p className="text-gray-600 mt-1">{message.message}</p>
                   </div>
                 ))
               )}

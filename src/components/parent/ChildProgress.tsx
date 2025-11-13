@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { ArrowLeft, TrendingUp, Star, Calendar, BookOpen, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { ArrowLeft, TrendingUp, Star, Calendar, BookOpen, Loader2, Plus, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ParentService, { ChildProgress as ChildProgressData } from '../../services/parentService';
+import { toast } from 'sonner';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface ChildProgressProps {
   onBack?: () => void;
@@ -18,27 +24,37 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
   const [childProgress, setChildProgress] = useState<ChildProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddChildDialog, setShowAddChildDialog] = useState(false);
+  const [addingChild, setAddingChild] = useState(false);
+  const [childName, setChildName] = useState('');
+  const [childEmail, setChildEmail] = useState('');
+  const [addChildError, setAddChildError] = useState<string | null>(null);
+
+  // Debug: Log dialog state changes
+  useEffect(() => {
+    console.log('showAddChildDialog state changed to:', showAddChildDialog);
+  }, [showAddChildDialog]);
+
+  const loadChildren = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const childrenData = await ParentService.getChildren(user.id);
+      setChildren(childrenData);
+      if (childrenData.length > 0 && !selectedChild) {
+        setSelectedChild(childrenData[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading children:', err);
+      setError('Failed to load children data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadChildren = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        const childrenData = await ParentService.getChildren(user.id);
-        setChildren(childrenData);
-        if (childrenData.length > 0) {
-          setSelectedChild(childrenData[0].id);
-        }
-      } catch (err) {
-        console.error('Error loading children:', err);
-        setError('Failed to load children data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadChildren();
   }, [user]);
 
@@ -76,11 +92,156 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
     );
   }
 
-  if (children.length === 0) {
+  const handleAddChild = async () => {
+    if (!user?.id) {
+      toast.error('User not found. Please log in again.');
+      return;
+    }
+
+    if (!childName.trim() || !childEmail.trim()) {
+      setAddChildError('Please enter both name and email');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(childEmail.trim())) {
+      setAddChildError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setAddingChild(true);
+      setAddChildError(null);
+
+      const result = await ParentService.linkChildToParent(
+        user.id,
+        childEmail.trim(),
+        childName.trim()
+      );
+
+      if (result.success) {
+        toast.success('Child added successfully!');
+        setShowAddChildDialog(false);
+        setChildName('');
+        setChildEmail('');
+        setAddChildError(null);
+        // Reload children list
+        await loadChildren();
+        // Select the newly added child if it's the first one
+        if (children.length === 0 && result.childId) {
+          setSelectedChild(result.childId);
+        }
+      } else {
+        setAddChildError(result.error || 'Failed to add child');
+        toast.error(result.error || 'Failed to add child');
+      }
+    } catch (err: any) {
+      console.error('Error adding child:', err);
+      setAddChildError(err.message || 'Failed to add child. Please try again.');
+      toast.error(err.message || 'Failed to add child');
+    } finally {
+      setAddingChild(false);
+    }
+  };
+
+  if (children.length === 0 && !loading) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">No children registered yet</p>
-        <p className="text-sm text-gray-500 mt-2">Contact support to add your children to the platform</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Children's Progress</h1>
+            <p className="text-slate-600">Add your children to track their learning journey</p>
+          </div>
+          <Button onClick={() => setShowAddChildDialog(true)} className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Add Child</span>
+          </Button>
+        </div>
+
+        <Card className="p-8 text-center">
+          <p className="text-gray-600 mb-2">No children registered yet</p>
+          <p className="text-sm text-gray-500 mb-4">Add your first child to start tracking their progress</p>
+          <Button onClick={() => setShowAddChildDialog(true)} className="flex items-center space-x-2 mx-auto">
+            <Plus className="h-4 w-4" />
+            <span>Add Your First Child</span>
+          </Button>
+        </Card>
+
+        {/* Add Child Dialog */}
+        <Dialog open={showAddChildDialog} onOpenChange={setShowAddChildDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Child</DialogTitle>
+              <DialogDescription>
+                Add a child to your account. If the child already has an account, they will be linked. Otherwise, a new account will be created.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {addChildError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{addChildError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div>
+                <Label htmlFor="childName">Child's Name *</Label>
+                <Input
+                  id="childName"
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                  placeholder="Enter child's full name"
+                  disabled={addingChild}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="childEmail">Child's Email *</Label>
+                <Input
+                  id="childEmail"
+                  type="email"
+                  value={childEmail}
+                  onChange={(e) => setChildEmail(e.target.value)}
+                  placeholder="Enter child's email address"
+                  disabled={addingChild}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  If the child already has an account, they will be linked. Otherwise, a new account will be created.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddChildDialog(false);
+                  setChildName('');
+                  setChildEmail('');
+                  setAddChildError(null);
+                }}
+                disabled={addingChild}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAddChild} disabled={addingChild}>
+                {addingChild ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Child
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -92,7 +253,19 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
           <h1 className="text-2xl font-bold">Children's Progress</h1>
           <p className="text-slate-600">Detailed view of your children's learning journey</p>
         </div>
-        <Badge className="bg-purple-100 text-purple-800">{children.length} Active Students</Badge>
+        <div className="flex items-center space-x-3">
+          <Badge className="bg-purple-100 text-purple-800">{children.length} Active Students</Badge>
+          <Button 
+            onClick={() => {
+              console.log('Add Child button clicked, setting showAddChildDialog to true');
+              setShowAddChildDialog(true);
+            }} 
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Child</span>
+          </Button>
+        </div>
       </div>
 
       {/* Child Selector */}
@@ -279,6 +452,111 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
           </Card>
         </div>
       )}
+
+      {/* Add Child Dialog */}
+      {showAddChildDialog && createPortal(
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+          onClick={(e) => {
+            // Close when clicking the backdrop
+            if (e.target === e.currentTarget && !addingChild) {
+              setShowAddChildDialog(false);
+              setChildName('');
+              setChildEmail('');
+              setAddChildError(null);
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold">Add Child</h2>
+                <button
+                  onClick={() => {
+                    setShowAddChildDialog(false);
+                    setChildName('');
+                    setChildEmail('');
+                    setAddChildError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={addingChild}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Add a child to your account. If the child already has an account, they will be linked. Otherwise, a new account will be created.
+              </p>
+
+              {addChildError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{addChildError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div>
+                <Label htmlFor="childName">Child's Name *</Label>
+                <Input
+                  id="childName"
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                  placeholder="Enter child's full name"
+                  disabled={addingChild}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="childEmail">Child's Email *</Label>
+                <Input
+                  id="childEmail"
+                  type="email"
+                  value={childEmail}
+                  onChange={(e) => setChildEmail(e.target.value)}
+                  placeholder="Enter child's email address"
+                  disabled={addingChild}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  If the child already has an account, they will be linked. Otherwise, a new account will be created.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddChildDialog(false);
+                    setChildName('');
+                    setChildEmail('');
+                    setAddChildError(null);
+                  }}
+                  disabled={addingChild}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleAddChild} disabled={addingChild}>
+                  {addingChild ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Child
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ArrowLeft, Search, Filter, MoreVertical, Ban, CheckCircle } from 'lucide-react';
+import { AdminService, AdminUser } from '../../services/adminService';
 
 interface UserManagementProps {
   onBack: () => void;
@@ -14,51 +15,44 @@ export function UserManagement({ onBack }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const users = [
-    {
-      id: 1,
-      name: 'Alex Thompson',
-      email: 'alex.thompson@email.com',
-      type: 'student',
-      status: 'active',
-      joinDate: '2025-09-01',
-      lastActivity: '2 hours ago',
-      sessionsCount: 24,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: 2,
-      name: 'Dr. Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      type: 'teacher',
-      status: 'active',
-      joinDate: '2025-08-15',
-      lastActivity: '1 hour ago',
-      sessionsCount: 147,
-      verified: true,
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b1e0?w=150&h=150&fit=crop&crop=face'
-    },
-    {
-      id: 3,
-      name: 'Mrs. Johnson',
-      email: 'mrs.johnson@email.com',
-      type: 'parent',
-      status: 'active',
-      joinDate: '2025-08-20',
-      lastActivity: '3 hours ago',
-      children: 1,
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-    }
-  ];
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = userTypeFilter === 'all' || user.type === userTypeFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    parents: 0,
+    suspended: 0,
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [usersData, adminStats] = await Promise.all([
+          AdminService.getUsers({
+            searchTerm: searchTerm || undefined,
+            userType: userTypeFilter !== 'all' ? userTypeFilter : undefined,
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+          }),
+          AdminService.getAdminStats(),
+        ]);
+
+        setUsers(usersData);
+        setStats({
+          students: adminStats.students,
+          teachers: adminStats.teachers,
+          parents: adminStats.parents,
+          suspended: adminStats.suspended,
+        });
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [searchTerm, userTypeFilter, statusFilter]);
 
   const getUserTypeColor = (type: string) => {
     switch (type) {
@@ -85,7 +79,7 @@ export function UserManagement({ onBack }: UserManagementProps) {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">User Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-slate-600">Manage all platform users and their activities</p>
         </div>
       </div>
@@ -94,25 +88,25 @@ export function UserManagement({ onBack }: UserManagementProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">1,847</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.students.toLocaleString()}</p>
             <p className="text-sm text-slate-600">Students</p>
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">423</p>
+            <p className="text-2xl font-bold text-green-600">{stats.teachers.toLocaleString()}</p>
             <p className="text-sm text-slate-600">Teachers</p>
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">1,205</p>
+            <p className="text-2xl font-bold text-purple-600">{stats.parents.toLocaleString()}</p>
             <p className="text-sm text-slate-600">Parents</p>
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">12</p>
+            <p className="text-2xl font-bold text-red-600">{stats.suspended.toLocaleString()}</p>
             <p className="text-sm text-slate-600">Suspended</p>
           </div>
         </Card>
@@ -165,73 +159,87 @@ export function UserManagement({ onBack }: UserManagementProps) {
       {/* Users Table */}
       <Card className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b bg-slate-50">
-              <tr>
-                <th className="text-left p-4 font-medium">User</th>
-                <th className="text-left p-4 font-medium">Type</th>
-                <th className="text-left p-4 font-medium">Status</th>
-                <th className="text-left p-4 font-medium">Join Date</th>
-                <th className="text-left p-4 font-medium">Last Activity</th>
-                <th className="text-left p-4 font-medium">Stats</th>
-                <th className="text-left p-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b hover:bg-slate-50">
-                  <td className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-slate-600">{user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <Badge className={getUserTypeColor(user.type)}>
-                      {user.type}
-                    </Badge>
-                    {user.type === 'teacher' && user.verified && (
-                      <Badge className="bg-blue-100 text-blue-800 ml-1">Verified</Badge>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <Badge className={getStatusColor(user.status)}>
-                      {user.status}
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-sm">{user.joinDate}</td>
-                  <td className="p-4 text-sm">{user.lastActivity}</td>
-                  <td className="p-4 text-sm">
-                    {user.type === 'student' && `${user.sessionsCount} sessions`}
-                    {user.type === 'teacher' && `${user.sessionsCount} sessions taught`}
-                    {user.type === 'parent' && `${user.children} child`}
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Ban className="h-4 w-4 mr-1" />
-                        Suspend
-                      </Button>
-                      <Button variant="outline" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="text-center py-8 text-foreground">Loading users...</div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-8 text-foreground">No users found</div>
+          ) : (
+            <table className="w-full">
+              <thead className="border-b border-border bg-slate-50">
+                <tr>
+                  <th className="text-left p-4 font-medium text-foreground">User</th>
+                  <th className="text-left p-4 font-medium text-foreground">Type</th>
+                  <th className="text-left p-4 font-medium text-foreground">Status</th>
+                  <th className="text-left p-4 font-medium text-foreground">Join Date</th>
+                  <th className="text-left p-4 font-medium text-foreground">Last Activity</th>
+                  <th className="text-left p-4 font-medium text-foreground">Stats</th>
+                  <th className="text-left p-4 font-medium text-foreground">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b border-border hover:bg-slate-50">
+                    <td className="p-4">
+                      <div className="flex items-center space-x-3">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 text-sm font-medium">
+                              {user.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-foreground">{user.name}</p>
+                          <p className="text-sm text-slate-600">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <Badge className={getUserTypeColor(user.type)}>
+                        {user.type}
+                      </Badge>
+                      {user.type === 'teacher' && user.verified && (
+                        <Badge className="bg-blue-100 text-blue-800 ml-1">Verified</Badge>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <Badge className={getStatusColor(user.status)}>
+                        {user.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-sm text-foreground">{user.joinDate}</td>
+                    <td className="p-4 text-sm text-foreground">{user.lastActivity}</td>
+                    <td className="p-4 text-sm text-foreground">
+                      {user.type === 'student' && `${user.sessionsCount || 0} sessions`}
+                      {user.type === 'teacher' && `${user.sessionsCount || 0} sessions taught`}
+                      {user.type === 'parent' && `${user.children || 0} child${(user.children || 0) !== 1 ? 'ren' : ''}`}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Ban className="h-4 w-4 mr-1" />
+                          Suspend
+                        </Button>
+                        <Button variant="outline" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </div>

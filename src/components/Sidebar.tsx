@@ -16,7 +16,8 @@ import {
   CreditCard,
   Eye,
   Star,
-  Calendar
+  Calendar,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserRole, AppScreen } from '../App';
@@ -37,6 +38,7 @@ const sidebarItems = {
     { icon: Bot, label: 'AI Assistant', screen: 'ai-assistant' as AppScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AppScreen },
     { icon: Wallet, label: 'Wallet', screen: 'wallet' as AppScreen },
+    { icon: HelpCircle, label: 'Help & Support', screen: 'student-help-support' as AppScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AppScreen },
   ],
   teacher: [
@@ -51,6 +53,7 @@ const sidebarItems = {
     { icon: Wallet, label: 'Wallet', screen: 'wallet' as AppScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AppScreen },
     { icon: BarChart3, label: 'Analytics', screen: 'analytics' as AppScreen },
+    { icon: HelpCircle, label: 'Help & Support', screen: 'teacher-help-support' as AppScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AppScreen },
   ],
   parent: [
@@ -60,6 +63,7 @@ const sidebarItems = {
     { icon: CreditCard, label: 'Payment History', screen: 'payment-history' as AppScreen },
     { icon: FileText, label: 'Reports', screen: 'reports' as AppScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AppScreen },
+    { icon: HelpCircle, label: 'Help & Support', screen: 'parent-help-support' as AppScreen },
     { icon: Settings, label: 'Settings', screen: 'settings' as AppScreen },
   ],
   admin: [

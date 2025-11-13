@@ -4,13 +4,14 @@
     "module": "ESNext",
     "lib": ["DOM", "ES2020"],
     "jsx": "react-jsx",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "strict": false,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"]
 }

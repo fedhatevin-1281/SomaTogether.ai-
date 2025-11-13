@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Star, MapPin, Clock, Users, Award, MessageCircle, Heart, BookOpen, DollarSign, Globe, CheckCircle, AlertCircle, Send, User } from 'lucide-react';
+import { Search, Filter, Star, MapPin, Clock, Users, Award, MessageCircle, Heart, BookOpen, DollarSign, Globe, CheckCircle, AlertCircle, Send, User, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -16,15 +16,39 @@ import { toast } from 'sonner';
 import TeacherBrowseService, { TeacherProfile, TeacherBrowseFilters, PaginatedTeachers } from '../../services/teacherBrowseService';
 import { SessionRequestService, CreateSessionRequestData } from '../../services/sessionRequestService';
 import { useAuth } from '../../contexts/AuthContext';
-import { TeacherPublicProfileView } from './TeacherPublicProfileView';
 
 interface TeacherCardProps {
   teacher: TeacherProfile;
-  onViewProfile: (teacher: TeacherProfile) => void;
+  isExpanded: boolean;
+  onToggleExpand: (teacherId: string) => void;
   onSendRequest: (teacher: TeacherProfile) => void;
 }
 
-const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile, onSendRequest }) => {
+const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggleExpand, onSendRequest }) => {
+  const [detailedTeacher, setDetailedTeacher] = useState<typeof teacher | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (isExpanded && !detailedTeacher) {
+      loadTeacherDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpanded]);
+
+  const loadTeacherDetails = async () => {
+    try {
+      setLoadingDetails(true);
+      const profile = await TeacherBrowseService.getTeacherProfile(teacher.id);
+      if (profile) {
+        setDetailedTeacher(profile);
+      }
+    } catch (error) {
+      console.error('Error loading teacher details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -40,9 +64,12 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile, onSen
 
   const isOnline = teacher.is_online;
   const isAvailable = teacher.is_available && !teacher.vacation_mode;
+  
+  // Use detailed teacher data if available, otherwise use basic teacher data
+  const displayTeacher = detailedTeacher || teacher;
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 border-0 bg-white">
+    <Card className={`group hover:shadow-lg transition-all duration-300 border-0 bg-white ${isExpanded ? 'shadow-md' : ''}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
@@ -65,20 +92,19 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile, onSen
                 {teacher.is_verified && (
                   <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
                 )}
-                {teacher.needs_profile_completion && (
-                  <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
-                    Profile Incomplete
-                  </Badge>
-                )}
               </div>
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <MapPin className="h-3 w-3" />
-                <span className="truncate">{teacher.location || 'Location not specified'}</span>
-              </div>
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <Globe className="h-3 w-3" />
-                <span>{teacher.languages?.join(', ') || 'English'}</span>
-              </div>
+              {teacher.location && (
+                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                  <MapPin className="h-3 w-3" />
+                  <span className="truncate">{teacher.location}</span>
+                </div>
+              )}
+              {teacher.languages && teacher.languages.length > 0 && (
+                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                  <Globe className="h-3 w-3" />
+                  <span>{teacher.languages.join(', ')}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="text-right">
@@ -98,26 +124,46 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile, onSen
       <CardContent className="pt-0">
         {/* Bio */}
         {teacher.bio && (
-          <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+          <p className={`text-sm text-gray-700 mb-3 ${isExpanded ? '' : 'line-clamp-2'}`}>
             {teacher.bio}
           </p>
         )}
 
         {/* Subjects */}
-        <div className="mb-3">
-          <div className="flex flex-wrap gap-1">
-            {teacher.teacher_subjects?.slice(0, 3).map((subject, index) => (
-              <Badge key={index} variant="secondary" className="text-xs">
-                {subject.subject_name}
-              </Badge>
-            ))}
-            {teacher.teacher_subjects && teacher.teacher_subjects.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{teacher.teacher_subjects.length - 3} more
-              </Badge>
-            )}
+        {((teacher.teacher_subjects && teacher.teacher_subjects.length > 0) || 
+          (teacher.subjects && teacher.subjects.length > 0)) && (
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {teacher.teacher_subjects && teacher.teacher_subjects.length > 0 ? (
+                <>
+                  {teacher.teacher_subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {subject.subject_name}
+                    </Badge>
+                  ))}
+                  {!isExpanded && teacher.teacher_subjects.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{teacher.teacher_subjects.length - 3} more
+                    </Badge>
+                  )}
+                </>
+              ) : (
+                <>
+                  {teacher.subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {subject}
+                    </Badge>
+                  ))}
+                  {!isExpanded && teacher.subjects.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{teacher.subjects.length - 3} more
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-4 text-center">
@@ -155,16 +201,176 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile, onSen
           )}
         </div>
 
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="mt-4 pt-4 border-t border-gray-200 space-y-4 transition-all duration-300">
+            {loadingDetails ? (
+              <div className="text-center py-4 text-sm text-gray-600">Loading details...</div>
+            ) : (
+              <>
+                {/* Curriculum */}
+                {displayTeacher.preferred_curriculums && displayTeacher.preferred_curriculums.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Curriculums
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {displayTeacher.preferred_curriculums.map((curriculum) => (
+                        <Badge key={curriculum.id} variant="secondary" className="text-xs">
+                          {curriculum.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subjects */}
+                {((displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0) || 
+                  (displayTeacher.subjects && displayTeacher.subjects.length > 0)) && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      Subjects Taught
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0 ? (
+                        displayTeacher.teacher_subjects.map((subject, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {subject.subject_name}
+                            {subject.proficiency_level && (
+                              <span className="ml-1 text-gray-500">({subject.proficiency_level})</span>
+                            )}
+                          </Badge>
+                        ))
+                      ) : (
+                        displayTeacher.subjects?.map((subject, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {subject}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teaching Philosophy */}
+                {displayTeacher.teaching_philosophy && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Teaching Philosophy</h4>
+                    <p className="text-sm text-gray-700">{displayTeacher.teaching_philosophy}</p>
+                  </div>
+                )}
+
+                {/* Education */}
+                {displayTeacher.education && displayTeacher.education.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                      <GraduationCap className="h-4 w-4 mr-1" />
+                      Education
+                    </h4>
+                    <ul className="space-y-1">
+                      {displayTeacher.education.map((edu, index) => (
+                        <li key={index} className="text-sm text-gray-700">• {edu}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Specialties */}
+                {displayTeacher.specialties && displayTeacher.specialties.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                      <Award className="h-4 w-4 mr-1" />
+                      Specialties
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {displayTeacher.specialties.map((specialty, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {specialty}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certifications */}
+                {displayTeacher.certifications && displayTeacher.certifications.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                      <Award className="h-4 w-4 mr-1" />
+                      Certifications
+                    </h4>
+                    <ul className="space-y-1">
+                      {displayTeacher.certifications.map((cert: any, index: number) => (
+                        <li key={index} className="text-sm text-gray-700">
+                          • {typeof cert === 'string' ? cert : cert.name || cert.title || 'Certification'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Additional Details */}
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  {displayTeacher.max_students && (
+                    <div>
+                      <div className="text-xs text-gray-600">Max Students</div>
+                      <div className="text-sm font-semibold text-gray-900">{displayTeacher.max_students}</div>
+                    </div>
+                  )}
+                  {displayTeacher.preferred_class_duration && (
+                    <div>
+                      <div className="text-xs text-gray-600">Class Duration</div>
+                      <div className="text-sm font-semibold text-gray-900">{displayTeacher.preferred_class_duration} min</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Reviews */}
+                {displayTeacher.recent_reviews && displayTeacher.recent_reviews.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Recent Reviews</h4>
+                    <div className="space-y-2">
+                      {displayTeacher.recent_reviews.slice(0, 2).map((review) => (
+                        <div key={review.id} className="bg-gray-50 p-2 rounded">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-900">{review.student_name}</span>
+                            <div className="flex items-center">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-gray-700 ml-1">{review.rating}</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 line-clamp-2">{review.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onViewProfile(teacher)}
+            onClick={() => onToggleExpand(teacher.id)}
             className="flex-1"
           >
-            <BookOpen className="h-4 w-4 mr-1" />
-            View Profile
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-1" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <BookOpen className="h-4 w-4 mr-1" />
+                View Profile
+              </>
+            )}
           </Button>
           <Button
             size="sm"
@@ -276,10 +482,10 @@ const TeacherBrowse: React.FC = () => {
     }
   };
 
-  const [selectedTeacherProfile, setSelectedTeacherProfile] = useState<TeacherProfile | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
-  const handleViewProfile = (teacher: TeacherProfile) => {
-    setSelectedTeacherProfile(teacher);
+  const handleToggleExpand = (teacherId: string) => {
+    setExpandedCardId(prev => prev === teacherId ? null : teacherId);
   };
 
   const handleSendRequest = (teacher: TeacherProfile) => {
@@ -585,7 +791,8 @@ const TeacherBrowse: React.FC = () => {
               <TeacherCard
                 key={teacher.id}
                 teacher={teacher}
-                onViewProfile={handleViewProfile}
+                isExpanded={expandedCardId === teacher.id}
+                onToggleExpand={handleToggleExpand}
                 onSendRequest={handleSendRequest}
               />
             ))}
@@ -747,17 +954,6 @@ const TeacherBrowse: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Teacher Profile View */}
-      {selectedTeacherProfile && (
-        <TeacherPublicProfileView
-          teacherId={selectedTeacherProfile.id}
-          onBack={() => setSelectedTeacherProfile(null)}
-          onSendRequest={(teacher) => {
-            setSelectedTeacherProfile(null);
-            handleSendRequest(teacher);
-          }}
-        />
-      )}
     </div>
   );
 };

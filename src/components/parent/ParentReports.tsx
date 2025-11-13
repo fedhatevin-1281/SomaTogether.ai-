@@ -1,47 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { ArrowLeft, Download, Calendar, TrendingUp, BookOpen } from 'lucide-react';
+import { ArrowLeft, Download, Calendar, TrendingUp, BookOpen, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import ParentService from '../../services/parentService';
 
 interface ParentReportsProps {
   onBack?: () => void;
 }
 
 export function ParentReports({ onBack }: ParentReportsProps) {
-  const reports = [
-    {
-      id: 1,
-      title: 'Monthly Progress Report - October 2025',
-      type: 'progress',
-      date: '2025-10-01',
-      subjects: ['Mathematics', 'Physics', 'Literature'],
-      status: 'available'
-    },
-    {
-      id: 2,
-      title: 'Mathematics Assessment Report',
-      type: 'assessment',
-      date: '2025-09-28',
-      subjects: ['Mathematics'],
-      status: 'available'
-    },
-    {
-      id: 3,
-      title: 'Quarterly Performance Summary - Q3 2025',
-      type: 'summary',
-      date: '2025-09-30',
-      subjects: ['All Subjects'],
-      status: 'available'
-    }
-  ];
+  const { user } = useAuth();
+  const [reports, setReports] = useState<any[]>([]);
+  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    overallImprovement: 0,
+    sessionsAttended: '0/0',
+    studyHours: '0h',
+    reportsGenerated: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const performanceData = [
-    { subject: 'Mathematics', current: 'B+', previous: 'B', improvement: '+1 grade' },
-    { subject: 'Physics', current: 'B', previous: 'C+', improvement: '+1 grade' },
-    { subject: 'Literature', current: 'A-', previous: 'B+', improvement: '+1 grade' }
-  ];
+  useEffect(() => {
+    const loadReports = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const data = await ParentService.getReports(user.id);
+        setReports(data.reports);
+        setPerformanceData(data.performanceData);
+        setStats(data.stats);
+      } catch (error) {
+        console.error('Error loading reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReports();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading reports...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -51,7 +60,7 @@ export function ParentReports({ onBack }: ParentReportsProps) {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-          <p className="text-slate-600">Comprehensive insights into Alex's academic journey</p>
+          <p className="text-slate-600">Comprehensive insights into your children's academic journey</p>
         </div>
       </div>
 
@@ -64,8 +73,10 @@ export function ParentReports({ onBack }: ParentReportsProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Overall Improvement</p>
-              <p className="text-2xl font-bold text-green-600">+18%</p>
-              <p className="text-xs text-blue-600">This quarter</p>
+              <p className="text-2xl font-bold text-green-600">
+                {stats.overallImprovement > 0 ? '+' : ''}{stats.overallImprovement}%
+              </p>
+              <p className="text-xs text-blue-600">This month</p>
             </div>
           </div>
         </Card>
@@ -77,8 +88,8 @@ export function ParentReports({ onBack }: ParentReportsProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Sessions Attended</p>
-              <p className="text-2xl font-bold">24/24</p>
-              <p className="text-xs text-green-600">100% attendance</p>
+              <p className="text-2xl font-bold">{stats.sessionsAttended}</p>
+              <p className="text-xs text-green-600">Total sessions</p>
             </div>
           </div>
         </Card>
@@ -90,8 +101,8 @@ export function ParentReports({ onBack }: ParentReportsProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Study Hours</p>
-              <p className="text-2xl font-bold">36h</p>
-              <p className="text-xs text-purple-600">This month</p>
+              <p className="text-2xl font-bold">{stats.studyHours}</p>
+              <p className="text-xs text-purple-600">Total time</p>
             </div>
           </div>
         </Card>
@@ -103,8 +114,8 @@ export function ParentReports({ onBack }: ParentReportsProps) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Reports Generated</p>
-              <p className="text-2xl font-bold">3</p>
-              <p className="text-xs text-orange-600">This month</p>
+              <p className="text-2xl font-bold">{stats.reportsGenerated}</p>
+              <p className="text-xs text-orange-600">Available</p>
             </div>
           </div>
         </Card>
@@ -121,7 +132,10 @@ export function ParentReports({ onBack }: ParentReportsProps) {
             </Button>
           </div>
           <div className="space-y-4">
-            {reports.map((report) => (
+            {reports.length === 0 ? (
+              <p className="text-slate-500 text-center py-4">No reports available yet</p>
+            ) : (
+              reports.map((report) => (
               <div key={report.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -146,7 +160,8 @@ export function ParentReports({ onBack }: ParentReportsProps) {
                   </Button>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
@@ -154,7 +169,10 @@ export function ParentReports({ onBack }: ParentReportsProps) {
         <Card className="p-6">
           <h3 className="font-bold text-lg mb-6">Grade Progression</h3>
           <div className="space-y-4">
-            {performanceData.map((item, index) => (
+            {performanceData.length === 0 ? (
+              <p className="text-slate-500 text-center py-4">No performance data available yet</p>
+            ) : (
+              performanceData.map((item, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{item.subject}</span>
@@ -174,7 +192,8 @@ export function ParentReports({ onBack }: ParentReportsProps) {
                   ></div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
       </div>

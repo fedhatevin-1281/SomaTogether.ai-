@@ -440,8 +440,11 @@ export class SessionRequestService {
         .single();
 
       if (studentError) throw studentError;
+      // Check if student has enough tokens (will be deducted after Zoom class completion)
+      // The "Book Session" button just links the student to the teacher - no tokens deducted here
+      // Tokens are only deducted after a Zoom class session is completed
       if (!student || student.tokens < 10) {
-        throw new Error('Insufficient tokens. You need at least 10 tokens to send a request.');
+        throw new Error('Insufficient tokens. You need at least 10 tokens to book a session. Tokens will be deducted after the Zoom class is completed.');
       }
 
       // Check if there's already a pending request for this teacher
@@ -480,41 +483,54 @@ export class SessionRequestService {
 
       if (requestError) throw requestError;
 
-      // Deduct 10 tokens from student
-      const { error: deductError } = await supabase
-        .from('students')
-        .update({
-          tokens: student.tokens - tokensRequired,
-        })
-        .eq('id', studentId);
+      // Note: Tokens will be deducted after the session is completed, not when the request is sent
 
-      if (deductError) throw deductError;
+      // Get teacher profile for notification (teacher_id should be profile ID)
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', requestData.teacher_id)
+        .single();
 
-      // Create token transaction record
-      const { error: transactionError } = await supabase
-        .from('token_transactions')
-        .insert({
-          user_id: studentId,
-          type: 'spend',
-          amount_tokens: -tokensRequired,
-          amount_usd: 0, // Will be calculated based on token rate
-          token_rate: 0.1, // $0.10 per token (example rate)
-          description: `Session request to teacher - ${request.id}`,
-          related_entity_type: 'session_request',
-          related_entity_id: request.id,
-          status: 'completed',
-        });
+      const teacherName = teacherProfile?.full_name || 'the teacher';
+      const teacherProfileId = teacherProfile?.id || requestData.teacher_id;
 
-      if (transactionError) throw transactionError;
+      // Get student profile ID (studentId should already be profile ID, but verify)
+      // Since students.id references profiles.id, studentId should be the profile ID
+      const studentProfileId = studentId;
 
-      // Create notification for teacher
-      const { error: notificationError } = await supabase
+      // Create notification for student (confirmation that request was sent)
+      const { error: studentNotificationError } = await supabase
         .from('notifications')
         .insert({
-          user_id: requestData.teacher_id,
+          user_id: studentProfileId,
+          type: 'session_request_sent',
+          title: 'Session Request Sent',
+          message: `Your session request has been sent to ${teacherName}. You will be notified when they respond. Tokens (${tokensRequired}) will be deducted after the Zoom class is completed.`,
+          data: {
+            request_id: request.id,
+            teacher_id: requestData.teacher_id,
+            teacher_name: teacherName,
+            requested_start: requestData.requested_start,
+            requested_end: requestData.requested_end,
+            tokens_required: tokensRequired,
+          },
+          priority: 'normal',
+        });
+
+      if (studentNotificationError) {
+        console.error('Error creating student notification:', studentNotificationError);
+        // Don't throw - notification failure shouldn't fail the request
+      }
+
+      // Create notification for teacher
+      const { error: teacherNotificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: teacherProfileId,
           type: 'session_request',
           title: 'New Session Request',
-          message: `You have received a new session request`,
+          message: `You have received a new session request from a student`,
           data: {
             request_id: request.id,
             student_id: studentId,
@@ -524,7 +540,10 @@ export class SessionRequestService {
           priority: 'normal',
         });
 
-      if (notificationError) throw notificationError;
+      if (teacherNotificationError) {
+        console.error('Error creating teacher notification:', teacherNotificationError);
+        // Don't throw - notification failure shouldn't fail the request
+      }
 
       return request;
     } catch (error) {
@@ -542,18 +561,19 @@ export class SessionRequestService {
         .from('session_requests')
         .select(`
           *,
-          profiles!student_id(
+          students!session_requests_student_id_fkey(
             id,
-            full_name,
-            email,
-            bio,
-            avatar_url,
-            students(
-              education_system_id,
-              education_level_id,
-              school_name,
-              interests,
-              preferred_languages
+            education_system_id,
+            education_level_id,
+            school_name,
+            interests,
+            preferred_languages,
+            profiles!students_id_fkey(
+              id,
+              full_name,
+              email,
+              bio,
+              avatar_url
             )
           )
         `)
@@ -564,26 +584,27 @@ export class SessionRequestService {
 
       // Get education system and level data for students
       const requestsWithEducation = await Promise.all(
-        (data || []).map(async (request) => {
-          const student = request.profiles as any;
+        (data || []).map(async (request: any) => {
+          const studentData = request.students;
+          const profileData = studentData?.profiles;
           
           let educationSystem = null;
           let educationLevel = null;
 
-          if (student?.students?.[0]?.education_system_id) {
+          if (studentData?.education_system_id) {
             const { data: systemData } = await supabase
               .from('education_systems')
               .select('id, name, description')
-              .eq('id', student.students[0].education_system_id)
+              .eq('id', studentData.education_system_id)
               .single();
             educationSystem = systemData;
           }
 
-          if (student?.students?.[0]?.education_level_id) {
+          if (studentData?.education_level_id) {
             const { data: levelData } = await supabase
               .from('education_levels')
               .select('id, level_name, description')
-              .eq('id', student.students[0].education_level_id)
+              .eq('id', studentData.education_level_id)
               .single();
             educationLevel = levelData;
           }
@@ -591,12 +612,16 @@ export class SessionRequestService {
           return {
             ...request,
             student: {
-              ...student,
+              id: profileData?.id || studentData?.id,
+              full_name: profileData?.full_name,
+              email: profileData?.email,
+              bio: profileData?.bio,
+              avatar_url: profileData?.avatar_url,
               education_system: educationSystem,
               education_level: educationLevel,
-              school_name: student?.students?.[0]?.school_name,
-              interests: student?.students?.[0]?.interests || [],
-              preferred_languages: student?.students?.[0]?.preferred_languages || [],
+              school_name: studentData?.school_name,
+              interests: studentData?.interests || [],
+              preferred_languages: studentData?.preferred_languages || [],
             },
           };
         })
@@ -634,24 +659,41 @@ export class SessionRequestService {
 
       if (requestError) throw requestError;
 
+      // Get teacher name for notification message
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', request.teacher_id)
+        .single();
+
+      const teacherName = teacherProfile?.full_name || 'the teacher';
+
+      // Since students.id and teachers.id both reference profiles.id,
+      // student_id and teacher_id should be profile IDs
+      const studentProfileId = request.student_id;
+
       // Create notification for student
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
-          user_id: request.student_id,
+          user_id: studentProfileId,
           type: 'session_request_accepted',
           title: 'Session Request Accepted',
-          message: 'Your session request has been accepted by the teacher',
+          message: `Your session request has been accepted by ${teacherName}. The session is scheduled!`,
           data: {
             request_id: requestId,
             teacher_id: request.teacher_id,
+            teacher_name: teacherName,
             requested_start: request.requested_start,
             requested_end: request.requested_end,
           },
           priority: 'high',
         });
 
-      if (notificationError) throw notificationError;
+      if (notificationError) {
+        console.error('Error creating acceptance notification:', notificationError);
+        throw notificationError;
+      }
     } catch (error) {
       console.error('Error accepting request:', error);
       throw error;

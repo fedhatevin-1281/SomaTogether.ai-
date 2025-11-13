@@ -175,7 +175,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Student Requests</h1>
+          <h1 className="text-3xl font-bold text-foreground">Student Requests</h1>
           {onBack && (
             <Button variant="outline" onClick={onBack}>
               Back
@@ -194,7 +194,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Student Requests</h1>
+          <h1 className="text-3xl font-bold text-foreground">Student Requests</h1>
           <p className="text-gray-600 mt-1">
             Manage session requests from students
           </p>
@@ -271,7 +271,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                             )}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-lg">{request.student?.full_name}</h3>
+                            <h3 className="font-semibold text-lg text-foreground">{request.student?.full_name}</h3>
                             <p className="text-sm text-gray-600">{request.student?.email}</p>
                             {request.student?.education_system && (
                               <p className="text-xs text-gray-500">
@@ -284,26 +284,26 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                         {/* Request Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div className="space-y-2">
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-foreground">
                               <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                               <span><strong>Date:</strong> {formatDateTime(request.requested_start)}</span>
                             </div>
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-foreground">
                               <Clock className="h-4 w-4 mr-2 text-gray-500" />
                               <span><strong>Duration:</strong> {formatDuration(request.duration_hours)}</span>
                             </div>
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-foreground">
                               <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
                               <span><strong>Cost:</strong> {request.tokens_required} tokens</span>
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <div className="flex items-center text-sm">
+                            <div className="flex items-center text-sm text-foreground">
                               <Clock className="h-4 w-4 mr-2 text-gray-500" />
                               <span><strong>Expires:</strong> {formatDateTime(request.expires_at)}</span>
                             </div>
                             {request.student?.school_name && (
-                              <div className="flex items-center text-sm">
+                              <div className="flex items-center text-sm text-foreground">
                                 <BookOpen className="h-4 w-4 mr-2 text-gray-500" />
                                 <span><strong>School:</strong> {request.student.school_name}</span>
                               </div>
@@ -314,7 +314,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                         {/* Message */}
                         {request.message && (
                           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm">
+                            <p className="text-sm text-foreground">
                               <strong>Student Message:</strong> {request.message}
                             </p>
                           </div>
@@ -370,6 +370,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                             variant="destructive"
                             size="sm"
                             onClick={() => openActionDialog(request, 'decline')}
+                            className="dark:bg-red-600"
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Decline
@@ -420,7 +421,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                             )}
                           </div>
                           <div>
-                            <h3 className="font-semibold">{request.student?.full_name}</h3>
+                            <h3 className="font-semibold text-foreground">{request.student?.full_name}</h3>
                             <p className="text-sm text-gray-600">
                               {formatDateTime(request.requested_start)} • {formatDuration(request.duration_hours)}
                             </p>
@@ -434,7 +435,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                         )}
                         
                         {request.teacher_response && (
-                          <div className="p-2 bg-blue-50 rounded text-sm">
+                          <div className="p-2 bg-blue-50 rounded text-sm text-foreground">
                             <strong>Your response:</strong> {request.teacher_response}
                           </div>
                         )}
@@ -466,6 +467,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                               variant="destructive"
                               size="sm"
                               onClick={() => openActionDialog(request, 'decline')}
+                              className="dark:bg-red-600"
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Decline
@@ -512,7 +514,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                     )}
                   </div>
                   <div>
-                    <div className="font-semibold">{selectedRequest.student?.full_name}</div>
+                    <div className="font-semibold text-foreground">{selectedRequest.student?.full_name}</div>
                     <div className="text-sm text-gray-600">
                       {formatDateTime(selectedRequest.requested_start)} • {formatDuration(selectedRequest.duration_hours)}
                     </div>
@@ -629,7 +631,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{selectedStudent.full_name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{selectedStudent.full_name}</h3>
                   <p className="text-sm text-gray-600">{selectedStudent.email}</p>
                   {selectedStudent.education_system && (
                     <p className="text-xs text-gray-500">
@@ -643,7 +645,7 @@ export function TeacherRequests({ onBack }: TeacherRequestsProps) {
               {(selectedStudent.education_system || selectedStudent.school_name) && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Education</h4>
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-1 text-sm text-foreground">
                     {selectedStudent.education_system && (
                       <div className="flex items-center">
                         <BookOpen className="h-4 w-4 mr-2 text-gray-500" />

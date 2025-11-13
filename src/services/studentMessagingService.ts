@@ -119,6 +119,33 @@ class StudentMessagingService {
             ? conv.messages[conv.messages.length - 1]
             : null;
 
+          // Get unread count - messages not read by this student
+          let unreadCount = 0;
+          try {
+            const { data: unreadMessages, error: unreadError } = await supabase
+              .from('messages')
+              .select('id')
+              .eq('conversation_id', conv.id)
+              .neq('sender_id', studentId) // Only count messages not sent by student
+              .eq('is_deleted', false);
+
+            if (!unreadError && unreadMessages && unreadMessages.length > 0) {
+              // Check which messages have been read by this student
+              const messageIds = unreadMessages.map(m => m.id);
+              const { data: readMessages } = await supabase
+                .from('message_reads')
+                .select('message_id')
+                .in('message_id', messageIds)
+                .eq('user_id', studentId);
+
+              const readMessageIds = new Set((readMessages || []).map(r => r.message_id));
+              unreadCount = messageIds.filter(id => !readMessageIds.has(id)).length;
+            }
+          } catch (error) {
+            console.error('Error calculating unread count:', error);
+            unreadCount = 0;
+          }
+
           return {
             ...conv,
             other_participant: otherParticipant,
@@ -127,7 +154,7 @@ class StudentMessagingService {
               sender_name: lastMessage.profiles?.full_name || 'Unknown',
               created_at: lastMessage.created_at
             } : undefined,
-            unread_count: 0 // TODO: Implement unread count logic
+            unread_count: unreadCount
           };
         })
       );
@@ -355,9 +382,30 @@ class StudentMessagingService {
 
   /**
    * Get available teachers for messaging
+   * Only returns teachers that the student is linked to through classes
    */
   static async getAvailableTeachers(studentId: string): Promise<TeacherContact[]> {
     try {
+      // First, get all teacher IDs that have active classes with this student
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('teacher_id')
+        .eq('student_id', studentId)
+        .eq('status', 'active');
+
+      if (classesError) {
+        console.error('Error fetching classes:', classesError);
+        return [];
+      }
+
+      if (!classesData || classesData.length === 0) {
+        return [];
+      }
+
+      // Extract unique teacher IDs
+      const teacherIds = [...new Set(classesData.map(c => c.teacher_id))];
+
+      // Now get the teacher details
       const { data, error } = await supabase
         .from('teachers')
         .select(`
@@ -367,7 +415,7 @@ class StudentMessagingService {
           total_reviews,
           is_available,
           updated_at,
-          profiles!inner (
+          profiles!teachers_id_fkey (
             id,
             full_name,
             email,
@@ -375,17 +423,20 @@ class StudentMessagingService {
             role
           )
         `)
-        .eq('is_available', true)
-        .eq('profiles.is_active', true);
+        .in('id', teacherIds)
+        .eq('is_available', true);
 
       if (error) {
         console.error('Error fetching teachers:', error);
         return [];
       }
 
+      // Filter to only include teachers with active profiles
+      const filteredData = (data || []).filter(teacher => teacher.profiles?.role === 'teacher');
+
       // Get conversation info for each teacher
       const teachersWithConversations = await Promise.all(
-        (data || []).map(async (teacher) => {
+        filteredData.map(async (teacher) => {
           const convResult = await this.getOrCreateTeacherConversation(studentId, teacher.id);
           const conversationId = convResult.conversationId;
 
@@ -409,9 +460,9 @@ class StudentMessagingService {
 
           return {
             id: teacher.id,
-            name: teacher.profiles.full_name,
-            email: teacher.profiles.email,
-            avatar_url: teacher.profiles.avatar_url,
+            name: teacher.profiles?.full_name || 'Unknown Teacher',
+            email: teacher.profiles?.email || '',
+            avatar_url: teacher.profiles?.avatar_url,
             subjects: teacher.subjects || [],
             rating: teacher.rating || 0,
             total_reviews: teacher.total_reviews || 0,
@@ -441,20 +492,21 @@ class StudentMessagingService {
         .from('session_requests')
         .select(`
           *,
-          profiles!teacher_id(
+          teachers!session_requests_teacher_id_fkey(
             id,
-            full_name,
-            email,
-            avatar_url,
-            teachers(
-              hourly_rate,
-              currency,
-              subjects,
-              specialties,
-              experience_years,
-              rating,
-              total_reviews,
-              verification_status
+            hourly_rate,
+            currency,
+            subjects,
+            specialties,
+            experience_years,
+            rating,
+            total_reviews,
+            verification_status,
+            profiles!teachers_id_fkey(
+              id,
+              full_name,
+              email,
+              avatar_url
             )
           )
         `)
@@ -466,20 +518,28 @@ class StudentMessagingService {
         return [];
       }
 
-      return (data || []).map((request: any) => ({
-        ...request,
-        teacher: {
-          ...request.profiles,
-          hourly_rate: request.profiles?.teachers?.[0]?.hourly_rate || 0,
-          currency: request.profiles?.teachers?.[0]?.currency || 'USD',
-          subjects: request.profiles?.teachers?.[0]?.subjects || [],
-          specialties: request.profiles?.teachers?.[0]?.specialties || [],
-          experience_years: request.profiles?.teachers?.[0]?.experience_years || 0,
-          rating: request.profiles?.teachers?.[0]?.rating || 0,
-          total_reviews: request.profiles?.teachers?.[0]?.total_reviews || 0,
-          verification_status: request.profiles?.teachers?.[0]?.verification_status || 'pending',
-        },
-      }));
+      return (data || []).map((request: any) => {
+        const teacher = request.teachers;
+        const profile = teacher?.profiles;
+        
+        return {
+          ...request,
+          teacher: {
+            id: teacher?.id || request.teacher_id,
+            full_name: profile?.full_name || 'Unknown Teacher',
+            email: profile?.email || '',
+            avatar_url: profile?.avatar_url,
+            hourly_rate: teacher?.hourly_rate || 0,
+            currency: teacher?.currency || 'USD',
+            subjects: teacher?.subjects || [],
+            specialties: teacher?.specialties || [],
+            experience_years: teacher?.experience_years || 0,
+            rating: teacher?.rating || 0,
+            total_reviews: teacher?.total_reviews || 0,
+            verification_status: teacher?.verification_status || 'pending',
+          },
+        };
+      });
     } catch (error) {
       console.error('Error in getStudentRequests:', error);
       return [];

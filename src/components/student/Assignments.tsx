@@ -60,7 +60,19 @@ export function Assignments({ onBack }: AssignmentsProps) {
       setSubmissions(submissionsData);
     } catch (error: any) {
       console.error('Error loading assignments:', error);
-      setError(error.message || 'Failed to load assignments');
+      // Extract user-friendly error message
+      let errorMessage = 'Failed to load assignments';
+      if (error?.message) {
+        // Check if it's a database error with SQL syntax
+        if (error.message.includes('invalid input syntax for type uuid')) {
+          errorMessage = 'There was an issue loading your assignments. Please try again.';
+        } else if (error.message.includes('JWT')) {
+          errorMessage = 'Please log in again to view your assignments.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
