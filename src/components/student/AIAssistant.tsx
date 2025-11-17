@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAI } from '../../hooks/useAI';
 import type { AIMessage } from '../../services/aiService';
+import LearningJourneyService, { LearningJourneyStats } from '../../services/learningJourneyService';
 
 interface AIAssistantProps {
   onBack: () => void;
@@ -47,6 +48,36 @@ export function AIAssistant({ onBack }: AIAssistantProps) {
   
   const [inputMessage, setInputMessage] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [learningStats, setLearningStats] = useState<LearningJourneyStats>({
+    questionsAsked: 0,
+    problemsCracked: 0,
+    studyTimeHours: 0,
+    favoriteSubject: 'Not Set',
+    xpEarned: 0,
+    currentLevel: 1,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Load learning journey stats
+  useEffect(() => {
+    if (user?.id) {
+      loadLearningStats();
+    }
+  }, [user?.id]);
+
+  const loadLearningStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingStats(true);
+      const stats = await LearningJourneyService.getLearningJourneyStats(user.id);
+      setLearningStats(stats);
+    } catch (error) {
+      console.error('Error loading learning stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const quickActions = [
     {
@@ -393,33 +424,53 @@ export function AIAssistant({ onBack }: AIAssistantProps) {
 
           {/* Usage Stats */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">Your Learning Journey 🌟</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Questions Asked</span>
-                <span className="font-medium">47</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Problems Cracked</span>
-                <span className="font-medium">23</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Study Time</span>
-                <span className="font-medium">12.5h</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Favorite Subject</span>
-                <span className="font-medium">Mathematics</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">XP Earned</span>
-                <span className="font-medium">1,250</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Current Level</span>
-                <span className="font-medium">Level 5</span>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold">Your Learning Journey 🌟</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadLearningStats}
+                disabled={loadingStats}
+                className="h-6 w-6 p-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingStats ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
+            {loadingStats ? (
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Loading...</span>
+                  <span className="font-medium">-</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Questions Asked</span>
+                  <span className="font-medium">{learningStats.questionsAsked}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Problems Cracked</span>
+                  <span className="font-medium">{learningStats.problemsCracked}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Study Time</span>
+                  <span className="font-medium">{learningStats.studyTimeHours.toFixed(1)}h</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Favorite Subject</span>
+                  <span className="font-medium">{learningStats.favoriteSubject}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">XP Earned</span>
+                  <span className="font-medium">{learningStats.xpEarned.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Current Level</span>
+                  <span className="font-medium">Level {learningStats.currentLevel}</span>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </div>

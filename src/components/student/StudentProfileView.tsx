@@ -200,7 +200,7 @@ export function StudentProfileView({
                   </Button>
                   <Button variant="outline" onClick={onBookSession}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Book Session
+                    Send request
                   </Button>
                 </div>
               </div>
@@ -382,7 +382,7 @@ export function StudentProfileView({
               </Button>
               <Button variant="outline" className="w-full" onClick={onBookSession}>
                 <Calendar className="h-4 w-4 mr-2" />
-                Book Session
+                Send request
               </Button>
               <p className="text-xs text-slate-500 text-center">
                 Start a conversation to learn more about this student's needs.

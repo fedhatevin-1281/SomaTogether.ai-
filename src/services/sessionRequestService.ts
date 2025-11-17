@@ -441,10 +441,10 @@ export class SessionRequestService {
 
       if (studentError) throw studentError;
       // Check if student has enough tokens (will be deducted after Zoom class completion)
-      // The "Book Session" button just links the student to the teacher - no tokens deducted here
+      // The "Send request" button just links the student to the teacher - no tokens deducted here
       // Tokens are only deducted after a Zoom class session is completed
       if (!student || student.tokens < 10) {
-        throw new Error('Insufficient tokens. You need at least 10 tokens to book a session. Tokens will be deducted after the Zoom class is completed.');
+        throw new Error('Insufficient tokens. You need at least 10 tokens to send a session request. Tokens will be deducted after the Zoom class is completed.');
       }
 
       // Check if there's already a pending request for this teacher
@@ -495,54 +495,117 @@ export class SessionRequestService {
       const teacherName = teacherProfile?.full_name || 'the teacher';
       const teacherProfileId = teacherProfile?.id || requestData.teacher_id;
 
-      // Get student profile ID (studentId should already be profile ID, but verify)
-      // Since students.id references profiles.id, studentId should be the profile ID
+      // Get student profile for notification (studentId should be profile ID)
+      const { data: studentProfile, error: studentProfileError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', studentId)
+        .single();
+
+      if (studentProfileError) {
+        console.error('Error fetching student profile for notification:', studentProfileError);
+      }
+
+      const studentName = studentProfile?.full_name || 'a student';
       const studentProfileId = studentId;
 
+      console.log('Creating notifications:', {
+        studentProfileId,
+        teacherProfileId,
+        studentName,
+        teacherName,
+        requestId: request.id
+      });
+
       // Create notification for student (confirmation that request was sent)
-      const { error: studentNotificationError } = await supabase
+      const studentNotificationData = {
+        user_id: studentProfileId,
+        type: 'session_request_sent',
+        title: 'Session Request Sent',
+        message: `Your session request has been sent to ${teacherName}. You will be notified when they respond. Tokens (${tokensRequired}) will be deducted after the Zoom class is completed.`,
+        data: {
+          request_id: request.id,
+          teacher_id: requestData.teacher_id,
+          teacher_name: teacherName,
+          requested_start: requestData.requested_start,
+          requested_end: requestData.requested_end,
+          tokens_required: tokensRequired,
+        },
+        priority: 'normal' as const,
+      };
+
+      const { data: studentNotification, error: studentNotificationError } = await supabase
         .from('notifications')
-        .insert({
-          user_id: studentProfileId,
-          type: 'session_request_sent',
-          title: 'Session Request Sent',
-          message: `Your session request has been sent to ${teacherName}. You will be notified when they respond. Tokens (${tokensRequired}) will be deducted after the Zoom class is completed.`,
-          data: {
-            request_id: request.id,
-            teacher_id: requestData.teacher_id,
-            teacher_name: teacherName,
-            requested_start: requestData.requested_start,
-            requested_end: requestData.requested_end,
-            tokens_required: tokensRequired,
-          },
-          priority: 'normal',
-        });
+        .insert(studentNotificationData)
+        .select()
+        .maybeSingle();
 
       if (studentNotificationError) {
         console.error('Error creating student notification:', studentNotificationError);
-        // Don't throw - notification failure shouldn't fail the request
+        console.error('Student notification error details:', {
+          code: studentNotificationError.code,
+          message: studentNotificationError.message,
+          details: studentNotificationError.details,
+          hint: studentNotificationError.hint,
+          user_id: studentProfileId,
+          notificationData: studentNotificationData
+        });
+        // Try to insert without select to see if it's a select issue
+        const { error: retryError } = await supabase
+          .from('notifications')
+          .insert(studentNotificationData);
+        if (retryError) {
+          console.error('Retry also failed:', retryError);
+        } else {
+          console.log('Notification created on retry (without select)');
+        }
+      } else {
+        console.log('Student notification created successfully:', studentNotification?.id || 'created');
       }
 
       // Create notification for teacher
-      const { error: teacherNotificationError } = await supabase
+      const teacherNotificationData = {
+        user_id: teacherProfileId,
+        type: 'session_request',
+        title: 'New Session Request',
+        message: `You have received a new session request from ${studentName}`,
+        data: {
+          request_id: request.id,
+          student_id: studentId,
+          student_name: studentName,
+          requested_start: requestData.requested_start,
+          requested_end: requestData.requested_end,
+        },
+        priority: 'normal' as const,
+      };
+
+      const { data: teacherNotification, error: teacherNotificationError } = await supabase
         .from('notifications')
-        .insert({
-          user_id: teacherProfileId,
-          type: 'session_request',
-          title: 'New Session Request',
-          message: `You have received a new session request from a student`,
-          data: {
-            request_id: request.id,
-            student_id: studentId,
-            requested_start: requestData.requested_start,
-            requested_end: requestData.requested_end,
-          },
-          priority: 'normal',
-        });
+        .insert(teacherNotificationData)
+        .select()
+        .maybeSingle();
 
       if (teacherNotificationError) {
         console.error('Error creating teacher notification:', teacherNotificationError);
-        // Don't throw - notification failure shouldn't fail the request
+        console.error('Teacher notification error details:', {
+          code: teacherNotificationError.code,
+          message: teacherNotificationError.message,
+          details: teacherNotificationError.details,
+          hint: teacherNotificationError.hint,
+          user_id: teacherProfileId,
+          notificationData: teacherNotificationData
+        });
+        // Try to insert without select to see if it's a select issue
+        const { error: retryError } = await supabase
+          .from('notifications')
+          .insert(teacherNotificationData);
+        if (retryError) {
+          console.error('Retry also failed:', retryError);
+        } else {
+          console.log('Notification created on retry (without select)');
+        }
+      } else {
+        console.log('Teacher notification created successfully:', teacherNotification?.id || 'created');
       }
 
       return request;

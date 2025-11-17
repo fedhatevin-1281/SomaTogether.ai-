@@ -124,7 +124,7 @@ export function BrowseStudents({ onBack, teacherId }: BrowseStudentsProps) {
 
   const handleBookSession = () => {
     // TODO: Implement session booking functionality
-    console.log('Book session with student:', selectedStudent?.id);
+    console.log('Send request to student:', selectedStudent?.id);
   };
 
   if (selectedStudent) {

@@ -122,7 +122,7 @@ export function TeacherProfile({ teacher, onBack, onBookSession }: TeacherProfil
                 <div className="flex space-x-3">
                   <Button className="bg-blue-500 hover:bg-blue-600" onClick={onBookSession}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Book Session
+                    Send request
                   </Button>
                   <Button variant="outline">
                     <MessageSquare className="h-4 w-4 mr-2" />
@@ -340,7 +340,7 @@ export function TeacherProfile({ teacher, onBack, onBookSession }: TeacherProfil
             <div className="space-y-3">
               <Button className="w-full bg-blue-500 hover:bg-blue-600" onClick={onBookSession}>
                 <Calendar className="h-4 w-4 mr-2" />
-                Book First Session
+                Send request
               </Button>
               <Button variant="outline" className="w-full">
                 <MessageSquare className="h-4 w-4 mr-2" />

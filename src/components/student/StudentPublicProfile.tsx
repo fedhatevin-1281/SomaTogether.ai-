@@ -394,7 +394,7 @@ export function StudentPublicProfile({ onBack, onScreenChange }: StudentPublicPr
             <div className="space-y-3">
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600" 
-                onClick={() => onScreenChange('browse-teachers')}
+                onClick={() => onScreenChange('teacher-browse')}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Find Teachers
@@ -410,7 +410,7 @@ export function StudentPublicProfile({ onBack, onScreenChange }: StudentPublicPr
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => onScreenChange('my-classes')}
+                onClick={() => onScreenChange('student-classes')}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 My Classes

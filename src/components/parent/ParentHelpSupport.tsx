@@ -165,7 +165,7 @@ Note: Some advanced parental control features may be available in future updates
       {
         id: 'understanding-charges',
         title: 'Understanding Charges',
-        content: `• Your children use tokens to book sessions with teachers.
+        content: `• Your children use tokens to send session requests to teachers.
 • Each session request costs 10 tokens (approximately $1.00 USD).
 • Tokens are deducted when a session request is sent.
 • If a teacher declines a request, tokens are automatically refunded.

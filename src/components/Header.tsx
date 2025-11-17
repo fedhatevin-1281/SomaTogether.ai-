@@ -133,7 +133,7 @@ export function Header({ onLogout, onScreenChange, currentScreen, isSidebarColla
             onChange={(e) => setSearchQuery(e.target.value)} // 🔹 update state
             onKeyDown={(e) => { // 🔹 trigger search on Enter
               if (e.key === 'Enter' && searchQuery.trim() !== '') {
-                onScreenChange('browse-teachers', searchQuery); // 🔹 pass query to BrowseTeachers
+                onScreenChange('teacher-browse', searchQuery); // 🔹 pass query to TeacherBrowse
                 setSearchQuery(''); // 🔹 clear input
               }
             }}

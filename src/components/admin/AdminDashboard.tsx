@@ -19,7 +19,7 @@ import { PaymentManagement } from './PaymentManagement';
 import { AdminAnalytics } from './AdminAnalytics';
 import { ContentModeration } from './ContentModeration';
 import { SystemSettings } from './SystemSettings';
-import { AdminService } from '../../services/adminService';
+import { AdminService, SystemHealth } from '../../services/adminService';
 
 type AdminDashboardProps = {
   currentScreen: AdminScreen;
@@ -65,11 +65,15 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
     parents: 0,
     successRate: 0,
     disputes: 0,
+    contentReviews: 0,
+    userReports: 0,
   });
   const [userGrowth, setUserGrowth] = useState(0);
   const [revenueGrowth, setRevenueGrowth] = useState(0);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingHealth, setLoadingHealth] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,7 +97,25 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
       }
     };
 
+    const fetchSystemHealth = async () => {
+      try {
+        setLoadingHealth(true);
+        const health = await AdminService.getSystemHealth();
+        setSystemHealth(health);
+      } catch (error) {
+        console.error('Error fetching system health:', error);
+      } finally {
+        setLoadingHealth(false);
+      }
+    };
+
     fetchData();
+    fetchSystemHealth();
+    
+    // Refresh system health every 30 seconds
+    const healthInterval = setInterval(fetchSystemHealth, 30000);
+    
+    return () => clearInterval(healthInterval);
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -297,24 +319,89 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
           {/* System Health */}
           <Card className="p-6">
             <h3 className="font-bold mb-4 text-foreground">System Health</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Server Status</span>
-                <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+            {loadingHealth ? (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Loading...</span>
+                  <Badge className="bg-slate-100 text-slate-800">-</Badge>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Database</span>
-                <Badge className="bg-green-100 text-green-800">Normal</Badge>
+            ) : systemHealth ? (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Server Status</span>
+                  <Badge 
+                    className={
+                      systemHealth.serverStatus === 'healthy' 
+                        ? 'bg-green-100 text-green-800'
+                        : systemHealth.serverStatus === 'degraded'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                    title={systemHealth.serverStatusMessage}
+                  >
+                    {systemHealth.serverStatus === 'healthy' ? 'Healthy' : 
+                     systemHealth.serverStatus === 'degraded' ? 'Degraded' : 'Down'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Database</span>
+                  <Badge 
+                    className={
+                      systemHealth.database === 'normal' 
+                        ? 'bg-green-100 text-green-800'
+                        : systemHealth.database === 'slow'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                    title={systemHealth.databaseMessage}
+                  >
+                    {systemHealth.database === 'normal' ? 'Normal' : 
+                     systemHealth.database === 'slow' ? 'Slow' : 'Down'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">API Response</span>
+                  <Badge 
+                    className={
+                      systemHealth.apiResponse === 'fast' || systemHealth.apiResponse === 'normal'
+                        ? 'bg-green-100 text-green-800'
+                        : systemHealth.apiResponse === 'slow'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                    title={systemHealth.apiResponseMessage}
+                  >
+                    {systemHealth.apiResponse === 'fast' ? 'Fast' :
+                     systemHealth.apiResponse === 'normal' ? 'Normal' :
+                     systemHealth.apiResponse === 'slow' ? 'Slow' : 'Down'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Payment Gateway</span>
+                  <Badge 
+                    className={
+                      systemHealth.paymentGateway === 'active' 
+                        ? 'bg-green-100 text-green-800'
+                        : systemHealth.paymentGateway === 'degraded'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                    title={systemHealth.paymentGatewayMessage}
+                  >
+                    {systemHealth.paymentGateway === 'active' ? 'Active' : 
+                     systemHealth.paymentGateway === 'degraded' ? 'Degraded' : 'Down'}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">API Response</span>
-                <Badge className="bg-yellow-100 text-yellow-800">Slow</Badge>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600">Status</span>
+                  <Badge className="bg-red-100 text-red-800">Error</Badge>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Payment Gateway</span>
-                <Badge className="bg-green-100 text-green-800">Active</Badge>
-              </div>
-            </div>
+            )}
           </Card>
 
           {/* Pending Tasks */}
@@ -327,7 +414,7 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Content Reviews</span>
-                <Badge className="bg-purple-100 text-purple-800">0</Badge>
+                <Badge className="bg-purple-100 text-purple-800">{stats.contentReviews}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Payment Disputes</span>
@@ -335,7 +422,7 @@ function DashboardHome({ onNavigate, currentScreen }: { onNavigate: (screen: Adm
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">User Reports</span>
-                <Badge className="bg-blue-100 text-blue-800">0</Badge>
+                <Badge className="bg-blue-100 text-blue-800">{stats.userReports}</Badge>
               </div>
             </div>
           </Card>

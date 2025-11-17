@@ -17,10 +17,10 @@ import {
   Clock, 
   MapPin, 
   BookOpen, 
-  Award, 
+  Award,
+  CheckCircle,
   MessageSquare,
   User,
-  CheckCircle,
   AlertCircle,
   Filter,
   Eye,
@@ -262,12 +262,12 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
                     <div className="text-lg font-semibold text-green-600">
                       {formatPrice(teacher.hourly_rate, teacher.currency)}/hr
                     </div>
-                    <Badge
-                      variant={teacher.verification_status === 'verified' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {teacher.verification_status}
-                    </Badge>
+                    {(teacher.is_verified || teacher.verification_status === 'verified') && (
+                      <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 flex items-center space-x-1">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Verified</span>
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -338,7 +338,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
                     }}
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Book Session
+                    Send request
                   </Button>
                 </div>
               </CardContent>
@@ -387,6 +387,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               <Label htmlFor="requestDate">Session Date *</Label>
               <Input
                 id="requestDate"
+                name="requestDate"
                 type="date"
                 value={requestDate}
                 onChange={(e) => setRequestDate(e.target.value)}
@@ -400,6 +401,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               <Label htmlFor="requestTime">Session Time *</Label>
               <Input
                 id="requestTime"
+                name="requestTime"
                 type="time"
                 value={requestTime}
                 onChange={(e) => setRequestTime(e.target.value)}
@@ -411,7 +413,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
             <div>
               <Label htmlFor="duration">Duration (hours) *</Label>
               <Select value={requestDuration} onValueChange={setRequestDuration}>
-                <SelectTrigger>
+                <SelectTrigger id="duration">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -430,6 +432,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               <Label htmlFor="message">Message (Optional)</Label>
               <Textarea
                 id="message"
+                name="message"
                 placeholder="Tell the teacher about your learning goals or specific topics you'd like to cover..."
                 value={requestMessage}
                 onChange={(e) => setRequestMessage(e.target.value)}

@@ -210,8 +210,11 @@ const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
                   <div className="flex-1 text-white">
                     <div className="flex items-center space-x-2 mb-2">
                       <h1 className="text-2xl font-bold">{teacher.full_name}</h1>
-                      {teacher.is_verified && (
-                        <CheckCircle className="h-6 w-6 text-blue-300" />
+                      {(teacher.is_verified || teacher.verification_status === 'verified') && (
+                        <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 flex items-center space-x-1">
+                          <CheckCircle className="h-3 w-3" />
+                          <span>Verified</span>
+                        </Badge>
                       )}
                       {isOnline && (
                         <div className="flex items-center space-x-1 bg-green-500 px-2 py-1 rounded-full text-xs">
@@ -455,11 +458,11 @@ const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
                           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                           <h3 className="text-lg font-medium text-gray-900 mb-2">Availability Calendar</h3>
                           <p className="text-gray-600 mb-4">
-                            Book a session to see available time slots
+                            Send a request to see available time slots
                           </p>
                           <Button onClick={handleBookSession} disabled={!isAvailable}>
                             <Calendar className="h-4 w-4 mr-2" />
-                            Book Session
+                            Send request
                           </Button>
                         </div>
                       </div>
@@ -516,7 +519,7 @@ const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
                         size="lg"
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
-                        Book Session
+                        Send request
                       </Button>
                       
                       <div className="grid grid-cols-2 gap-2">

@@ -15,9 +15,10 @@ import { toast } from 'sonner';
 
 interface StudentClassesProps {
   onBack: () => void;
+  onScreenChange?: (screen: string) => void;
 }
 
-export function StudentClasses({ onBack }: StudentClassesProps) {
+export function StudentClasses({ onBack, onScreenChange }: StudentClassesProps) {
   const { user } = useAuth();
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -357,7 +358,7 @@ export function StudentClasses({ onBack }: StudentClassesProps) {
                 <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No Classes Yet</h3>
                 <p className="text-gray-600 mb-4">You haven't been enrolled in any classes yet.</p>
-                <Button onClick={onBack}>
+                <Button onClick={() => onScreenChange ? onScreenChange('teacher-browse') : onBack()}>
                   Browse Teachers
                 </Button>
               </div>

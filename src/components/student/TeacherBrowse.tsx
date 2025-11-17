@@ -89,8 +89,11 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
                 <h3 className="font-semibold text-gray-900 truncate">{teacher.full_name}</h3>
-                {teacher.is_verified && (
-                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                {(teacher.is_verified || teacher.verification_status === 'verified') && (
+                  <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-0.5 flex items-center space-x-1 flex-shrink-0">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Verified</span>
+                  </Badge>
                 )}
               </div>
               {teacher.location && (
@@ -379,7 +382,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
             className="flex-1 bg-blue-600 hover:bg-blue-700"
           >
             <MessageCircle className="h-4 w-4 mr-1" />
-            Book Session
+            Send request
           </Button>
         </div>
       </CardContent>
@@ -866,6 +869,7 @@ const TeacherBrowse: React.FC = () => {
               <Label htmlFor="requestDate">Session Date *</Label>
               <Input
                 id="requestDate"
+                name="requestDate"
                 type="date"
                 value={requestDate}
                 onChange={(e) => setRequestDate(e.target.value)}
@@ -879,6 +883,7 @@ const TeacherBrowse: React.FC = () => {
               <Label htmlFor="requestTime">Session Time *</Label>
               <Input
                 id="requestTime"
+                name="requestTime"
                 type="time"
                 value={requestTime}
                 onChange={(e) => setRequestTime(e.target.value)}
@@ -890,7 +895,7 @@ const TeacherBrowse: React.FC = () => {
             <div>
               <Label htmlFor="duration">Duration (hours) *</Label>
               <Select value={requestDuration} onValueChange={setRequestDuration}>
-                <SelectTrigger>
+                <SelectTrigger id="duration">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -909,6 +914,7 @@ const TeacherBrowse: React.FC = () => {
               <Label htmlFor="message">Message (Optional)</Label>
               <Textarea
                 id="message"
+                name="message"
                 placeholder="Tell the teacher about your learning goals or specific topics you'd like to cover..."
                 value={requestMessage}
                 onChange={(e) => setRequestMessage(e.target.value)}

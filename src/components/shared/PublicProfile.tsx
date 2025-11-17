@@ -39,7 +39,11 @@ interface TeacherData {
   is_available: boolean;
 }
 
-export function PublicProfile() {
+interface PublicProfileProps {
+  onScreenChange?: (screen: string) => void;
+}
+
+export function PublicProfile({ onScreenChange }: PublicProfileProps) {
   const { profile, user } = useAuth();
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [teacherData, setTeacherData] = useState<TeacherData | null>(null);
@@ -326,10 +330,24 @@ export function PublicProfile() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex space-x-4">
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (onScreenChange) {
+                  onScreenChange('settings');
+                }
+              }}
+            >
               Edit Profile
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (onScreenChange) {
+                  onScreenChange('settings');
+                }
+              }}
+            >
               Privacy Settings
             </Button>
           </div>

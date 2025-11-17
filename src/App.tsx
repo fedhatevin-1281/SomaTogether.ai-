@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from './components/ui/sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -110,6 +111,7 @@ function AppContent() {
   }, [user]);
 
   const [currentClassInfo, setCurrentClassInfo] = useState<any>(null);
+  
   const handleScreenChange = (screen: AppScreen | AdminScreen, classInfo?: any) => {
     setCurrentScreen(screen as AppScreen);
     if (classInfo) setCurrentClassInfo(classInfo);
@@ -176,9 +178,9 @@ function AppContent() {
         case 'teacher-browse':
           return <TeacherBrowse />;
         case 'my-classes':
-          return <MyClasses onScreenChange={handleScreenChange} />;
+          return <StudentClasses onBack={() => handleScreenChange('dashboard')} onScreenChange={handleScreenChange} />;
         case 'student-classes':
-          return <StudentClasses onBack={() => handleScreenChange('dashboard')} />;
+          return <StudentClasses onBack={() => handleScreenChange('dashboard')} onScreenChange={handleScreenChange} />;
         case 'assignments':
           return <Assignments onBack={() => handleScreenChange('dashboard')} />;
         case 'ai-assistant':
@@ -191,7 +193,7 @@ function AppContent() {
         case 'settings':
           return <StudentSettings />;
         case 'student-profile':
-          return <PublicProfile />;
+          return <PublicProfile onScreenChange={handleScreenChange} />;
         case 'student-help-support':
           return <StudentHelpSupport onBack={() => handleScreenChange('dashboard')} />;
         default:
@@ -292,6 +294,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200">
         {renderContent()}
+        <Toaster />
       </div>
     );
   }
@@ -316,6 +319,7 @@ function AppContent() {
           {renderContent()}
         </main>
       </div>
+      <Toaster />
       {/* Global Floating AI Button for Teachers and Parents - DISCONNECTED FOR NOW */}
       {/* {(currentRole === 'teacher' || currentRole === 'parent') && <FloatingAIButton />} */}
     </div>

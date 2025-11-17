@@ -67,8 +67,8 @@ export function PaymentScreen({ teacher, onBack, onSuccess }: PaymentScreenProps
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Book Session</h1>
-          <p className="text-slate-600">Complete your booking with {teacher?.name}</p>
+          <h1 className="text-2xl font-bold">Send request</h1>
+          <p className="text-slate-600">Complete your request with {teacher?.name}</p>
         </div>
       </div>
 

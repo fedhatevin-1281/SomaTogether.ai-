@@ -411,7 +411,7 @@ export function MyClasses({ onScreenChange }: MyClassesProps) {
                   <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                   <h3 className="text-lg font-medium mb-2">No Active Classes</h3>
                   <p className="text-slate-600 mb-4">Start your learning journey by finding a teacher</p>
-                  <Button onClick={() => onScreenChange('browse-teachers')}>
+                  <Button onClick={() => onScreenChange('teacher-browse')}>
                     Browse Teachers
                   </Button>
                 </Card>
@@ -458,7 +458,7 @@ export function MyClasses({ onScreenChange }: MyClassesProps) {
             <div className="space-y-3">
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600"
-                onClick={() => onScreenChange('browse-teachers')}
+                onClick={() => onScreenChange('teacher-browse')}
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Find New Teachers

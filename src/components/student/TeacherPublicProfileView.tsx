@@ -182,7 +182,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Calendar className="h-4 w-4 mr-2" />
-            Book Session
+            Send request
           </Button>
         </div>
       </div>
@@ -209,8 +209,8 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
                 <span className="text-gray-500">({teacher.total_reviews} reviews)</span>
               </div>
               <div className="flex items-center justify-center space-x-2 mt-2">
-                {teacher.verification_status === 'verified' ? (
-                  <Badge className="bg-green-100 text-green-800">
+                {(teacher.is_verified || teacher.verification_status === 'verified') ? (
+                  <Badge className="bg-green-500 hover:bg-green-600 text-white">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Verified
                   </Badge>
@@ -432,6 +432,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               <Label htmlFor="requestDate">Session Date *</Label>
               <Input
                 id="requestDate"
+                name="requestDate"
                 type="date"
                 value={requestDate}
                 onChange={(e) => setRequestDate(e.target.value)}
@@ -445,6 +446,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               <Label htmlFor="requestTime">Session Time *</Label>
               <Input
                 id="requestTime"
+                name="requestTime"
                 type="time"
                 value={requestTime}
                 onChange={(e) => setRequestTime(e.target.value)}
@@ -456,7 +458,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
             <div>
               <Label htmlFor="duration">Duration (hours) *</Label>
               <Select value={requestDuration} onValueChange={setRequestDuration}>
-                <SelectTrigger>
+                <SelectTrigger id="duration">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -475,6 +477,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               <Label htmlFor="message">Message (Optional)</Label>
               <Textarea
                 id="message"
+                name="message"
                 placeholder="Tell the teacher about your learning goals or specific topics you'd like to cover..."
                 value={requestMessage}
                 onChange={(e) => setRequestMessage(e.target.value)}

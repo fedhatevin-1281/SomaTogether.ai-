@@ -198,7 +198,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Active Classes</h2>
-            <Button variant="ghost" size="sm" onClick={() => onScreenChange('my-classes')}>
+            <Button variant="ghost" size="sm" onClick={() => onScreenChange('student-classes')}>
               View All
             </Button>
           </div>
@@ -223,7 +223,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
               <div className="text-center py-8 text-slate-500">
                 <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                 <p>No active classes found</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => onScreenChange('browse-teachers')}>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => onScreenChange('teacher-browse')}>
                   Browse Teachers
                 </Button>
               </div>
@@ -267,7 +267,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Upcoming Sessions</h2>
-            <Button variant="ghost" size="sm" onClick={() => onScreenChange('my-classes')}>
+            <Button variant="ghost" size="sm" onClick={() => onScreenChange('student-classes')}>
               View All
             </Button>
           </div>
@@ -373,7 +373,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
           <Button
             className="h-24 bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
             variant="outline"
-            onClick={() => onScreenChange('browse-teachers')}
+                onClick={() => onScreenChange('teacher-browse')}
           >
             <div className="text-center">
               <BookOpen className="h-8 w-8 mx-auto mb-2" />

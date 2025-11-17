@@ -179,7 +179,7 @@ export function TeacherRequestDialog({
           <div className="space-y-2">
             <Label htmlFor="child">Select Child *</Label>
             <Select value={selectedChild} onValueChange={setSelectedChild}>
-              <SelectTrigger>
+              <SelectTrigger id="child">
                 <SelectValue placeholder="Choose a child" />
               </SelectTrigger>
               <SelectContent>
@@ -200,6 +200,7 @@ export function TeacherRequestDialog({
                 <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="date"
+                  name="date"
                   type="date"
                   value={requestedDate}
                   onChange={(e) => setRequestedDate(e.target.value)}
@@ -215,6 +216,7 @@ export function TeacherRequestDialog({
                 <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="time"
+                  name="time"
                   type="time"
                   value={requestedTime}
                   onChange={(e) => setRequestedTime(e.target.value)}
@@ -228,7 +230,7 @@ export function TeacherRequestDialog({
           <div className="space-y-2">
             <Label htmlFor="duration">Duration (hours) *</Label>
             <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger>
+              <SelectTrigger id="duration">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -256,6 +258,7 @@ export function TeacherRequestDialog({
             <Label htmlFor="message">Message (Optional)</Label>
             <Textarea
               id="message"
+              name="message"
               placeholder="Add any specific requirements or questions for the teacher..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}

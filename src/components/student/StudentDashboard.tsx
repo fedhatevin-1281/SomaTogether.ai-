@@ -113,10 +113,6 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
     return <StudentSettings />;
   }
 
-  // My Classes Screen
-  if (currentScreen === 'my-classes') {
-    return <MyClasses onScreenChange={onScreenChange} />;
-  }
 
   if (loading) {
     return (
@@ -203,7 +199,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
         <Button
           className="h-24 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-600 border border-blue-200 rounded-xl transition-colors"
           variant="outline"
-          onClick={() => onScreenChange('browse-teachers')}
+          onClick={() => onScreenChange('teacher-browse')}
         >
           <div className="text-center w-full">
             <BookOpen className="h-8 w-8 mx-auto mb-2 text-blue-600" />
@@ -214,7 +210,7 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
         <Button
           className="h-24 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-600 border border-green-200 rounded-xl transition-colors"
           variant="outline"
-          onClick={() => onScreenChange('my-classes')}
+          onClick={() => onScreenChange('student-classes')}
         >
           <div className="text-center w-full">
             <Play className="h-8 w-8 mx-auto mb-2 text-green-600" />
@@ -360,14 +356,14 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
                 <p className="text-sm text-gray-600 mb-4">Start your learning journey by finding the perfect teacher for you!</p>
                 <Button 
                   variant="outline" 
-                  onClick={() => onScreenChange('browse-teachers')}
+                  onClick={() => onScreenChange('teacher-browse')}
                   className="mr-2"
                 >
                   Browse Teachers
                 </Button>
                 <Button 
                   variant="default" 
-                  onClick={() => onScreenChange('browse-teachers')}
+                  onClick={() => onScreenChange('teacher-browse')}
                 >
                   Get Started
                 </Button>

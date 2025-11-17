@@ -113,10 +113,10 @@ const helpSections: HelpSection[] = [
         id: 'booking-session',
         title: 'Booking a Session',
         content: `1. Find a teacher you want to learn from.
-2. Click "Book Session" on their profile card.
+2. Click "Send request" on their profile card.
 3. Select your preferred date and time for the session.
 4. Add any special requests or learning goals in the message field.
-5. Confirm the booking (10 tokens will be deducted).
+5. Confirm the request (10 tokens will be deducted).
 6. Wait for the teacher to accept your request.
 7. You'll receive a notification once the session is confirmed.`
       },
@@ -266,7 +266,7 @@ const helpSections: HelpSection[] = [
       {
         id: 'understanding-tokens',
         title: 'Understanding Tokens',
-        content: `• Tokens are the currency used to book sessions with teachers on SomaTogether.ai.
+        content: `• Tokens are the currency used to send session requests to teachers on SomaTogether.ai.
 • Pricing: 10 tokens = $1.00 USD (1 token = $0.10 USD).
 • Each session request costs 10 tokens.
 • Tokens are deducted when you send a session request (not when the session happens).
