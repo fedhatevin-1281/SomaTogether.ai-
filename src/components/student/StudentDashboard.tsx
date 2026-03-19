@@ -7,6 +7,7 @@ import { Clock, BookOpen, Target, TrendingUp, Play, Bot, MessageSquare, Wallet, 
 import { AppScreen } from '../../App';
 import { StudentSettings } from './StudentSettings';
 import { MyClasses } from './MyClasses';
+import { StudentMaterials } from './StudentMaterials';
 import { MessagesScreen } from '../shared/MessagesScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { StudentService, StudentDashboardStats, StudentClass, StudentAssignment, StudentNotification } from '../../services/studentService';
@@ -111,6 +112,11 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
   // Settings Screen
   if (currentScreen === 'settings') {
     return <StudentSettings />;
+  }
+
+  // Student Materials Screen
+  if (currentScreen === 'student-materials') {
+    return <StudentMaterials onBack={() => onScreenChange('dashboard')} />;
   }
 
 
@@ -272,7 +278,23 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
       </div>
 
       {/* Secondary Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Button
+          className="h-16 bg-white text-foreground hover:bg-gray-50 border transition-colors"
+          variant="outline"
+          onClick={() => onScreenChange('student-materials')}
+        >
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-gray-600" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-900">Materials</div>
+              <div className="text-xs text-gray-500">Learning resources</div>
+            </div>
+          </div>
+        </Button>
+
         <Button
           className="h-16 bg-white text-foreground hover:bg-gray-50 border transition-colors"
           variant="outline"

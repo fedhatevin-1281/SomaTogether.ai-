@@ -35,6 +35,7 @@ const sidebarItems = {
     { icon: Users, label: 'Browse Teachers', screen: 'teacher-browse' as AppScreen },
     { icon: BookOpen, label: 'My Classes', screen: 'student-classes' as AppScreen },
     { icon: FileText, label: 'Assignments', screen: 'assignments' as AppScreen },
+    { icon: Star, label: 'Learning Materials', screen: 'student-materials' as AppScreen },
     { icon: Bot, label: 'AI Assistant', screen: 'ai-assistant' as AppScreen },
     { icon: MessageSquare, label: 'Messages', screen: 'messages' as AppScreen },
     { icon: Wallet, label: 'Wallet', screen: 'wallet' as AppScreen },

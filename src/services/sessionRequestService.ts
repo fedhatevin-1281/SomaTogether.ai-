@@ -432,6 +432,14 @@ export class SessionRequestService {
     requestData: CreateSessionRequestData
   ): Promise<SessionRequest> {
     try {
+      console.log('[createSessionRequest] Starting request creation', {
+        studentId,
+        teacherId: requestData.teacher_id,
+        requestedStart: requestData.requested_start,
+        requestedEnd: requestData.requested_end,
+        durationHours: requestData.duration_hours,
+      });
+
       // Check if student has enough tokens (10 tokens required)
       const { data: student, error: studentError } = await supabase
         .from('students')
@@ -439,16 +447,34 @@ export class SessionRequestService {
         .eq('id', studentId)
         .single();
 
-      if (studentError) throw studentError;
+      if (studentError) {
+        console.error('[createSessionRequest] Error fetching student tokens:', {
+          error: studentError,
+          studentId,
+        });
+        throw studentError;
+      }
+
+      console.log('[createSessionRequest] Student fetched', {
+        studentId,
+        tokens: student?.tokens,
+      });
+
       // Check if student has enough tokens (will be deducted after Zoom class completion)
       // The "Send request" button just links the student to the teacher - no tokens deducted here
       // Tokens are only deducted after a Zoom class session is completed
       if (!student || student.tokens < 10) {
-        throw new Error('Insufficient tokens. You need at least 10 tokens to send a session request. Tokens will be deducted after the Zoom class is completed.');
+        const message = 'Insufficient tokens. You need at least 10 tokens to send a session request. Tokens will be deducted after the Zoom class is completed.';
+        console.warn('[createSessionRequest] Insufficient tokens', {
+          studentId,
+          availableTokens: student?.tokens || 0,
+          requiredTokens: 10,
+        });
+        throw new Error(message);
       }
 
       // Check if there's already a pending request for this teacher
-      const { data: existingRequest } = await supabase
+      const { data: existingRequest, error: existingError } = await supabase
         .from('session_requests')
         .select('id')
         .eq('student_id', studentId)
@@ -456,14 +482,33 @@ export class SessionRequestService {
         .eq('status', 'pending')
         .single();
 
-      if (existingRequest) {
-        throw new Error('You already have a pending request for this teacher.');
+      if (existingError && existingError.code !== 'PGRST116') {
+        console.error('[createSessionRequest] Error checking existing requests:', existingError);
       }
+
+      if (existingRequest) {
+        const message = 'You already have a pending request for this teacher.';
+        console.warn('[createSessionRequest] Duplicate request attempt', {
+          studentId,
+          teacherId: requestData.teacher_id,
+          existingRequestId: existingRequest.id,
+        });
+        throw new Error(message);
+      }
+
+      console.log('[createSessionRequest] No existing pending request found');
 
       // Calculate tokens required (10 tokens per request)
       const tokensRequired = 10;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
+
+      console.log('[createSessionRequest] Preparing to insert request into database', {
+        studentId,
+        teacherId: requestData.teacher_id,
+        tokensRequired,
+        expiresAt: expiresAt.toISOString(),
+      });
 
       // Create the session request
       const { data: request, error: requestError } = await supabase
@@ -481,19 +526,48 @@ export class SessionRequestService {
         .select()
         .single();
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.error('[createSessionRequest] Error inserting session request:', {
+          error: requestError,
+          code: requestError.code,
+          message: requestError.message,
+          details: requestError.details,
+          hint: requestError.hint,
+          studentId,
+          teacherId: requestData.teacher_id,
+        });
+        throw requestError;
+      }
+
+      console.log('[createSessionRequest] Request created successfully', {
+        requestId: request.id,
+        studentId,
+        teacherId: requestData.teacher_id,
+      });
 
       // Note: Tokens will be deducted after the session is completed, not when the request is sent
 
       // Get teacher profile for notification (teacher_id should be profile ID)
-      const { data: teacherProfile } = await supabase
+      const { data: teacherProfile, error: teacherProfileError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('id', requestData.teacher_id)
         .single();
 
+      if (teacherProfileError) {
+        console.warn('[createSessionRequest] Error fetching teacher profile:', {
+          error: teacherProfileError,
+          teacherId: requestData.teacher_id,
+        });
+      }
+
       const teacherName = teacherProfile?.full_name || 'the teacher';
       const teacherProfileId = teacherProfile?.id || requestData.teacher_id;
+
+      console.log('[createSessionRequest] Teacher profile fetched', {
+        teacherProfileId,
+        teacherName,
+      });
 
       // Get student profile for notification (studentId should be profile ID)
       const { data: studentProfile, error: studentProfileError } = await supabase
@@ -503,18 +577,26 @@ export class SessionRequestService {
         .single();
 
       if (studentProfileError) {
-        console.error('Error fetching student profile for notification:', studentProfileError);
+        console.warn('[createSessionRequest] Error fetching student profile:', {
+          error: studentProfileError,
+          studentId,
+        });
       }
 
       const studentName = studentProfile?.full_name || 'a student';
       const studentProfileId = studentId;
 
-      console.log('Creating notifications:', {
+      console.log('[createSessionRequest] Student profile fetched', {
+        studentProfileId,
+        studentName,
+      });
+
+      console.log('[createSessionRequest] Creating notifications:', {
         studentProfileId,
         teacherProfileId,
         studentName,
         teacherName,
-        requestId: request.id
+        requestId: request.id,
       });
 
       // Create notification for student (confirmation that request was sent)
@@ -541,26 +623,26 @@ export class SessionRequestService {
         .maybeSingle();
 
       if (studentNotificationError) {
-        console.error('Error creating student notification:', studentNotificationError);
-        console.error('Student notification error details:', {
+        console.error('[createSessionRequest] Error creating student notification:', studentNotificationError);
+        console.error('[createSessionRequest] Student notification error details:', {
           code: studentNotificationError.code,
           message: studentNotificationError.message,
           details: studentNotificationError.details,
           hint: studentNotificationError.hint,
           user_id: studentProfileId,
-          notificationData: studentNotificationData
+          notificationData: studentNotificationData,
         });
         // Try to insert without select to see if it's a select issue
         const { error: retryError } = await supabase
           .from('notifications')
           .insert(studentNotificationData);
         if (retryError) {
-          console.error('Retry also failed:', retryError);
+          console.error('[createSessionRequest] Retry also failed:', retryError);
         } else {
-          console.log('Notification created on retry (without select)');
+          console.log('[createSessionRequest] Notification created on retry (without select)');
         }
       } else {
-        console.log('Student notification created successfully:', studentNotification?.id || 'created');
+        console.log('[createSessionRequest] Student notification created successfully:', studentNotification?.id || 'created');
       }
 
       // Create notification for teacher
@@ -586,31 +668,38 @@ export class SessionRequestService {
         .maybeSingle();
 
       if (teacherNotificationError) {
-        console.error('Error creating teacher notification:', teacherNotificationError);
-        console.error('Teacher notification error details:', {
+        console.error('[createSessionRequest] Error creating teacher notification:', teacherNotificationError);
+        console.error('[createSessionRequest] Teacher notification error details:', {
           code: teacherNotificationError.code,
           message: teacherNotificationError.message,
           details: teacherNotificationError.details,
           hint: teacherNotificationError.hint,
           user_id: teacherProfileId,
-          notificationData: teacherNotificationData
+          notificationData: teacherNotificationData,
         });
         // Try to insert without select to see if it's a select issue
         const { error: retryError } = await supabase
           .from('notifications')
           .insert(teacherNotificationData);
         if (retryError) {
-          console.error('Retry also failed:', retryError);
+          console.error('[createSessionRequest] Retry also failed:', retryError);
         } else {
-          console.log('Notification created on retry (without select)');
+          console.log('[createSessionRequest] Notification created on retry (without select)');
         }
       } else {
-        console.log('Teacher notification created successfully:', teacherNotification?.id || 'created');
+        console.log('[createSessionRequest] Teacher notification created successfully:', teacherNotification?.id || 'created');
       }
+
+      console.log('[createSessionRequest] Request creation completed successfully', {
+        requestId: request.id,
+      });
 
       return request;
     } catch (error) {
-      console.error('Error creating session request:', error);
+      console.error('[createSessionRequest] Fatal error creating session request:', error);
+      if (error instanceof Error) {
+        console.error('[createSessionRequest] Error stack:', error.stack);
+      }
       throw error;
     }
   }
@@ -620,6 +709,8 @@ export class SessionRequestService {
    */
   static async getTeacherRequests(teacherId: string): Promise<SessionRequest[]> {
     try {
+      console.log('[getTeacherRequests] Fetching requests for teacher', { teacherId });
+
       const { data, error } = await supabase
         .from('session_requests')
         .select(`
@@ -643,7 +734,21 @@ export class SessionRequestService {
         .eq('teacher_id', teacherId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[getTeacherRequests] Database error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          teacherId,
+        });
+        throw error;
+      }
+
+      console.log('[getTeacherRequests] Fetched requests count:', {
+        teacherId,
+        count: data?.length || 0,
+      });
 
       // Get education system and level data for students
       const requestsWithEducation = await Promise.all(
@@ -690,9 +795,20 @@ export class SessionRequestService {
         })
       );
 
+      console.log('[getTeacherRequests] Returning enriched requests', {
+        teacherId,
+        count: requestsWithEducation.length,
+      });
+
       return requestsWithEducation;
     } catch (error) {
-      console.error('Error fetching teacher requests:', error);
+      console.error('[getTeacherRequests] Error fetching teacher requests:', {
+        error,
+        teacherId,
+      });
+      if (error instanceof Error) {
+        console.error('[getTeacherRequests] Error stack:', error.stack);
+      }
       throw error;
     }
   }
@@ -702,7 +818,12 @@ export class SessionRequestService {
    */
   static async acceptRequest(requestId: string, teacherResponse?: string): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('[acceptRequest] Starting request acceptance', {
+        requestId,
+        teacherResponse: teacherResponse ? '(provided)' : '(none)',
+      });
+
+      const { error, data: updateData } = await supabase
         .from('session_requests')
         .update({
           status: 'accepted',
@@ -711,7 +832,17 @@ export class SessionRequestService {
         })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[acceptRequest] Failed to update session_requests table', {
+          requestId,
+          error,
+        });
+        throw error;
+      }
+
+      console.log('[acceptRequest] Successfully updated session_requests status to accepted', {
+        requestId,
+      });
 
       // Get request details for notification
       const { data: request, error: requestError } = await supabase
@@ -720,23 +851,49 @@ export class SessionRequestService {
         .eq('id', requestId)
         .single();
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.error('[acceptRequest] Failed to fetch request details', {
+          requestId,
+          error: requestError,
+        });
+        throw requestError;
+      }
+
+      console.log('[acceptRequest] Fetched request details', {
+        requestId,
+        student_id: request?.student_id,
+        teacher_id: request?.teacher_id,
+      });
 
       // Get teacher name for notification message
-      const { data: teacherProfile } = await supabase
+      const { data: teacherProfile, error: teacherProfileError } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', request.teacher_id)
         .single();
 
+      if (teacherProfileError) {
+        console.error('[acceptRequest] Failed to fetch teacher profile', {
+          teacher_id: request.teacher_id,
+          error: teacherProfileError,
+        });
+      }
+
       const teacherName = teacherProfile?.full_name || 'the teacher';
+
+      console.log('[acceptRequest] Retrieved teacher name', { teacherName });
 
       // Since students.id and teachers.id both reference profiles.id,
       // student_id and teacher_id should be profile IDs
       const studentProfileId = request.student_id;
 
+      console.log('[acceptRequest] Creating notification for student', {
+        studentProfileId,
+        requestId,
+      });
+
       // Create notification for student
-      const { error: notificationError } = await supabase
+      const { error: notificationError, data: notificationData } = await supabase
         .from('notifications')
         .insert({
           user_id: studentProfileId,
@@ -754,11 +911,34 @@ export class SessionRequestService {
         });
 
       if (notificationError) {
-        console.error('Error creating acceptance notification:', notificationError);
+        console.error('[acceptRequest] Failed to create notification', {
+          studentProfileId,
+          requestId,
+          error: notificationError,
+        });
         throw notificationError;
       }
+
+      console.log('[acceptRequest] Successfully created acceptance notification', {
+        studentProfileId,
+        requestId,
+      });
+
+      console.log('[acceptRequest] Request acceptance completed successfully', {
+        requestId,
+        status: 'accepted',
+      });
     } catch (error) {
-      console.error('Error accepting request:', error);
+      console.error('[acceptRequest] Error accepting request:', {
+        error,
+        requestId,
+      });
+      if (error instanceof Error) {
+        console.error('[acceptRequest] Error details:', {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       throw error;
     }
   }
@@ -772,7 +952,13 @@ export class SessionRequestService {
     teacherResponse?: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('[declineRequest] Starting request decline process', {
+        requestId,
+        declinedReason: declinedReason ? '(provided)' : '(none)',
+        teacherResponse: teacherResponse ? '(provided)' : '(none)',
+      });
+
+      const { error: updateError } = await supabase
         .from('session_requests')
         .update({
           status: 'declined',
@@ -782,7 +968,15 @@ export class SessionRequestService {
         })
         .eq('id', requestId);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('[declineRequest] Failed to update session_requests status', {
+          requestId,
+          error: updateError,
+        });
+        throw updateError;
+      }
+
+      console.log('[declineRequest] Successfully updated status to declined', { requestId });
 
       // Get request details for refund and notification
       const { data: request, error: requestError } = await supabase
@@ -791,7 +985,19 @@ export class SessionRequestService {
         .eq('id', requestId)
         .single();
 
-      if (requestError) throw requestError;
+      if (requestError) {
+        console.error('[declineRequest] Failed to fetch request details', {
+          requestId,
+          error: requestError,
+        });
+        throw requestError;
+      }
+
+      console.log('[declineRequest] Fetched request details for refund', {
+        requestId,
+        tokens_required: request?.tokens_required,
+        student_id: request?.student_id,
+      });
 
       // Refund tokens to student
       const { data: student, error: studentError } = await supabase
@@ -800,19 +1006,45 @@ export class SessionRequestService {
         .eq('id', request.student_id)
         .single();
 
-      if (studentError) throw studentError;
+      if (studentError) {
+        console.error('[declineRequest] Failed to fetch student record', {
+          student_id: request.student_id,
+          error: studentError,
+        });
+        throw studentError;
+      }
+
+      console.log('[declineRequest] Fetched student token balance', {
+        student_id: request.student_id,
+        current_tokens: student?.tokens || 0,
+      });
+
+      const newTokenBalance = (student?.tokens || 0) + request.tokens_required;
 
       const { error: refundError } = await supabase
         .from('students')
         .update({
-          tokens: (student?.tokens || 0) + request.tokens_required,
+          tokens: newTokenBalance,
         })
         .eq('id', request.student_id);
 
-      if (refundError) throw refundError;
+      if (refundError) {
+        console.error('[declineRequest] Failed to refund tokens', {
+          student_id: request.student_id,
+          tokens_to_refund: request.tokens_required,
+          error: refundError,
+        });
+        throw refundError;
+      }
+
+      console.log('[declineRequest] Successfully refunded tokens', {
+        student_id: request.student_id,
+        tokens_refunded: request.tokens_required,
+        new_balance: newTokenBalance,
+      });
 
       // Create refund transaction record
-      const { error: transactionError } = await supabase
+      const { error: transactionError, data: transactionData } = await supabase
         .from('token_transactions')
         .insert({
           user_id: request.student_id,
@@ -826,9 +1058,25 @@ export class SessionRequestService {
           status: 'completed',
         });
 
-      if (transactionError) throw transactionError;
+      if (transactionError) {
+        console.error('[declineRequest] Failed to create transaction record', {
+          student_id: request.student_id,
+          error: transactionError,
+        });
+        throw transactionError;
+      }
+
+      console.log('[declineRequest] Successfully created refund transaction', {
+        student_id: request.student_id,
+        tokens_refunded: request.tokens_required,
+      });
 
       // Create notification for student
+      console.log('[declineRequest] Creating decline notification for student', {
+        student_id: request.student_id,
+        requestId,
+      });
+
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
@@ -846,9 +1094,30 @@ export class SessionRequestService {
           priority: 'normal',
         });
 
-      if (notificationError) throw notificationError;
+      if (notificationError) {
+        console.error('[declineRequest] Failed to create notification', {
+          student_id: request.student_id,
+          error: notificationError,
+        });
+        throw notificationError;
+      }
+
+      console.log('[declineRequest] Successfully completed request decline', {
+        requestId,
+        status: 'declined',
+        tokens_refunded: request.tokens_required,
+      });
     } catch (error) {
-      console.error('Error declining request:', error);
+      console.error('[declineRequest] Error declining request:', {
+        error,
+        requestId,
+      });
+      if (error instanceof Error) {
+        console.error('[declineRequest] Error details:', {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       throw error;
     }
   }
@@ -858,6 +1127,8 @@ export class SessionRequestService {
    */
   static async getStudentRequests(studentId: string): Promise<SessionRequest[]> {
     try {
+      console.log('[getStudentRequests] Fetching requests for student', { studentId });
+
       const { data, error } = await supabase
         .from('session_requests')
         .select(`
@@ -883,9 +1154,20 @@ export class SessionRequestService {
         .eq('student_id', studentId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[getStudentRequests] Error fetching student requests', {
+          studentId,
+          error,
+        });
+        throw error;
+      }
 
-      return (data || []).map((request) => ({
+      console.log('[getStudentRequests] Successfully fetched requests', {
+        studentId,
+        count: (data || []).length,
+      });
+
+      const enrichedRequests = (data || []).map((request) => ({
         ...request,
         teacher: {
           ...request.profiles,
@@ -899,8 +1181,24 @@ export class SessionRequestService {
           verification_status: (request.profiles as any)?.teachers?.[0]?.verification_status || 'pending',
         },
       }));
+
+      console.log('[getStudentRequests] Returning enriched requests', {
+        studentId,
+        count: enrichedRequests.length,
+      });
+
+      return enrichedRequests;
     } catch (error) {
-      console.error('Error fetching student requests:', error);
+      console.error('[getStudentRequests] Error fetching student requests:', {
+        error,
+        studentId,
+      });
+      if (error instanceof Error) {
+        console.error('[getStudentRequests] Error details:', {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       throw error;
     }
   }

@@ -176,6 +176,71 @@ class ParentService {
   }
 
   /**
+   * Upload parent profile image and update profiles.avatar_url
+   */
+  static async uploadProfileImage(parentId: string, file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      if (!file || file.size === 0) {
+        return { success: false, error: 'No file provided' };
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        return { success: false, error: 'File size exceeds 5MB limit' };
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        return { success: false, error: 'File type not allowed. Only images are accepted.' };
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const timestamp = Date.now();
+      const fileName = `${parentId}/profile/${timestamp}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('parent-documents')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) {
+        console.error('Parent storage upload error:', uploadError);
+        const msg = (uploadError.message || '').toLowerCase();
+        if (msg.includes('row-level') || msg.includes('violates') || msg.includes('policy')) {
+          return { success: false, error: 'Upload blocked by Row Level Security. Ensure parent-documents policies are configured in Supabase.' };
+        }
+        if (uploadError.message?.includes('Bucket not found')) {
+          return { success: false, error: 'Storage bucket not configured. Please create parent-documents bucket.' };
+        }
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('parent-documents').getPublicUrl(fileName);
+
+      // Update profile avatar_url
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+        .eq('id', parentId);
+
+      if (updateError) {
+        console.error('Error updating parent profile with avatar URL:', updateError);
+        // Try to cleanup uploaded file
+        try {
+          await supabase.storage.from('parent-documents').remove([fileName]);
+        } catch (cleanupError) {
+          console.error('Error cleaning up parent uploaded file:', cleanupError);
+        }
+        return { success: false, error: updateError.message || 'Failed to update profile' };
+      }
+
+      return { success: true, url: publicUrl };
+    } catch (error) {
+      console.error('Error in uploadProfileImage:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Upload failed' };
+    }
+  }
+
+  /**
    * Get detailed progress for a specific child
    */
   static async getChildProgress(childId: string): Promise<ChildProgress | null> {

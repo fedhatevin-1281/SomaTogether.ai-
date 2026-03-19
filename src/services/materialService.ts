@@ -445,6 +445,103 @@ export class MaterialService {
   }
 
   /**
+   * Get materials assigned to a student through their classes
+   */
+  static async getStudentMaterials(
+    studentId?: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      fileType?: string;
+      subjectId?: string;
+      search?: string;
+    } = {}
+  ): Promise<{ materials: Material[]; total: number }> {
+    try {
+      // If no studentId provided, return empty (for cases where user not authenticated)
+      if (!studentId) {
+        return { materials: [], total: 0 };
+      }
+
+      // First, get all classes the student is enrolled in
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('status', 'active');
+
+      if (classesError) {
+        console.error('Error fetching student classes:', classesError);
+        return { materials: [], total: 0 };
+      }
+
+      const classIds = classesData?.map(c => c.id) || [];
+      if (classIds.length === 0) {
+        return { materials: [], total: 0 };
+      }
+
+      // Get materials where:
+      // 1. Material is public, OR
+      // 2. Material belongs to a teacher whose classes the student is enrolled in
+      let query = supabase
+        .from('materials_library')
+        .select(`
+          *,
+          subjects(id, name),
+          teachers(id, profiles(id, full_name)),
+          material_category_assignments(
+            material_categories(id, name, description)
+          )
+        `, { count: 'exact' })
+        .eq('status', 'active')
+        .or(`is_public.eq.true,is_featured.eq.true`);
+
+      // Apply filters
+      if (options.fileType) {
+        query = query.eq('file_type', options.fileType);
+      }
+      if (options.subjectId) {
+        query = query.eq('subject_id', options.subjectId);
+      }
+      if (options.search) {
+        query = query.or(`title.ilike.%${options.search}%,description.ilike.%${options.search}%`);
+      }
+
+      // Apply pagination
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
+      if (options.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+
+      // Order by creation date
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching student materials:', error);
+        return { materials: [], total: 0 };
+      }
+
+      const materials = data?.map(item => ({
+        ...item,
+        subject_name: item.subjects?.name,
+        teacher_name: item.teachers?.profiles?.full_name,
+        categories: item.material_category_assignments?.map((ca: any) => ca.material_categories)
+      })) || [];
+
+      return {
+        materials,
+        total: count || 0
+      };
+    } catch (error) {
+      console.error('Error in getStudentMaterials:', error);
+      return { materials: [], total: 0 };
+    }
+  }
+
+  /**
    * Get material by ID
    */
   static async getMaterial(materialId: string): Promise<Material | null> {

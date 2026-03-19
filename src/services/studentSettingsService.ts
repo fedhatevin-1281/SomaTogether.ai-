@@ -405,7 +405,14 @@ export class StudentSettingsService {
             error: 'Storage bucket not configured. Please contact support or check the setup-storage-buckets.sql file.'
           };
         }
-        
+        // If upload fails due to row-level security, return a helpful message
+        if (uploadError.message?.toLowerCase().includes('row-level') || uploadError.message?.toLowerCase().includes('violates')) {
+          return {
+            success: false,
+            error: 'Storage upload blocked by Row Level Security. Run setup-storage-buckets.sql or add the recommended RLS policies in Supabase.'
+          };
+        }
+
         throw uploadError;
       }
 

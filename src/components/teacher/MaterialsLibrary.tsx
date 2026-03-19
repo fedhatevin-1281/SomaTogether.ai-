@@ -33,6 +33,7 @@ import { UploadDebug } from './UploadDebug';
 
 interface MaterialsLibraryProps {
   onBack: () => void;
+  mode?: 'teacher' | 'student';
 }
 
 interface UploadModalProps {
@@ -282,8 +283,9 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   );
 }
 
-export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
+export function MaterialsLibrary({ onBack, mode = 'teacher' }: MaterialsLibraryProps) {
   const { user } = useAuth();
+  const isTeacher = mode === 'teacher';
   const [materials, setMaterials] = useState<Material[]>([]);
   const [categories, setCategories] = useState<MaterialCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,12 +306,20 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
         setLoading(true);
         setError(null);
         
+        const materialsPromise = isTeacher
+          ? MaterialService.getTeacherMaterials(user.id, {
+              limit: 50,
+              fileType: selectedFileType === 'all' ? undefined : selectedFileType,
+              search: searchTerm || undefined
+            })
+          : MaterialService.getStudentMaterials(user.id, {
+              limit: 50,
+              fileType: selectedFileType === 'all' ? undefined : selectedFileType,
+              search: searchTerm || undefined
+            });
+
         const [materialsData, categoriesData] = await Promise.all([
-          MaterialService.getTeacherMaterials(user.id, {
-            limit: 50,
-            fileType: selectedFileType === 'all' ? undefined : selectedFileType,
-            search: searchTerm || undefined
-          }),
+          materialsPromise,
           MaterialService.getCategories()
         ]);
         
@@ -324,7 +334,7 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
     };
 
     fetchData();
-  }, [user?.id, searchTerm, selectedFileType]);
+  }, [user?.id, searchTerm, selectedFileType, isTeacher]);
 
   const getFileIcon = (fileType: string) => {
     switch (fileType) {
@@ -449,16 +459,20 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Materials Library</h1>
-            <p className="text-slate-600">Organize and share your teaching resources</p>
+            <p className="text-slate-600">
+              {isTeacher ? 'Organize and share your teaching resources' : 'View and download assigned materials'}
+            </p>
           </div>
         </div>
-        <Button 
-          className="bg-green-500 hover:bg-green-600"
-          onClick={() => setShowUploadModal(true)}
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Material
-        </Button>
+        {isTeacher && (
+          <Button 
+            className="bg-green-500 hover:bg-green-600"
+            onClick={() => setShowUploadModal(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Material
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -580,15 +594,19 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
               <p className="text-slate-500 mb-4">
                 {searchTerm || selectedFileType !== 'all' || selectedCategory !== 'all'
                   ? 'No materials match your current filters.'
-                  : 'You haven\'t uploaded any materials yet. Start by uploading your first resource!'}
+                  : isTeacher
+                    ? "You haven't uploaded any materials yet. Start by uploading your first resource!"
+                    : 'No materials have been assigned to you yet.'}
               </p>
-              <Button 
-                onClick={() => setShowUploadModal(true)}
-                className="bg-green-500 hover:bg-green-600"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Your First Material
-              </Button>
+              {isTeacher && (
+                <Button 
+                  onClick={() => setShowUploadModal(true)}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Your First Material
+                </Button>
+              )}
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -608,14 +626,16 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
                           Public
                         </Badge>
                       )}
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => handleDelete(material.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                      {isTeacher && (
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleDelete(material.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -675,59 +695,63 @@ export function MaterialsLibrary({ onBack }: MaterialsLibraryProps) {
             </div>
           )}
 
-          {/* Quick Actions */}
-          <Card className="p-6">
-            <h3 className="font-bold mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <Upload className="h-6 w-6 mb-2" />
-                <span className="text-sm">Upload Material</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <Video className="h-6 w-6 mb-2" />
-                <span className="text-sm">Upload Video</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <FileText className="h-6 w-6 mb-2" />
-                <span className="text-sm">Upload Document</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <Image className="h-6 w-6 mb-2" />
-                <span className="text-sm">Upload Image</span>
-              </Button>
-            </div>
-          </Card>
+          {/* Quick Actions - Teachers Only */}
+          {isTeacher && (
+            <Card className="p-6">
+              <h3 className="font-bold mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col items-center justify-center"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Upload className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Upload Material</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col items-center justify-center"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Video className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Upload Video</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col items-center justify-center"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <FileText className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Upload Document</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex flex-col items-center justify-center"
+                  onClick={() => setShowUploadModal(true)}
+                >
+                  <Image className="h-6 w-6 mb-2" />
+                  <span className="text-sm">Upload Image</span>
+                </Button>
+              </div>
+            </Card>
+          )}
 
           {/* Debug Information - Remove this after fixing upload */}
           <UploadDebug />
         </div>
       </div>
 
-      {/* Upload Modal */}
-      <UploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onSuccess={() => {
-          // Refresh materials list
-          window.location.reload();
-        }}
-      />
+      {/* Upload Modal - Teachers Only */}
+      {isTeacher && (
+        <UploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={() => {
+            // Refresh materials list
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

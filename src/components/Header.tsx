@@ -201,8 +201,12 @@ export function Header({ onLogout, onScreenChange, currentScreen, isSidebarColla
                 setShowProfile(!showProfile);
               }}
             >
-              <div className={`w-8 h-8 ${roleColors[currentRole]} rounded-full flex items-center justify-center`}>
-                <User className="h-4 w-4 text-white" />
+              <div className={`w-8 h-8 ${roleColors[currentRole]} rounded-full overflow-hidden flex items-center justify-center`}> 
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4 text-white" />
+                )}
               </div>
               <span className="hidden md:block text-slate-900">{profile?.full_name || 'User'}</span>
               <ChevronDown className="h-4 w-4 text-slate-600" />

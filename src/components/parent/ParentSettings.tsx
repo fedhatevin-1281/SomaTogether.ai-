@@ -43,7 +43,7 @@ import { supabase } from '../../supabaseClient';
 import ParentService, { ChildData } from '../../services/parentService';
 
 export function ParentSettings() {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -61,6 +61,8 @@ export function ParentSettings() {
   const [showAddChildDialog, setShowAddChildDialog] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
   const isOpeningRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   // Debug: Log dialog state changes
   useEffect(() => {
@@ -282,8 +284,43 @@ export function ParentSettings() {
                 </div>
               )}
             </Avatar>
-            <Button size="sm" className="absolute -bottom-2 -right-2 p-1 rounded-full bg-purple-600 hover:bg-purple-700">
-              <Camera className="w-3 h-3" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !user) return;
+                try {
+                  setUploadingAvatar(true);
+                  const result = await ParentService.uploadProfileImage(user.id, file);
+                  if (result.success) {
+                    // Update auth context profile so header updates immediately
+                    if (updateProfile) {
+                      await updateProfile({ avatar_url: result.url });
+                    } else {
+                      // Fallback: reload the page to refresh profile
+                      window.location.reload();
+                    }
+                  } else {
+                    alert(result.error || 'Failed to upload image');
+                  }
+                } catch (err) {
+                  console.error('Error uploading parent avatar:', err);
+                  alert('Error uploading image.');
+                } finally {
+                  setUploadingAvatar(false);
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              className="absolute -bottom-2 -right-2 p-1 rounded-full bg-purple-600 hover:bg-purple-700"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+            >
+              {uploadingAvatar ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : <Camera className="w-3 h-3" />}
             </Button>
           </div>
           <div className="flex-1 space-y-3">

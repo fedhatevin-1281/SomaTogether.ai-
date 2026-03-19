@@ -349,15 +349,15 @@ export class TeacherSettingsService {
 
       if (uploadError) {
         console.error('Storage upload error:', uploadError);
-        
-        // If it's an RLS error, provide more specific guidance
-        if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
-          return { 
-            success: false, 
-            error: 'Upload failed due to security policy. Please ensure storage policies are configured correctly. Contact support if this persists.' 
+        // If upload fails due to row-level security or policy restrictions, return actionable guidance
+        const msg = (uploadError.message || '').toLowerCase();
+        if (msg.includes('row-level') || msg.includes('violates') || msg.includes('policy')) {
+          return {
+            success: false,
+            error: 'Upload blocked by Row Level Security. Ensure the teacher-documents bucket exists and run setup-storage-buckets.sql (or add equivalent RLS policies) in Supabase.'
           };
         }
-        
+
         throw uploadError;
       }
 

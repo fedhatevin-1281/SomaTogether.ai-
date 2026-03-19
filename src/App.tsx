@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Toaster } from './components/ui/sonner';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -49,7 +48,7 @@ import { StudentOnboarding } from './components/student/StudentOnboarding';
 import { FloatingAIButton } from './components/shared/FloatingAIButton';
 
 export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
-export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'student-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management' | 'class-management' | 'session-management' | 'parent-help-support' | 'student-help-support' | 'teacher-help-support';
+export type AppScreen = 'landing' | 'login' | 'teacher-onboarding' | 'student-onboarding' | 'parent-onboarding' | 'dashboard' | 'browse-teachers' | 'teacher-browse' | 'my-classes' | 'student-classes' | 'assignments' | 'ai-assistant' | 'teacher-ai-assistant' | 'parent-ai-assistant' | 'messages' | 'parent-messages' | 'student-messages' | 'wallet' | 'settings' | 'student-profile' | 'teacher-profile' | 'teacher-requests' | 'student-requests' | 'my-students' | 'browse-students' | 'upload-assignment' | 'teacher-submissions' | 'materials-library' | 'student-materials' | 'analytics' | 'child-progress' | 'teacher-overview' | 'payment-history' | 'reports' | 'teacher-request-management' | 'class-management' | 'session-management' | 'parent-help-support' | 'student-help-support' | 'teacher-help-support';
 export type AdminScreen = 'dashboard' | 'user-management' | 'teacher-verification' | 'payment-management' | 'analytics' | 'content-moderation' | 'system-settings';
 
 function AppContent() {
@@ -85,7 +84,7 @@ function AppContent() {
       const currentPath = window.location.pathname;
       const urlParams = new URLSearchParams(window.location.search);
       const screen = urlParams.get('screen');
-      
+
       // Only show React app if we're on an app route or have screen parameter
       if (currentPath.startsWith('/app') || screen) {
         if (screen === 'login') {
@@ -104,14 +103,14 @@ function AppContent() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const screen = urlParams.get('screen');
-    
+
     if (screen === 'login' && !user) {
       setCurrentScreen('login');
     }
   }, [user]);
 
   const [currentClassInfo, setCurrentClassInfo] = useState<any>(null);
-  
+
   const handleScreenChange = (screen: AppScreen | AdminScreen, classInfo?: any) => {
     setCurrentScreen(screen as AppScreen);
     if (classInfo) setCurrentClassInfo(classInfo);
@@ -121,9 +120,9 @@ function AppContent() {
     // Check if we have URL parameters for login/signup - if so, show the React app
     const urlParams = new URLSearchParams(window.location.search);
     const screen = urlParams.get('screen');
-    
+
     console.log('App renderContent:', { isLoggedIn, currentScreen, screen, urlParams: window.location.search });
-    
+
     // If we have login parameters, show the React app instead of redirecting
     if (!isLoggedIn && screen === 'login') {
       // Don't redirect, show the React login screen
@@ -281,8 +280,8 @@ function AppContent() {
             onScreenChange={handleScreenChange}
           />
         );
-        default:
-          return <StudentDashboard currentScreen={currentScreen} onScreenChange={handleScreenChange} />;
+      default:
+        return <StudentDashboard currentScreen={currentScreen} onScreenChange={handleScreenChange} />;
     }
   };
 
@@ -330,6 +329,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <Analytics />
     </AuthProvider>
   );
 }

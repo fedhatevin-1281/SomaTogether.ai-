@@ -76,23 +76,54 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
   });
 
   const handleSendRequest = async () => {
-    if (!selectedTeacher || !user?.id) return;
+    if (!selectedTeacher || !user?.id) {
+      console.warn('[BrowseTeachers] Cannot send request - missing teacher or user', {
+        hasTeacher: !!selectedTeacher,
+        hasUser: !!user?.id,
+      });
+      return;
+    }
 
     try {
       setSendingRequest(true);
       setError(null);
 
+      console.log('[BrowseTeachers] Sending request', {
+        teacherId: selectedTeacher.id,
+        studentId: user.id,
+        requestDate,
+        requestTime,
+        requestDuration,
+      });
+
       // Validate form
       if (!requestDate || !requestTime || !requestDuration) {
-        throw new Error('Please fill in all required fields.');
+        const validationError = 'Please fill in all required fields.';
+        console.warn('[BrowseTeachers] Form validation failed', {
+          requestDate,
+          requestTime,
+          requestDuration,
+        });
+        throw new Error(validationError);
       }
 
       // Create datetime strings
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + parseInt(requestDuration) * 60 * 60 * 1000);
 
+      console.log('[BrowseTeachers] Parsed request times', {
+        requestedStart: requestedStart.toISOString(),
+        requestedEnd: requestedEnd.toISOString(),
+        durationHours: requestDuration,
+      });
+
       if (requestedStart < new Date()) {
-        throw new Error('Requested time cannot be in the past.');
+        const timeError = 'Requested time cannot be in the past.';
+        console.warn('[BrowseTeachers] Invalid time in past', {
+          requestedStart: requestedStart.toISOString(),
+          now: new Date().toISOString(),
+        });
+        throw new Error(timeError);
       }
 
       const requestData: CreateSessionRequestData = {
@@ -103,7 +134,14 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
         message: requestMessage || undefined,
       };
 
+      console.log('[BrowseTeachers] Calling SessionRequestService.createSessionRequest', {
+        studentId: user.id,
+        requestData,
+      });
+
       await SessionRequestService.createSessionRequest(user.id, requestData);
+
+      console.log('[BrowseTeachers] Request sent successfully');
 
       setRequestSuccess('Request sent successfully! The teacher will be notified.');
       setRequestDialogOpen(false);
@@ -113,7 +151,13 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       setRequestDuration('1');
       setSelectedTeacher(null);
     } catch (error: any) {
-      console.error('Error sending request:', error);
+      console.error('[BrowseTeachers] Error sending request:', error);
+      console.error('[BrowseTeachers] Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       setError(error.message || 'Failed to send request. Please try again.');
     } finally {
       setSendingRequest(false);
