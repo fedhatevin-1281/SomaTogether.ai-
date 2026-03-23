@@ -412,7 +412,7 @@ export function StudentWallet() {
       {/* Funding Modal */}
       {showFundingModal && createPortal(
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center pt-24 pb-8 px-4 sm:px-6 z-[9999]"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -420,8 +420,8 @@ export function StudentWallet() {
             }
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
-            <div className="p-6">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
               <WalletFunding
                 onSuccess={() => {
                   setShowFundingModal(false);

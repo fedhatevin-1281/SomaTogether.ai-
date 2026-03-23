@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from './components/ui/sonner';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -173,7 +174,6 @@ function AppContent() {
         case 'dashboard':
           return <StudentDashboard currentScreen={currentScreen} onScreenChange={handleScreenChange} />;
         case 'browse-teachers':
-          return <BrowseTeachers onBack={() => handleScreenChange('dashboard')} />;
         case 'teacher-browse':
           return <TeacherBrowse />;
         case 'my-classes':
@@ -186,7 +186,7 @@ function AppContent() {
           return <AIAssistant onBack={() => setCurrentScreen('dashboard')} />;
         case 'messages':
         case 'student-messages':
-          return <StudentMessages onBack={() => handleScreenChange('dashboard')} />;
+          return <StudentMessages onBack={() => handleScreenChange('dashboard')} onScreenChange={handleScreenChange} />;
         case 'wallet':
           return <StudentWallet />;
         case 'settings':
@@ -261,7 +261,7 @@ function AppContent() {
           return <AIAssistant onBack={() => handleScreenChange('dashboard')} />;
         case 'messages':
         case 'parent-messages':
-          return <ParentMessages onBack={() => handleScreenChange('dashboard')} />;
+          return <ParentMessages onBack={() => handleScreenChange('dashboard')} onScreenChange={handleScreenChange} />;
         case 'settings':
           return <ParentSettings />;
         case 'parent-help-support':

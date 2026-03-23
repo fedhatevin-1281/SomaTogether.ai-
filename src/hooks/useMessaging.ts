@@ -125,11 +125,16 @@ export function useMessaging(): UseMessagingResult {
       
       // Mark messages as read
       const unreadMessageIds = messageData
-        .filter(msg => msg.sender_id !== user.id && !msg.read_by.some(read => read.user_id === user.id))
+        .filter(msg => msg.sender_id !== user.id && !(msg.read_by || []).some(read => read.user_id === user.id))
         .map(msg => msg.id);
       
       if (unreadMessageIds.length > 0) {
         await messagingService.markMessagesAsRead(unreadMessageIds, user.id);
+        
+        // Update local conversations unread count
+        setConversations(prev => prev.map(c => 
+          c.id === conversation.id ? { ...c, unread_count: 0 } : c
+        ));
       }
       
       // Subscribe to real-time updates for this conversation
@@ -147,6 +152,9 @@ export function useMessaging(): UseMessagingResult {
           // Auto-mark as read if it's not from current user
           if (newMessage.sender_id !== user.id) {
             messagingService.markMessagesAsRead([newMessage.id], user.id);
+            setConversations(prev => prev.map(c => 
+              c.id === conversation.id ? { ...c, unread_count: 0 } : c
+            ));
           }
         },
         (updatedMessage) => {
@@ -235,11 +243,14 @@ export function useMessaging(): UseMessagingResult {
 
     try {
       const unreadMessageIds = messages
-        .filter(msg => msg.sender_id !== user.id && !msg.read_by.some(read => read.user_id === user.id))
+        .filter(msg => msg.sender_id !== user.id && !(msg.read_by || []).some(read => read.user_id === user.id))
         .map(msg => msg.id);
       
       if (unreadMessageIds.length > 0) {
         await messagingService.markMessagesAsRead(unreadMessageIds, user.id);
+        setConversations(prev => prev.map(c => 
+          c.id === currentConversation.id ? { ...c, unread_count: 0 } : c
+        ));
       }
     } catch (err) {
       console.error('Failed to mark messages as read:', err);

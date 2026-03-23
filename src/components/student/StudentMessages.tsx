@@ -27,9 +27,10 @@ import { useAI } from '../../hooks/useAI';
 
 interface StudentMessagesProps {
   onBack?: () => void;
+  onScreenChange?: (screen: string) => void;
 }
 
-export function StudentMessages({ onBack }: StudentMessagesProps) {
+export function StudentMessages({ onBack, onScreenChange }: StudentMessagesProps) {
   const { user } = useAuth();
   const { sendMessage: sendAIMessage, isLoading: aiLoading } = useAI();
   
@@ -83,6 +84,13 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
     try {
       const msgs = await StudentMessagingService.getMessages(conversation.id);
       setMessages(msgs);
+      
+      if (user) {
+        await StudentMessagingService.markMessagesAsRead(conversation.id, user.id);
+        setConversations(prev => prev.map(c => 
+          c.id === conversation.id ? { ...c, unread_count: 0 } : c
+        ));
+      }
     } catch (err) {
       console.error('Error loading messages:', err);
       setError('Failed to load messages');
@@ -263,7 +271,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
             <p className="text-slate-600">Chat with AI assistant and teachers</p>
           </div>
         </div>
-        <Button onClick={handleStartAIChat} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={() => onScreenChange ? onScreenChange('ai-assistant') : handleStartAIChat()} className="bg-purple-600 hover:bg-purple-700">
           <Bot className="h-4 w-4 mr-2" />
           Chat with AI
         </Button>
@@ -313,10 +321,12 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
 
             {activeTab === 'conversations' && (
               <div className="space-y-2">
-                {conversations.length === 0 ? (
-                  <p className="text-gray-600 text-sm text-center py-4">No conversations yet</p>
+                {conversations.filter(c => c.last_message?.content || (c.unread_count && c.unread_count > 0) || c.id === selectedConversation?.id).length === 0 ? (
+                  <p className="text-gray-600 text-sm text-center py-4">No active conversations</p>
                 ) : (
-                  conversations.map((conv) => (
+                  conversations
+                    .filter(c => c.last_message?.content || (c.unread_count && c.unread_count > 0) || c.id === selectedConversation?.id)
+                    .map((conv) => (
                     <div
                       key={conv.id}
                       className={`p-3 rounded-lg cursor-pointer transition-colors border ${
@@ -339,7 +349,7 @@ export function StudentMessages({ onBack }: StudentMessagesProps) {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate text-foreground">
-                            {conv.other_participant?.name || 'Unknown'}
+                            {conv.title || (conv.other_participant as any)?.full_name || conv.other_participant?.name || 'Unknown'}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
                             {conv.last_message?.content || 'No messages yet'}

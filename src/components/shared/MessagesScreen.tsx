@@ -96,6 +96,9 @@ export function MessagesScreen({ userRole, onBack, classInfo }: MessagesScreenPr
 
   // Filter conversations based on search term
   const filteredConversations = conversations.filter(conversation => {
+    const hasMessages = conversation.last_message?.content || (conversation.unread_count && conversation.unread_count > 0) || currentConversation?.id === conversation.id;
+    if (!hasMessages) return false;
+
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (

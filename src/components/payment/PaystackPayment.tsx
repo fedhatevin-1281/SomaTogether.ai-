@@ -228,134 +228,118 @@ export function PaystackPayment({ amount, tokens, onSuccess, onError, onCancel }
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 rounded-full">
-              <CreditCard className="h-8 w-8 text-blue-600" />
-            </div>
+    <Card className="p-4 sm:p-5">
+      <div className="space-y-4">
+        {/* Header - Compact */}
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-100 rounded-full shrink-0">
+            <CreditCard className="h-5 w-5 text-blue-600" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">Pay with Paystack</h3>
-          <p className="text-gray-600">
-            Purchase {tokens} tokens for ${amount.toFixed(2)} USD
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {/* Currency Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {supportedCurrencies.map((currency) => (
-                  <SelectItem key={currency} value={currency}>
-                    <div className="flex items-center space-x-2">
-                      <Globe className="h-4 w-4" />
-                      <span>{currency}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-gray-500">
-              Amount: {localAmount.toLocaleString()} {selectedCurrency}
+          <div>
+            <h3 className="font-semibold text-sm">Pay with Paystack</h3>
+            <p className="text-xs text-gray-600">
+              {tokens} tokens for ${amount.toFixed(2)} USD
             </p>
           </div>
-
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-            />
-          </div>
-
-          {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="John"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Doe"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number (Optional)</Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+234 800 000 0000"
-            />
-          </div>
         </div>
 
-        {/* Payment Summary */}
-        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-          <div className="flex justify-between">
-            <span>Tokens:</span>
-            <Badge variant="secondary">{tokens} tokens</Badge>
+        <div className="space-y-3">
+          {/* Currency Selection & Display Inline */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs" htmlFor="currency">Currency</Label>
+              <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedCurrencies.map((currency) => (
+                    <SelectItem key={currency} value={currency} className="text-xs">
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="bg-gray-50 rounded p-2 flex flex-col justify-center border">
+               <span className="text-[10px] text-gray-500 uppercase font-medium tracking-wider">You Pay</span>
+               <span className="font-semibold text-sm text-blue-600">{localAmount.toLocaleString()} {selectedCurrency}</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Amount (USD):</span>
-            <span>${amount.toFixed(2)}</span>
+
+          {/* Name Fields Inline */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs" htmlFor="firstName">First Name *</Label>
+              <Input 
+                className="h-8 text-xs" 
+                id="firstName" 
+                value={firstName} 
+                onChange={(e) => setFirstName(e.target.value)} 
+                placeholder="John"
+                required 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs" htmlFor="lastName">Last Name *</Label>
+              <Input 
+                className="h-8 text-xs" 
+                id="lastName" 
+                value={lastName} 
+                onChange={(e) => setLastName(e.target.value)} 
+                placeholder="Doe"
+                required 
+              />
+            </div>
           </div>
-          <div className="flex justify-between font-semibold">
-            <span>Amount ({selectedCurrency}):</span>
-            <span>{localAmount.toLocaleString()} {selectedCurrency}</span>
+
+          {/* Contact Fields Inline */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs" htmlFor="email">Email *</Label>
+              <Input 
+                className="h-8 text-xs" 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="your@email.com"
+                required 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs" htmlFor="phone">Phone</Label>
+              <Input 
+                className="h-8 text-xs" 
+                id="phone" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="+234..."
+              />
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 pt-2 mt-2">
           <Button
             onClick={handleInitializePayment}
             disabled={isLoading || !email || !firstName || !lastName}
-            className="flex-1"
+            className="flex-1 h-9 text-sm"
           >
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                Wait...
               </>
             ) : (
-              'Pay with Paystack'
+              'Pay Now'
             )}
           </Button>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} className="h-9 text-sm">
             Cancel
           </Button>
-        </div>
-
-        {/* Security Notice */}
-        <div className="text-center text-sm text-gray-500">
-          <p>🔒 Your payment is secured by Paystack</p>
-          <p>We support cards, bank transfers, and mobile money</p>
         </div>
       </div>
     </Card>

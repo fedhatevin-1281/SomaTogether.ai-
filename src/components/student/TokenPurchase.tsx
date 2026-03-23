@@ -37,7 +37,7 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
 
   const getTotalTokens = (): number => {
     if (selectedPackage) {
-      return selectedPackage.tokens + (selectedPackage.bonus_tokens || 0);
+      return selectedPackage.tokens + (selectedPackage.bonus || 0);
     }
     if (customAmount) {
       const tokens = parseInt(customAmount);
@@ -167,17 +167,17 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
                   <h3 className="text-xl font-bold mb-2">{pkg.tokens} Tokens</h3>
                   <div className="flex items-center justify-center space-x-2 mb-2">
                     <span className="text-3xl font-bold text-green-600">${pkg.price_usd}</span>
-                    {pkg.bonus_tokens && (
+                    {pkg.bonus && (
                       <Badge className="bg-green-100 text-green-800">
-                        +{pkg.bonus_tokens} bonus
+                        +{pkg.bonus} bonus
                       </Badge>
                     )}
                   </div>
                   <p className="text-sm text-slate-600 mb-4">{pkg.description}</p>
                   
                   <div className="space-y-1 text-xs text-slate-500">
-                    <p>≈ {Math.floor((pkg.tokens + (pkg.bonus_tokens || 0)) / 10)} hours of learning</p>
-                    <p>Rate: ${(pkg.price_usd / (pkg.tokens + (pkg.bonus_tokens || 0))).toFixed(3)} per token</p>
+                    <p>≈ {Math.floor((pkg.tokens + (pkg.bonus || 0)) / 10)} hours of learning</p>
+                    <p>Rate: ${(pkg.price_usd / (pkg.tokens + (pkg.bonus || 0))).toFixed(3)} per token</p>
                   </div>
                 </div>
               </Card>
@@ -303,15 +303,19 @@ export function TokenPurchase({ onBack, onSuccess }: TokenPurchaseProps) {
 
       {/* Payment Method Selector Modal */}
       {showPaymentMethods && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <PaymentMethodSelector
-              amount={selectedPackage ? selectedPackage.price_usd : TokenService.calculatePurchaseAmount(parseInt(customAmount), 'student')}
-              tokens={getTotalTokens()}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
-              onCancel={() => setShowPaymentMethods(false)}
-            />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center pt-24 pb-8 px-4 sm:px-6 z-[9999]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-4">
+              <div className="p-2">
+                <PaymentMethodSelector
+                  amount={selectedPackage ? selectedPackage.price_usd : TokenService.calculatePurchaseAmount(parseInt(customAmount), 'student')}
+                  tokens={getTotalTokens()}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  onCancel={() => setShowPaymentMethods(false)}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

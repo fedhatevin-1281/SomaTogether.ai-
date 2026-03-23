@@ -608,6 +608,41 @@ async function handlePaymentSuccess(paymentIntent) {
   }
 }
 
+// Webhook endpoint for handling Paystack events
+app.post('/api/paystack-webhook', async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const secret = process.env.PAYSTACK_SECRET_KEY || process.env.VITE_PAYSTACK_SECRET_KEY;
+    
+    if (secret) {
+      const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+      if (hash !== req.headers['x-paystack-signature']) {
+        console.error('Paystack webhook signature verification failed');
+        return res.status(400).send('Invalid signature');
+      }
+    }
+
+    const event = req.body;
+    console.log('Received Paystack webhook:', event.event);
+
+    const { data, error } = await supabase
+      .rpc('handle_paystack_webhook', {
+        p_event_data: event
+      });
+
+    if (error) {
+      console.error('Paystack webhook processing error:', error);
+      return res.status(500).json({ message: 'Webhook processing failed' });
+    }
+
+    console.log('Paystack webhook processed successfully');
+    return res.status(200).json({ message: 'Webhook processed successfully' });
+  } catch (error) {
+    console.error('Paystack webhook handler error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Handle failed payment
 async function handlePaymentFailure(paymentIntent) {
   try {

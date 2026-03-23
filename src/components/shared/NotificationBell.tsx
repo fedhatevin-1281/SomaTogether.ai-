@@ -94,10 +94,14 @@ const NotificationBell: React.FC = () => {
         )}
       </Button>
 
-      <NotificationCenter isOpen={isOpen} onClose={() => {
-        console.log('Closing notification center');
-        setIsOpen(false);
-      }} />
+      <NotificationCenter 
+        isOpen={isOpen} 
+        onClose={() => {
+          console.log('Closing notification center');
+          setIsOpen(false);
+        }} 
+        onReadStatusChange={loadUnreadCount}
+      />
     </div>
   );
 };

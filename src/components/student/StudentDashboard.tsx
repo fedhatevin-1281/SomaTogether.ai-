@@ -42,6 +42,20 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
     }
   }, [user]);
 
+  const handleNotificationClick = async (notificationId: string) => {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification || notification.is_read) return;
+
+    // Optimistically update UI
+    setNotifications(prev => prev.map(n => 
+      n.id === notificationId ? { ...n, is_read: true } : n
+    ));
+    setStats(prev => prev ? { ...prev, unread_messages: Math.max(0, prev.unread_messages - 1) } : prev);
+    
+    // Call API
+    await StudentService.markNotificationAsRead(notificationId);
+  };
+
   const fetchDashboardData = async (isRefresh = false) => {
     if (!user) return;
 
@@ -433,10 +447,12 @@ export function StudentDashboard({ currentScreen, onScreenChange }: StudentDashb
             {notifications.length > 0 ? (
               <ul className="space-y-3">
                 {notifications.map((notification) => (
-                  <li key={notification.id} className={`flex items-start space-x-3 p-3 rounded-lg border ${
+                  <li key={notification.id} 
+                      onClick={() => handleNotificationClick(notification.id)}
+                      className={`flex items-start space-x-3 p-3 rounded-lg border ${
                     !notification.is_read 
-                      ? 'bg-blue-50 border-l-4 border-blue-400' 
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-blue-50 border-l-4 border-blue-400 cursor-pointer hover:bg-blue-100' 
+                      : 'bg-gray-50 border-gray-200 cursor-pointer hover:bg-gray-100'
                   }`}>
                     <AlertCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
                       !notification.is_read ? 'text-blue-500' : 'text-gray-500'

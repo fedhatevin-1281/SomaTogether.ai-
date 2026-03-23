@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { CreditCard, Smartphone, Building2, Globe } from 'lucide-react';
 import { PaystackPayment } from './PaystackPayment';
+import { StripePayment } from './StripePayment';
 
 interface PaymentMethodSelectorProps {
   amount: number;
@@ -84,6 +85,18 @@ export function PaymentMethodSelector({ amount, tokens, onSuccess, onError, onCa
   if (selectedMethod === 'paystack') {
     return (
       <PaystackPayment
+        amount={amount}
+        tokens={tokens}
+        onSuccess={handlePaymentSuccess}
+        onError={onError}
+        onCancel={handleBack}
+      />
+    );
+  }
+
+  if (selectedMethod === 'stripe') {
+    return (
+      <StripePayment
         amount={amount}
         tokens={tokens}
         onSuccess={handlePaymentSuccess}

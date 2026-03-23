@@ -551,9 +551,35 @@ class StudentMessagingService {
    */
   static async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
     try {
-      // This would typically involve updating a read status table
-      // For now, we'll just log the action
-      console.log(`Marking messages as read for conversation ${conversationId} by user ${userId}`);
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', userId)
+        .eq('is_deleted', false);
+
+      if (!messages || messages.length === 0) return;
+
+      const messageIds = messages.map(m => m.id);
+      const { data: existingReads } = await supabase
+        .from('message_reads')
+        .select('message_id')
+        .in('message_id', messageIds)
+        .eq('user_id', userId);
+
+      const readIds = new Set((existingReads || []).map(r => r.message_id));
+      const unreadIds = messageIds.filter(id => !readIds.has(id));
+
+      if (unreadIds.length === 0) return;
+
+      const readsToInsert = unreadIds.map(id => ({
+        message_id: id,
+        user_id: userId
+      }));
+
+      await supabase
+        .from('message_reads')
+        .upsert(readsToInsert, { onConflict: 'message_id,user_id', ignoreDuplicates: true });
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }

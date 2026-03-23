@@ -102,6 +102,10 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
             : notification
         )
       );
+      setStats(prev => prev ? {
+        ...prev,
+        unread_messages: Math.max(0, prev.unread_messages - 1)
+      } : prev);
     }
   };
 
@@ -158,65 +162,32 @@ export function TeacherDashboard({ onScreenChange }: TeacherDashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header / Cover */}
-      <div className="w-full">
-        <div className="relative h-44 w-full overflow-hidden rounded-b-lg bg-gray-200">
-          {profile?.cover_image_url ? (
-            <img
-              src={profile.cover_image_url}
-              alt="Cover"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-gray-100 to-gray-200" />
-          )}
-
-          <div className="absolute inset-0 bg-black opacity-20 pointer-events-none" />
-
-          <div className="absolute inset-0 flex items-center justify-between px-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-white shadow-lg bg-white">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gray-300 flex items-center justify-center text-white"> 
-                    <div className="text-gray-600 font-bold">{(profile?.full_name || 'U').charAt(0).toUpperCase()}</div>
-                  </div>
-                )}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Teacher Dashboard</h1>
-                <p className="text-white opacity-90">Welcome back, {profile?.full_name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <Button 
-                onClick={handleRefresh} 
-                disabled={refreshing}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Welcome section (matches Student dashboard) */}
-      <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-white mx-6 -mt-10 relative z-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {profile?.full_name || 'Teacher'}!</h1>
-            <p className="text-blue-100 text-lg">Hope you're having a productive day.</p>
+      <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-white mx-6 mt-6 relative z-10 shadow-sm">
+        <div className="flex md:flex-row flex-col items-start md:items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-1">Welcome back, {profile?.full_name || 'Teacher'}!</h1>
+              <p className="text-green-100 text-lg">Hope you're having a productive day.</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-green-200">Today</p>
-            <p className="text-2xl font-bold text-green-100">
-              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </p>
+          <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto mt-4 md:mt-0">
+            <Button 
+              onClick={handleRefresh} 
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white mb-0 md:mb-2"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <div className="text-right ml-4 md:ml-0">
+              <p className="text-green-200 text-sm">Today</p>
+              <p className="text-xl font-bold text-white">
+                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
           </div>
         </div>
       </div>

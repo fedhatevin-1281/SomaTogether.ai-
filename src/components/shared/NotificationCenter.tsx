@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 interface NotificationCenterProps {
   isOpen: boolean;
   onClose: () => void;
+  onReadStatusChange?: () => void;
 }
 
 const NotificationIcon: React.FC<{ type: string }> = ({ type }) => {
@@ -125,7 +126,7 @@ const NotificationItem: React.FC<{
   );
 };
 
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose }) => {
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose, onReadStatusChange }) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -197,6 +198,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
         toast.success('Notification marked as read');
+        onReadStatusChange?.();
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -213,6 +215,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         setNotifications(prev => prev.filter(n => n.id !== notificationId));
         if (notification && !notification.is_read) {
           setUnreadCount(prev => Math.max(0, prev - 1));
+          onReadStatusChange?.();
         }
         toast.success('Notification deleted');
       }
@@ -238,6 +241,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         );
         setUnreadCount(0);
         toast.success('All notifications marked as read');
+        onReadStatusChange?.();
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);

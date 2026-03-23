@@ -522,6 +522,7 @@ export class SessionRequestService {
           tokens_required: tokensRequired,
           message: requestData.message,
           expires_at: expiresAt.toISOString(),
+          status: 'pending',
         })
         .select()
         .single();

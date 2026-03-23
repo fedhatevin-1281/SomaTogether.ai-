@@ -34,6 +34,8 @@ export interface TokenPackage {
   tokens: number;
   price_usd: number;
   bonus: number;
+  is_popular?: boolean;
+  description?: string;
 }
 
 export interface TokenPricing {
@@ -99,7 +101,7 @@ export interface WithdrawalRequest {
   updated_at: string;
 }
 
-class TokenService {
+export class TokenService {
   // Token pricing constants
   static readonly STUDENT_TOKENS_PER_DOLLAR = 10; // 10 tokens = $1.00
   static readonly TEACHER_TOKENS_PER_DOLLAR = 25; // 25 tokens = $1.00 (10 tokens = $0.40)
@@ -134,8 +136,10 @@ class TokenService {
   /**
    * Validate token purchase
    */
-  static validateTokenPurchase(tokens: number, userType: 'student' | 'teacher'): boolean {
-    return tokens > 0 && tokens <= 10000; // Max 10,000 tokens per purchase
+  static validateTokenPurchase(tokens: number, userType: 'student' | 'teacher'): { valid: boolean; error?: string } {
+    if (tokens <= 0) return { valid: false, error: 'Must purchase more than 0 tokens' };
+    if (tokens > 10000) return { valid: false, error: 'Cannot purchase more than 10000 tokens at once' };
+    return { valid: true };
   }
 
   /**

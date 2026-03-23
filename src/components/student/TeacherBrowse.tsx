@@ -64,7 +64,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
 
   const isOnline = teacher.is_online;
   const isAvailable = teacher.is_available && !teacher.vacation_mode;
-  
+
   // Use detailed teacher data if available, otherwise use basic teacher data
   const displayTeacher = detailedTeacher || teacher;
 
@@ -133,40 +133,40 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
         )}
 
         {/* Subjects */}
-        {((teacher.teacher_subjects && teacher.teacher_subjects.length > 0) || 
+        {((teacher.teacher_subjects && teacher.teacher_subjects.length > 0) ||
           (teacher.subjects && teacher.subjects.length > 0)) && (
-          <div className="mb-3">
-            <div className="flex flex-wrap gap-1">
-              {teacher.teacher_subjects && teacher.teacher_subjects.length > 0 ? (
-                <>
-                  {teacher.teacher_subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {subject.subject_name}
-                    </Badge>
-                  ))}
-                  {!isExpanded && teacher.teacher_subjects.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{teacher.teacher_subjects.length - 3} more
-                    </Badge>
-                  )}
-                </>
-              ) : (
-                <>
-                  {teacher.subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {subject}
-                    </Badge>
-                  ))}
-                  {!isExpanded && teacher.subjects.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{teacher.subjects.length - 3} more
-                    </Badge>
-                  )}
-                </>
-              )}
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-1">
+                {teacher.teacher_subjects && teacher.teacher_subjects.length > 0 ? (
+                  <>
+                    {teacher.teacher_subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {subject.subject_name}
+                      </Badge>
+                    ))}
+                    {!isExpanded && teacher.teacher_subjects.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{teacher.teacher_subjects.length - 3} more
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {teacher.subjects.slice(0, isExpanded ? undefined : 3).map((subject, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {subject}
+                      </Badge>
+                    ))}
+                    {!isExpanded && teacher.subjects.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{teacher.subjects.length - 3} more
+                      </Badge>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-4 text-center">
@@ -229,33 +229,33 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
                 )}
 
                 {/* Subjects */}
-                {((displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0) || 
+                {((displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0) ||
                   (displayTeacher.subjects && displayTeacher.subjects.length > 0)) && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
-                      <BookOpen className="h-4 w-4 mr-1" />
-                      Subjects Taught
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0 ? (
-                        displayTeacher.teacher_subjects.map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {subject.subject_name}
-                            {subject.proficiency_level && (
-                              <span className="ml-1 text-gray-500">({subject.proficiency_level})</span>
-                            )}
-                          </Badge>
-                        ))
-                      ) : (
-                        displayTeacher.subjects?.map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))
-                      )}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                        <BookOpen className="h-4 w-4 mr-1" />
+                        Subjects Taught
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {displayTeacher.teacher_subjects && displayTeacher.teacher_subjects.length > 0 ? (
+                          displayTeacher.teacher_subjects.map((subject, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {subject.subject_name}
+                              {subject.proficiency_level && (
+                                <span className="ml-1 text-gray-500">({subject.proficiency_level})</span>
+                              )}
+                            </Badge>
+                          ))
+                        ) : (
+                          displayTeacher.subjects?.map((subject, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {subject}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Teaching Philosophy */}
                 {displayTeacher.teaching_philosophy && (
@@ -404,8 +404,8 @@ const TeacherBrowse: React.FC = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [subjects, setSubjects] = useState<Array<{id: string, name: string, category: string}>>([]);
-  
+  const [subjects, setSubjects] = useState<Array<{ id: string, name: string, category: string }>>([]);
+
   // Session request state
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<TeacherProfile | null>(null);
@@ -544,7 +544,7 @@ const TeacherBrowse: React.FC = () => {
       setRequestTime('');
       setRequestDuration('1');
       setSelectedTeacher(null);
-      
+
       toast.success('Session request sent successfully!');
     } catch (error: any) {
       console.error('Error sending request:', error);
@@ -926,7 +926,7 @@ const TeacherBrowse: React.FC = () => {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Sending this request will cost <strong>10 tokens</strong>. 
+                Sending this request will cost <strong>10 tokens</strong>.
                 Tokens will be refunded if the teacher declines your request.
               </AlertDescription>
             </Alert>

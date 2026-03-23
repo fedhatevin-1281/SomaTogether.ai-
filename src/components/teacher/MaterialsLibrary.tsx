@@ -737,7 +737,7 @@ export function MaterialsLibrary({ onBack, mode = 'teacher' }: MaterialsLibraryP
           )}
 
           {/* Debug Information - Remove this after fixing upload */}
-          <UploadDebug />
+          {isTeacher && <UploadDebug />}
         </div>
       </div>
 

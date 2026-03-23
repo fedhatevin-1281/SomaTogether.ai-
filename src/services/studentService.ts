@@ -266,6 +266,24 @@ export class StudentService {
   }
 
   /**
+   * Mark a notification as read
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get upcoming sessions for a student
    */
   static async getUpcomingSessions(studentId: string, limit: number = 5): Promise<StudentSession[]> {
