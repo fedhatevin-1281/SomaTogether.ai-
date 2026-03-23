@@ -342,7 +342,7 @@ class ParentService {
 
       return {
         child_id: childId,
-        child_name: childData.profiles.full_name,
+        child_name: (childData.profiles as any).full_name || (childData.profiles as any)[0]?.full_name || 'Unknown',
         overall_progress: Math.round((completedSessions.length / Math.max(totalSessions, 1)) * 100),
         total_sessions: totalSessions,
         completed_sessions: completedSessions.length,
@@ -479,7 +479,7 @@ class ParentService {
       const activities: ChildActivity[] = [];
 
       // Process assignments
-      (assignmentsData || []).forEach(assignment => {
+      (assignmentsData || []).forEach((assignment: any) => {
         activities.push({
           id: assignment.id,
           type: 'assignment',
@@ -494,7 +494,7 @@ class ParentService {
       });
 
       // Process sessions
-      (sessionsData || []).forEach(session => {
+      (sessionsData || []).forEach((session: any) => {
         activities.push({
           id: session.id,
           type: 'session',
@@ -556,7 +556,7 @@ class ParentService {
         return [];
       }
 
-      return (data || []).map(session => ({
+      return (data || []).map((session: any) => ({
         id: session.id,
         child_name: 'Child', // We'll get this from context
         teacher_name: session.classes.teachers.profiles.full_name,
@@ -677,18 +677,7 @@ class ParentService {
       }
 
       // Get recent messages (mock for now)
-      const recentMessages = [
-        {
-          from: 'Dr. Sarah Johnson',
-          message: 'Your child is doing excellent work in mathematics!',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          from: 'Ms. Rodriguez',
-          message: 'Assignment submitted early - great job!',
-          timestamp: new Date(Date.now() - 7200000).toISOString()
-        }
-      ];
+      const recentMessages: any[] = [];
 
       return {
         children,
@@ -970,6 +959,15 @@ class ParentService {
       studyHours: string;
       reportsGenerated: number;
     };
+    learningAnalytics: {
+      studyPatterns: {
+        mostProductiveTime: string;
+        averageSessionLength: string;
+        preferredStyle: string;
+      };
+      strengths: string[];
+      areasForImprovement: string[];
+    };
   }> {
     try {
       const children = await this.getChildren(parentId);
@@ -984,6 +982,15 @@ class ParentService {
             sessionsAttended: '0/0',
             studyHours: '0h',
             reportsGenerated: 0,
+          },
+          learningAnalytics: {
+            studyPatterns: {
+              mostProductiveTime: 'N/A',
+              averageSessionLength: '0 hours',
+              preferredStyle: 'Visual & Interactive',
+            },
+            strengths: [],
+            areasForImprovement: [],
           },
         };
       }
@@ -1099,6 +1106,66 @@ class ParentService {
         ? Math.round(((thisMonthSessions.length - lastMonthSessions.length) / lastMonthSessions.length) * 100)
         : 0;
 
+      // Calculate learning analytics
+      // 1. Average Session Length & Most Productive Time
+      let mostProductiveTime = 'N/A';
+      let avgSessionLength = '0 hours';
+      
+      if (completedSessions.length > 0) {
+        // Average length
+        const avgMinutes = Math.round(completedSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) / completedSessions.length);
+        if (avgMinutes >= 60) {
+          const hours = Math.floor(avgMinutes / 60);
+          const mins = avgMinutes % 60;
+          avgSessionLength = mins > 0 ? `${hours}h ${mins}m` : `${hours} hour${hours > 1 ? 's' : ''}`;
+        } else {
+          avgSessionLength = `${avgMinutes} minutes`;
+        }
+
+        // Most Productive Time
+        let morning = 0; // 5AM - 11:59AM
+        let afternoon = 0; // 12PM - 4:59PM
+        let evening = 0; // 5PM - 10PM
+
+        completedSessions.forEach(s => {
+          const hour = new Date(s.scheduled_start).getHours();
+          if (hour >= 5 && hour < 12) morning++;
+          else if (hour >= 12 && hour < 17) afternoon++;
+          else if (hour >= 17 && hour <= 22) evening++;
+        });
+
+        const max = Math.max(morning, afternoon, evening);
+        if (max === morning) mostProductiveTime = 'Morning (8AM - 12PM)';
+        else if (max === afternoon) mostProductiveTime = 'Afternoon (12PM - 5PM)';
+        else if (max === evening) mostProductiveTime = 'Evening (5PM - 8PM)';
+      }
+
+      // 2. Strengths and Areas for Improvement
+      // Sort subjects by their numeric current averages
+      const sortedSubjects = Object.entries(subjectGrades).map(([subject, grades]) => {
+        const avg = grades.current.length > 0
+          ? grades.current.reduce((sum, g) => sum + g, 0) / grades.current.length
+          : 0;
+        return { subject, avg };
+      }).filter(s => s.avg > 0).sort((a, b) => b.avg - a.avg);
+
+      let strengths: string[] = [];
+      let areasForImprovement: string[] = [];
+
+      if (sortedSubjects.length > 0) {
+        // Top 3 subjects are strengths (or just the top half)
+        const topCount = Math.min(3, Math.ceil(sortedSubjects.length / 2));
+        strengths = sortedSubjects.slice(0, topCount).map(s => s.subject);
+        
+        // Bottom subjects (below a certain threshold or just the lowest)
+        areasForImprovement = sortedSubjects.slice(-Math.min(2, Math.floor(sortedSubjects.length / 2))).filter(s => s.avg < 80).map(s => s.subject);
+
+        // Fallback if no specific areas are found but we have subjects
+        if (areasForImprovement.length === 0 && sortedSubjects.length > topCount) {
+           areasForImprovement = [sortedSubjects[sortedSubjects.length - 1].subject];
+        }
+      }
+
       return {
         reports,
         performanceData: performanceData.slice(0, 5), // Top 5 subjects
@@ -1108,6 +1175,15 @@ class ParentService {
           studyHours: `${Math.round(studyHours)}h`,
           reportsGenerated: reports.length,
         },
+        learningAnalytics: {
+          studyPatterns: {
+            mostProductiveTime,
+            averageSessionLength: avgSessionLength,
+            preferredStyle: 'Visual & Interactive',
+          },
+          strengths,
+          areasForImprovement,
+        }
       };
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -1119,6 +1195,15 @@ class ParentService {
           sessionsAttended: '0/0',
           studyHours: '0h',
           reportsGenerated: 0,
+        },
+        learningAnalytics: {
+          studyPatterns: {
+            mostProductiveTime: 'N/A',
+            averageSessionLength: '0 hours',
+            preferredStyle: 'Visual & Interactive',
+          },
+          strengths: [],
+          areasForImprovement: [],
         },
       };
     }

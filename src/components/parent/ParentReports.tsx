@@ -21,6 +21,15 @@ export function ParentReports({ onBack }: ParentReportsProps) {
     studyHours: '0h',
     reportsGenerated: 0,
   });
+  const [learningAnalytics, setLearningAnalytics] = useState<{
+    studyPatterns: {
+      mostProductiveTime: string;
+      averageSessionLength: string;
+      preferredStyle: string;
+    };
+    strengths: string[];
+    areasForImprovement: string[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +42,9 @@ export function ParentReports({ onBack }: ParentReportsProps) {
         setReports(data.reports);
         setPerformanceData(data.performanceData);
         setStats(data.stats);
+        if (data.learningAnalytics) {
+          setLearningAnalytics(data.learningAnalytics);
+        }
       } catch (error) {
         console.error('Error loading reports:', error);
       } finally {
@@ -199,47 +211,63 @@ export function ParentReports({ onBack }: ParentReportsProps) {
       </div>
 
       {/* Detailed Analytics */}
-      <Card className="p-6">
-        <h3 className="font-bold text-lg mb-6">Learning Analytics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h4 className="font-medium mb-4">Study Patterns</h4>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Most Productive Time</span>
-                <span className="font-medium">3-5 PM</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Average Session Length</span>
-                <span className="font-medium">1.5 hours</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Preferred Learning Style</span>
-                <span className="font-medium">Visual</span>
+      {learningAnalytics && (
+        <Card className="p-6">
+          <h3 className="font-bold text-lg mb-6">Learning Analytics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h4 className="font-medium mb-4">Study Patterns</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Most Productive Time</span>
+                  <span className="font-medium">{learningAnalytics.studyPatterns.mostProductiveTime}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Average Session Length</span>
+                  <span className="font-medium">{learningAnalytics.studyPatterns.averageSessionLength}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Preferred Learning Style</span>
+                  <span className="font-medium">{learningAnalytics.studyPatterns.preferredStyle}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            <h4 className="font-medium mb-4">Strengths</h4>
-            <div className="space-y-2">
-              <Badge className="bg-green-100 text-green-800">Problem Solving</Badge>
-              <Badge className="bg-blue-100 text-blue-800">Mathematical Reasoning</Badge>
-              <Badge className="bg-purple-100 text-purple-800">Critical Thinking</Badge>
-              <Badge className="bg-orange-100 text-orange-800">Essay Writing</Badge>
+            <div>
+              <h4 className="font-medium mb-4">Strengths</h4>
+              {learningAnalytics.strengths.length > 0 ? (
+                <div className="space-y-2 flex flex-wrap gap-2">
+                  {learningAnalytics.strengths.map((str, idx) => {
+                    const colors = [
+                      "bg-green-100 text-green-800",
+                      "bg-blue-100 text-blue-800",
+                      "bg-purple-100 text-purple-800"
+                    ];
+                    return (
+                      <Badge key={idx} className={colors[idx % colors.length]}>{str}</Badge>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Need more data to determine strengths.</p>
+              )}
             </div>
-          </div>
 
-          <div>
-            <h4 className="font-medium mb-4">Areas for Improvement</h4>
-            <div className="space-y-2">
-              <Badge variant="outline">Physics Lab Work</Badge>
-              <Badge variant="outline">Time Management</Badge>
-              <Badge variant="outline">Study Consistency</Badge>
+            <div>
+              <h4 className="font-medium mb-4">Areas for Improvement</h4>
+              {learningAnalytics.areasForImprovement.length > 0 ? (
+                <div className="space-y-2 flex flex-wrap gap-2">
+                  {learningAnalytics.areasForImprovement.map((area, idx) => (
+                    <Badge key={idx} variant="outline">{area}</Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No pressing areas identified yet.</p>
+              )}
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

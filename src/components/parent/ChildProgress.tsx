@@ -168,80 +168,6 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
           </Button>
         </Card>
 
-        {/* Add Child Dialog */}
-        <Dialog open={showAddChildDialog} onOpenChange={setShowAddChildDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Child</DialogTitle>
-              <DialogDescription>
-                Add a child to your account. If the child already has an account, they will be linked. Otherwise, a new account will be created.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              {addChildError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{addChildError}</AlertDescription>
-                </Alert>
-              )}
-
-              <div>
-                <Label htmlFor="childName">Child's Name *</Label>
-                <Input
-                  id="childName"
-                  value={childName}
-                  onChange={(e) => setChildName(e.target.value)}
-                  placeholder="Enter child's full name"
-                  disabled={addingChild}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="childEmail">Child's Email *</Label>
-                <Input
-                  id="childEmail"
-                  type="email"
-                  value={childEmail}
-                  onChange={(e) => setChildEmail(e.target.value)}
-                  placeholder="Enter child's email address"
-                  disabled={addingChild}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  If the child already has an account, they will be linked. Otherwise, a new account will be created.
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddChildDialog(false);
-                  setChildName('');
-                  setChildEmail('');
-                  setAddChildError(null);
-                }}
-                disabled={addingChild}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddChild} disabled={addingChild}>
-                {addingChild ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Child
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
@@ -453,109 +379,97 @@ export function ChildProgress({ onBack }: ChildProgressProps) {
         </div>
       )}
 
-      {/* Add Child Dialog */}
-      {showAddChildDialog && createPortal(
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-          onClick={(e) => {
-            // Close when clicking the backdrop
-            if (e.target === e.currentTarget && !addingChild) {
-              setShowAddChildDialog(false);
+      {/* Add Child Dialog (Unified) */}
+      <Dialog 
+        open={showAddChildDialog} 
+        onOpenChange={(open) => {
+          if (!addingChild) {
+            setShowAddChildDialog(open);
+            if (!open) {
               setChildName('');
               setChildEmail('');
               setAddChildError(null);
             }
+          }
+        }}
+      >
+        <DialogContent 
+          className="sm:max-w-md"
+          onInteractOutside={(e) => {
+            if (addingChild) e.preventDefault();
           }}
         >
-          <div 
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-bold">Add Child</h2>
-                <button
-                  onClick={() => {
-                    setShowAddChildDialog(false);
-                    setChildName('');
-                    setChildEmail('');
-                    setAddChildError(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={addingChild}
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Add a child to your account. If the child already has an account, they will be linked. Otherwise, a new account will be created.
+          <DialogHeader>
+            <DialogTitle>Add Child</DialogTitle>
+            <DialogDescription>
+              Add a child to your account. If the child already has an account, they will be linked. Otherwise, a new account will be created.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {addChildError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{addChildError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div>
+              <Label htmlFor="childName">Child's Name *</Label>
+              <Input
+                id="childName"
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                placeholder="Enter child's full name"
+                disabled={addingChild}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="childEmail">Child's Email *</Label>
+              <Input
+                id="childEmail"
+                type="email"
+                value={childEmail}
+                onChange={(e) => setChildEmail(e.target.value)}
+                placeholder="Enter child's email address"
+                disabled={addingChild}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                If the child already has an account, they will be linked. Otherwise, a new account will be created.
               </p>
-
-              {addChildError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{addChildError}</AlertDescription>
-                </Alert>
-              )}
-
-              <div>
-                <Label htmlFor="childName">Child's Name *</Label>
-                <Input
-                  id="childName"
-                  value={childName}
-                  onChange={(e) => setChildName(e.target.value)}
-                  placeholder="Enter child's full name"
-                  disabled={addingChild}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="childEmail">Child's Email *</Label>
-                <Input
-                  id="childEmail"
-                  type="email"
-                  value={childEmail}
-                  onChange={(e) => setChildEmail(e.target.value)}
-                  placeholder="Enter child's email address"
-                  disabled={addingChild}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  If the child already has an account, they will be linked. Otherwise, a new account will be created.
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowAddChildDialog(false);
-                    setChildName('');
-                    setChildEmail('');
-                    setAddChildError(null);
-                  }}
-                  disabled={addingChild}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleAddChild} disabled={addingChild}>
-                  {addingChild ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Child
-                    </>
-                  )}
-                </Button>
-              </div>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddChildDialog(false);
+                setChildName('');
+                setChildEmail('');
+                setAddChildError(null);
+              }}
+              disabled={addingChild}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddChild} disabled={addingChild || !childName.trim() || !childEmail.trim()}>
+              {addingChild ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Child
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

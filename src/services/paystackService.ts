@@ -406,7 +406,7 @@ export class PaystackService {
       'NGN': 1500, // Nigerian Naira
       'GHS': 12,   // Ghanaian Cedi
       'ZAR': 18,   // South African Rand
-      'KES': 150,  // Kenyan Shilling
+      'KES': 129.50, // Kenyan Shilling
       'USD': 1     // US Dollar
     };
 

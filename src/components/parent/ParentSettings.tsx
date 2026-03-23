@@ -60,45 +60,8 @@ export function ParentSettings() {
   const [children, setChildren] = useState<ChildData[]>([]);
   const [showAddChildDialog, setShowAddChildDialog] = useState(false);
   const [addingChild, setAddingChild] = useState(false);
-  const isOpeningRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  
-  // Debug: Log dialog state changes
-  useEffect(() => {
-    console.log('Dialog state is now:', showAddChildDialog);
-  }, [showAddChildDialog]);
-  
-  // Handler for dialog open change
-  const handleDialogOpenChange = useCallback((open: boolean) => {
-    console.log('Dialog onOpenChange called with:', open, 'isOpeningRef:', isOpeningRef.current, 'current state:', showAddChildDialog, 'addingChild:', addingChild);
-    
-    // If trying to close
-    if (!open) {
-      // If we just opened and ref is still true, ignore the close and reset the ref
-      if (isOpeningRef.current) {
-        console.log('Ignoring immediate close after opening - isOpeningRef is still true');
-        // Reset the ref now since we've caught the immediate close attempt
-        setTimeout(() => {
-          isOpeningRef.current = false;
-          console.log('Reset isOpeningRef to false (after preventing close)');
-        }, 500);
-        return;
-      }
-      // If we're adding, prevent closing
-      if (addingChild) {
-        console.log('Preventing close - currently adding child');
-        return;
-      }
-      // Otherwise, allow closing
-      console.log('Allowing dialog to close');
-      setShowAddChildDialog(false);
-      setAddChildError(null);
-      setAddChildSuccess(false);
-      setNewChildData({ name: '', email: '' });
-    }
-    // Note: We don't handle the open=true case here because we control that via button click
-  }, [showAddChildDialog, addingChild]);
   const [addChildError, setAddChildError] = useState<string | null>(null);
   const [addChildSuccess, setAddChildSuccess] = useState(false);
   const [newChildData, setNewChildData] = useState({
@@ -434,26 +397,11 @@ export function ParentSettings() {
             type="button"
             variant="outline" 
             className="text-purple-600 border-purple-200"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Add Child button clicked, setting dialog to true');
-              // Set ref to true BEFORE any state updates
-              isOpeningRef.current = true;
-              console.log('isOpeningRef set to:', isOpeningRef.current);
-              // Set state immediately
+            onClick={() => {
               setShowAddChildDialog(true);
               setAddChildError(null);
               setAddChildSuccess(false);
               setNewChildData({ name: '', email: '' });
-              console.log('Dialog state should now be true');
-              // Reset ref after a longer delay to ensure onOpenChange has time to check it
-              setTimeout(() => {
-                if (isOpeningRef.current) {
-                  isOpeningRef.current = false;
-                  console.log('Reset isOpeningRef to false (timeout)');
-                }
-              }, 2000);
             }}
           >
             <UserPlus className="w-4 h-4 mr-2" />
@@ -525,23 +473,20 @@ export function ParentSettings() {
       <Dialog 
         open={showAddChildDialog} 
         onOpenChange={(open) => {
-          // Only handle closing, not opening (opening is controlled by button)
-          if (!open) {
-            handleDialogOpenChange(open);
+          if (!addingChild) {
+            setShowAddChildDialog(open);
+            if (!open) {
+              setAddChildError(null);
+              setAddChildSuccess(false);
+              setNewChildData({ name: '', email: '' });
+            }
           }
         }}
       >
         <DialogContent 
           className="sm:max-w-[500px]"
-          onEscapeKeyDown={(e) => {
-            if (addingChild || isOpeningRef.current) {
-              e.preventDefault();
-            }
-          }}
-          onPointerDownOutside={(e) => {
-            if (addingChild || isOpeningRef.current) {
-              e.preventDefault();
-            }
+          onInteractOutside={(e) => {
+            if (addingChild) e.preventDefault();
           }}
         >
           <DialogHeader>

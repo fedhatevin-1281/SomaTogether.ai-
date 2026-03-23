@@ -156,9 +156,9 @@ function AppContent() {
       );
     }
 
-    // Prevent accessing teacher/parent onboarding after logging in as student
+    // Prevent accessing parent onboarding after logging in as student
     if (isLoggedIn && currentRole === 'student') {
-      if (currentScreen === 'teacher-onboarding' || currentScreen === 'parent-onboarding') {
+      if (currentScreen === 'parent-onboarding') {
         return (
           <div className="text-center p-6">
             <h2>You are already logged in as a student.</h2>
