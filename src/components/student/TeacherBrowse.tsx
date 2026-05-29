@@ -531,27 +531,35 @@ const TeacherBrowse: React.FC = () => {
       teacherId: selectedTeacher?.id,
       requestDate,
       requestTime,
-      requestDuration
+      requestDuration,
+      requestMessage
     });
     
     if (!user?.id || !selectedTeacher) {
-      console.warn('[TeacherBrowse] Missing user or teacher', { user: !!user?.id, teacher: !!selectedTeacher });
+      console.warn('[TeacherBrowse] Missing user or teacher profile');
       return;
     }
 
     try {
+      console.log('[TeacherBrowse] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
-      console.log('[TeacherBrowse] Validating fields...');
 
       // Validate required fields
       if (!requestDate || !requestTime || !requestDuration) {
+        console.warn('[TeacherBrowse] Validation failed - missing required fields');
         throw new Error('Please fill in all required fields.');
       }
 
       // Create date objects
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + (parseFloat(requestDuration) * 60 * 60 * 1000));
+
+      console.log('[TeacherBrowse] Validation successful. Parsed times:', {
+        requestedStart: requestedStart.toISOString(),
+        requestedEnd: requestedEnd.toISOString(),
+        duration: requestDuration
+      });
 
       const requestData: CreateSessionRequestData = {
         teacher_id: selectedTeacher.id,
@@ -561,7 +569,14 @@ const TeacherBrowse: React.FC = () => {
         message: requestMessage || undefined,
       };
 
-      await SessionRequestService.createSessionRequest(user.id, requestData);
+      console.log('[TeacherBrowse] Calling SessionRequestService.createSessionRequest...', {
+        studentId: user.id,
+        requestData
+      });
+
+      const response = await SessionRequestService.createSessionRequest(user.id, requestData);
+
+      console.log('[TeacherBrowse] API response success:', response);
 
       setRequestSuccess('Request sent successfully! The teacher will be notified.');
       setRequestDialogOpen(false);
@@ -574,14 +589,19 @@ const TeacherBrowse: React.FC = () => {
       // Update tokens locally
       if (studentTokens !== null) {
         setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+        console.log('[TeacherBrowse] Updated local token count');
       }
 
       toast.success('Session request sent successfully!');
-    } catch (error: any) {
-      console.error('Error sending request:', error);
-      setError(error.message || 'Failed to send request. Please try again.');
-      toast.error(error.message || 'Failed to send request');
+    } catch (err: any) {
+      console.error('[TeacherBrowse] API response failure/exception caught:', err);
+      if (err.stack) {
+        console.error('[TeacherBrowse] Error stack:', err.stack);
+      }
+      setError(err.message || 'Failed to send request. Please try again.');
+      toast.error(err.message || 'Failed to send request');
     } finally {
+      console.log('[TeacherBrowse] Finally block reached - resetting sendingRequest loading state');
       setSendingRequest(false);
     }
   };

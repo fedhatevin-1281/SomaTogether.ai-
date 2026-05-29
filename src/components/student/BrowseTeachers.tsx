@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { SessionRequestService, TeacherProfile, CreateSessionRequestData } from '../../services/sessionRequestService';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -91,6 +92,15 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
   });
 
   const handleSendRequest = async () => {
+    console.log('[BrowseTeachers] handleSendRequest triggered', {
+      userId: user?.id,
+      teacherId: selectedTeacher?.id,
+      requestDate,
+      requestTime,
+      requestDuration,
+      requestMessage
+    });
+
     if (!selectedTeacher || !user?.id) {
       console.warn('[BrowseTeachers] Cannot send request - missing teacher or user', {
         hasTeacher: !!selectedTeacher,
@@ -100,16 +110,9 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
     }
 
     try {
+      console.log('[BrowseTeachers] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
-
-      console.log('[BrowseTeachers] Sending request', {
-        teacherId: selectedTeacher.id,
-        studentId: user.id,
-        requestDate,
-        requestTime,
-        requestDuration,
-      });
 
       // Validate form
       if (!requestDate || !requestTime || !requestDuration) {
@@ -126,7 +129,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + parseInt(requestDuration) * 60 * 60 * 1000);
 
-      console.log('[BrowseTeachers] Parsed request times', {
+      console.log('[BrowseTeachers] Parsed request times:', {
         requestedStart: requestedStart.toISOString(),
         requestedEnd: requestedEnd.toISOString(),
         durationHours: requestDuration,
@@ -149,16 +152,17 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
         message: requestMessage || undefined,
       };
 
-      console.log('[BrowseTeachers] Calling SessionRequestService.createSessionRequest', {
+      console.log('[BrowseTeachers] Calling SessionRequestService.createSessionRequest...', {
         studentId: user.id,
         requestData,
       });
 
-      await SessionRequestService.createSessionRequest(user.id, requestData);
+      const response = await SessionRequestService.createSessionRequest(user.id, requestData);
 
-      console.log('[BrowseTeachers] Request sent successfully');
+      console.log('[BrowseTeachers] API response success:', response);
 
       setRequestSuccess('Request sent successfully! The teacher will be notified.');
+      toast.success('Session request sent successfully!');
       setRequestDialogOpen(false);
       setRequestMessage('');
       setRequestDate('');
@@ -169,17 +173,23 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       // Update tokens locally
       if (studentTokens !== null) {
         setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+        console.log('[BrowseTeachers] Updated local token count');
       }
-    } catch (error: any) {
-      console.error('[BrowseTeachers] Error sending request:', error);
+    } catch (err: any) {
+      console.error('[BrowseTeachers] Error sending request:', err);
       console.error('[BrowseTeachers] Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
+        message: err.message,
+        code: err.code,
+        details: err.details,
+        hint: err.hint,
       });
-      setError(error.message || 'Failed to send request. Please try again.');
+      if (err.stack) {
+        console.error('[BrowseTeachers] Error stack:', err.stack);
+      }
+      setError(err.message || 'Failed to send request. Please try again.');
+      toast.error(err.message || 'Failed to send request');
     } finally {
+      console.log('[BrowseTeachers] Finally block reached - resetting sendingRequest loading state');
       setSendingRequest(false);
     }
   };

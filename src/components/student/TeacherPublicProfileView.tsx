@@ -97,20 +97,40 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
   };
 
   const handleSendRequestSubmit = async () => {
-    if (!user?.id || !teacher) return;
+    console.log('[TeacherPublicProfileView] handleSendRequestSubmit triggered', {
+      userId: user?.id,
+      teacherId: teacher?.id,
+      requestDate,
+      requestTime,
+      requestDuration,
+      requestMessage
+    });
+
+    if (!user?.id || !teacher) {
+      console.warn('[TeacherPublicProfileView] Missing user or teacher profile');
+      return;
+    }
 
     try {
+      console.log('[TeacherPublicProfileView] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
 
       // Validate required fields
       if (!requestDate || !requestTime || !requestDuration) {
+        console.warn('[TeacherPublicProfileView] Validation failed - missing required fields');
         throw new Error('Please fill in all required fields.');
       }
 
       // Create date objects
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + (parseFloat(requestDuration) * 60 * 60 * 1000));
+
+      console.log('[TeacherPublicProfileView] Validation successful. Parsed times:', {
+        requestedStart: requestedStart.toISOString(),
+        requestedEnd: requestedEnd.toISOString(),
+        duration: requestDuration
+      });
 
       const requestData: CreateSessionRequestData = {
         teacher_id: teacher.id,
@@ -120,7 +140,14 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
         message: requestMessage || undefined,
       };
 
-      await SessionRequestService.createSessionRequest(user.id, requestData);
+      console.log('[TeacherPublicProfileView] Calling SessionRequestService.createSessionRequest...', {
+        studentId: user.id,
+        requestData
+      });
+
+      const response = await SessionRequestService.createSessionRequest(user.id, requestData);
+
+      console.log('[TeacherPublicProfileView] API response success:', response);
 
       setRequestDialogOpen(false);
       setRequestSuccess(true);
@@ -129,16 +156,22 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
       // Refresh tokens after request
       if (studentTokens !== null) {
         setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+        console.log('[TeacherPublicProfileView] Updated local token count');
       }
       
       if (onSendRequest) {
+        console.log('[TeacherPublicProfileView] Triggering onSendRequest callback');
         onSendRequest(teacher);
       }
-    } catch (error: any) {
-      console.error('Error sending request:', error);
-      setError(error.message || 'Failed to send request. Please try again.');
-      toast.error(error.message || 'Failed to send request');
+    } catch (err: any) {
+      console.error('[TeacherPublicProfileView] API response failure/exception caught:', err);
+      if (err.stack) {
+        console.error('[TeacherPublicProfileView] Error stack:', err.stack);
+      }
+      setError(err.message || 'Failed to send request. Please try again.');
+      toast.error(err.message || 'Failed to send request');
     } finally {
+      console.log('[TeacherPublicProfileView] Finally block reached - resetting sendingRequest loading state');
       setSendingRequest(false);
     }
   };
