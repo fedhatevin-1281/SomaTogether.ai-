@@ -71,22 +71,26 @@ export function TeacherVerification({ onBack }: TeacherVerificationProps) {
   const handleApproveClick = (teacher: TeacherVerificationType, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
-      e.stopPropagation();
+      // Removed stopPropagation as it can break Radix UI portal events
     }
     console.log('Approve clicked for teacher:', teacher.id);
     setSelectedTeacher(teacher);
     setApproveDialogOpen(true);
+    // Explicitly set processing to false to ensure button is definitely clickable
+    setProcessing(false);
+    setSuccessMessage(null);
   };
 
   const handleRejectClick = (teacher: TeacherVerificationType, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
-      e.stopPropagation();
     }
     console.log('Reject clicked for teacher:', teacher.id);
     setSelectedTeacher(teacher);
     setRejectionReason('');
     setRejectDialogOpen(true);
+    setProcessing(false);
+    setSuccessMessage(null);
   };
 
   const handleApprove = async () => {
@@ -277,7 +281,6 @@ export function TeacherVerification({ onBack }: TeacherVerificationProps) {
                       className="w-full"
                       onClick={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
                         handleReviewDocuments(teacher, e);
                       }}
                     >
@@ -289,7 +292,6 @@ export function TeacherVerification({ onBack }: TeacherVerificationProps) {
                         className="flex-1 bg-green-500 hover:bg-green-600"
                         onClick={(e) => {
                           e.preventDefault();
-                          e.stopPropagation();
                           handleApproveClick(teacher, e);
                         }}
                       >
@@ -301,7 +303,6 @@ export function TeacherVerification({ onBack }: TeacherVerificationProps) {
                         className="flex-1"
                         onClick={(e) => {
                           e.preventDefault();
-                          e.stopPropagation();
                           handleRejectClick(teacher, e);
                         }}
                       >

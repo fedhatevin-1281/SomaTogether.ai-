@@ -249,7 +249,7 @@ export class TeacherService {
         .from('students')
         .select(`
           id,
-          profiles(id, full_name, avatar_url)
+          profiles!students_id_fkey(id, full_name, avatar_url)
         `)
         .in('id', studentIds);
 
@@ -320,7 +320,7 @@ export class TeacherService {
               learning_style,
               education_system_id,
               education_level_id,
-              profiles!students_profile_id_fkey(id, full_name, avatar_url, email, bio, date_of_birth, location, timezone)
+              profiles!students_id_fkey(id, full_name, avatar_url, email, bio, date_of_birth, location, timezone)
             ),
             subjects(id, name, category, description)
           `)
@@ -504,7 +504,7 @@ export class TeacherService {
         .from('students')
         .select(`
           id,
-          profiles(id, full_name)
+          profiles!students_id_fkey(id, full_name)
         `)
         .in('id', studentIds);
 
@@ -632,7 +632,7 @@ export class TeacherService {
           classes!inner(
             subjects(id, name),
             students!inner(
-              profiles!inner(full_name)
+              profiles!students_id_fkey!inner(full_name)
             )
           )
         `)
@@ -646,7 +646,7 @@ export class TeacherService {
         .select(`
           *,
           students!inner(
-            profiles!inner(full_name)
+            profiles!students_id_fkey!inner(full_name)
           ),
           classes!inner(
             subjects(id, name)

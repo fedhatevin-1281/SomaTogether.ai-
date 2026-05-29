@@ -204,7 +204,7 @@ class MessagingService {
         .from('messages')
         .select(`
           *,
-          sender:profiles(*)
+          sender:profiles!messages_sender_id_fkey(*)
         `)
         .eq('conversation_id', conversationId)
         .eq('is_deleted', false)
@@ -245,7 +245,7 @@ class MessagingService {
         })
         .select(`
           *,
-          sender:profiles(*),
+          sender:profiles!messages_sender_id_fkey(*),
           reply_to:messages(*),
           read_by:message_reads(*)
         `)
@@ -328,7 +328,7 @@ class MessagingService {
         .eq('id', messageId)
         .select(`
           *,
-          sender:profiles(*),
+          sender:profiles!messages_sender_id_fkey(*),
           reply_to:messages(*),
           read_by:message_reads(*)
         `)
@@ -355,7 +355,7 @@ class MessagingService {
         .from('messages')
         .select(`
           *,
-          sender:profiles(*)
+          sender:profiles!messages_sender_id_fkey(*)
         `)
         .eq('conversation_id', conversationId)
         .eq('is_deleted', false)
@@ -441,7 +441,7 @@ class MessagingService {
             .from('messages')
             .select(`
               *,
-              sender:profiles(*),
+              sender:profiles!messages_sender_id_fkey(*),
               reply_to:messages(*),
               read_by:message_reads(*)
             `)
@@ -470,7 +470,7 @@ class MessagingService {
               .from('messages')
               .select(`
                 *,
-                sender:profiles(*),
+                sender:profiles!messages_sender_id_fkey(*),
                 reply_to:messages(*),
                 read_by:message_reads(*)
               `)

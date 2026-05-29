@@ -19,7 +19,8 @@ import {
   Globe,
   ArrowLeft,
   Send,
-  User
+  User,
+  Info
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Label } from '../ui/label';
@@ -50,6 +51,8 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
   const [requestDuration, setRequestDuration] = useState('1');
   const [requestMessage, setRequestMessage] = useState('');
   const [sendingRequest, setSendingRequest] = useState(false);
+  const [studentTokens, setStudentTokens] = useState<number | null>(null);
+  const [requestSuccess, setRequestSuccess] = useState(false);
 
   useEffect(() => {
     loadTeacherProfile();
@@ -59,8 +62,22 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
     try {
       setLoading(true);
       setError(null);
+      
+      // Load teacher profile
       const profile = await SessionRequestService.getTeacherProfile(teacherId);
       setTeacher(profile);
+
+      // Load student tokens if user is logged in
+      if (user?.id) {
+        try {
+          const studentProfile = await SessionRequestService.getStudentProfile(user.id);
+          if (studentProfile) {
+            setStudentTokens(studentProfile.tokens);
+          }
+        } catch (tokenErr) {
+          console.warn('Could not load student tokens:', tokenErr);
+        }
+      }
     } catch (err) {
       console.error('Error loading teacher profile:', err);
       setError('Failed to load teacher profile');
@@ -88,8 +105,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
 
       // Validate required fields
       if (!requestDate || !requestTime || !requestDuration) {
-        setError('Please fill in all required fields.');
-        return;
+        throw new Error('Please fill in all required fields.');
       }
 
       // Create date objects
@@ -107,7 +123,13 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
       await SessionRequestService.createSessionRequest(user.id, requestData);
 
       setRequestDialogOpen(false);
+      setRequestSuccess(true);
       toast.success('Session request sent successfully!');
+      
+      // Refresh tokens after request
+      if (studentTokens !== null) {
+        setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+      }
       
       if (onSendRequest) {
         onSendRequest(teacher);
@@ -171,21 +193,38 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Teachers
         </Button>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Message
-          </Button>
-          <Button 
-            onClick={handleSendRequest}
-            disabled={!isAvailable}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Send request
-          </Button>
+        <div className="flex items-center space-x-4">
+          {studentTokens !== null && (
+            <Badge variant="secondary" className="px-3 py-1 flex items-center space-x-1">
+              <span className="text-gray-600 font-normal">Your Tokens:</span>
+              <span className="font-bold text-blue-600">{studentTokens}</span>
+            </Badge>
+          )}
+          <div className="flex space-x-3">
+            <Button variant="outline">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Message
+            </Button>
+            <Button 
+              onClick={handleSendRequest}
+              disabled={!isAvailable}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Send request
+            </Button>
+          </div>
         </div>
       </div>
+
+      {requestSuccess && (
+        <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription>
+            Your session request has been sent successfully! You can track its status in your dashboard.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Teacher Info */}
@@ -406,8 +445,13 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
             <DialogTitle>Send Session Request</DialogTitle>
             <DialogDescription>
               Send a request to {teacher.full_name} for a tutoring session.
-              This will cost 10 tokens.
             </DialogDescription>
+            {studentTokens !== null && (
+              <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                <span className="text-xs text-blue-700 uppercase font-bold tracking-wider">Your Balance</span>
+                <span className="text-sm font-bold text-blue-800">{studentTokens} tokens</span>
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4">
@@ -486,11 +530,18 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
             </div>
 
             {/* Token Cost Info */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Sending this request will cost <strong>10 tokens</strong>. 
-                Tokens will be refunded if the teacher declines your request.
+            <Alert className={studentTokens !== null && studentTokens < 10 ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"}>
+              {studentTokens !== null && studentTokens < 10 ? (
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              ) : (
+                <Info className="h-4 w-4 text-blue-600" />
+              )}
+              <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
+                {studentTokens !== null && studentTokens < 10 ? (
+                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                ) : (
+                  <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
+                )}
               </AlertDescription>
             </Alert>
           </div>
@@ -505,7 +556,8 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
             </Button>
             <Button
               onClick={handleSendRequestSubmit}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}
             >
               {sendingRequest ? (
                 <>
@@ -515,7 +567,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Send Request (10 tokens)
+                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>

@@ -416,6 +416,7 @@ const TeacherBrowse: React.FC = () => {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [studentTokens, setStudentTokens] = useState<number | null>(null);
 
   // Load teachers
   const loadTeachers = async (page: number = 1, reset: boolean = false) => {
@@ -468,7 +469,21 @@ const TeacherBrowse: React.FC = () => {
   useEffect(() => {
     loadTeachers(1, true);
     loadSubjects();
+    loadStudentTokens();
   }, []);
+
+  const loadStudentTokens = async () => {
+    if (user?.id) {
+      try {
+        const studentProfile = await SessionRequestService.getStudentProfile(user.id);
+        if (studentProfile) {
+          setStudentTokens(studentProfile.tokens);
+        }
+      } catch (tokenErr) {
+        console.warn('Could not load student tokens:', tokenErr);
+      }
+    }
+  };
 
   // Load more when filters change
   useEffect(() => {
@@ -511,16 +526,27 @@ const TeacherBrowse: React.FC = () => {
   };
 
   const handleSendRequestSubmit = async () => {
-    if (!user?.id || !selectedTeacher) return;
+    console.log('[TeacherBrowse] handleSendRequestSubmit clicked', {
+      userId: user?.id,
+      teacherId: selectedTeacher?.id,
+      requestDate,
+      requestTime,
+      requestDuration
+    });
+    
+    if (!user?.id || !selectedTeacher) {
+      console.warn('[TeacherBrowse] Missing user or teacher', { user: !!user?.id, teacher: !!selectedTeacher });
+      return;
+    }
 
     try {
       setSendingRequest(true);
       setError(null);
+      console.log('[TeacherBrowse] Validating fields...');
 
       // Validate required fields
       if (!requestDate || !requestTime || !requestDuration) {
-        setError('Please fill in all required fields.');
-        return;
+        throw new Error('Please fill in all required fields.');
       }
 
       // Create date objects
@@ -545,6 +571,11 @@ const TeacherBrowse: React.FC = () => {
       setRequestDuration('1');
       setSelectedTeacher(null);
 
+      // Update tokens locally
+      if (studentTokens !== null) {
+        setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+      }
+
       toast.success('Session request sent successfully!');
     } catch (error: any) {
       console.error('Error sending request:', error);
@@ -558,9 +589,17 @@ const TeacherBrowse: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Teacher</h1>
-        <p className="text-gray-600">Discover qualified teachers from around the world</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Teacher</h1>
+          <p className="text-gray-600">Discover qualified teachers from around the world</p>
+        </div>
+        {studentTokens !== null && (
+          <Badge variant="secondary" className="px-3 py-2 flex items-center space-x-1">
+            <span className="text-gray-600 font-normal">Your Tokens:</span>
+            <span className="font-bold text-blue-600">{studentTokens}</span>
+          </Badge>
+        )}
       </div>
 
       {/* Success Message */}
@@ -614,14 +653,14 @@ const TeacherBrowse: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subjects</label>
                 <Select
-                  value={filters.subjects?.[0] || ''}
-                  onValueChange={(value) => updateFilter('subjects', value ? [value] : undefined)}
+                  value={filters.subjects?.[0] || 'all'}
+                  onValueChange={(value) => updateFilter('subjects', value === 'all' ? undefined : [value])}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All subjects" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All subjects</SelectItem>
+                    <SelectItem value="all">All subjects</SelectItem>
                     {subjects.map(subject => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
@@ -635,14 +674,14 @@ const TeacherBrowse: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Min Rating</label>
                 <Select
-                  value={filters.min_rating?.toString() || ''}
-                  onValueChange={(value) => updateFilter('min_rating', value ? parseFloat(value) : undefined)}
+                  value={filters.min_rating?.toString() || 'all'}
+                  onValueChange={(value) => updateFilter('min_rating', value === 'all' ? undefined : parseFloat(value))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Any rating" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any rating</SelectItem>
+                    <SelectItem value="all">Any rating</SelectItem>
                     <SelectItem value="4.5">4.5+ stars</SelectItem>
                     <SelectItem value="4.0">4.0+ stars</SelectItem>
                     <SelectItem value="3.5">3.5+ stars</SelectItem>
@@ -655,14 +694,14 @@ const TeacherBrowse: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Price</label>
                 <Select
-                  value={filters.max_hourly_rate?.toString() || ''}
-                  onValueChange={(value) => updateFilter('max_hourly_rate', value ? parseFloat(value) : undefined)}
+                  value={filters.max_hourly_rate?.toString() || 'all'}
+                  onValueChange={(value) => updateFilter('max_hourly_rate', value === 'all' ? undefined : parseFloat(value))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Any price" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any price</SelectItem>
+                    <SelectItem value="all">Any price</SelectItem>
                     <SelectItem value="20">$20/hr</SelectItem>
                     <SelectItem value="50">$50/hr</SelectItem>
                     <SelectItem value="100">$100/hr</SelectItem>
@@ -831,8 +870,13 @@ const TeacherBrowse: React.FC = () => {
             <DialogTitle>Send Session Request</DialogTitle>
             <DialogDescription>
               Send a request to {selectedTeacher?.full_name} for a tutoring session.
-              This will cost 10 tokens.
             </DialogDescription>
+            {studentTokens !== null && (
+              <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                <span className="text-xs text-blue-700 uppercase font-bold tracking-wider">Your Balance</span>
+                <span className="text-sm font-bold text-blue-800">{studentTokens} tokens</span>
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4">
@@ -923,11 +967,18 @@ const TeacherBrowse: React.FC = () => {
             </div>
 
             {/* Token Cost Info */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Sending this request will cost <strong>10 tokens</strong>.
-                Tokens will be refunded if the teacher declines your request.
+            <Alert className={studentTokens !== null && studentTokens < 10 ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"}>
+              {studentTokens !== null && studentTokens < 10 ? (
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-blue-600" />
+              )}
+              <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
+                {studentTokens !== null && studentTokens < 10 ? (
+                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                ) : (
+                  <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
+                )}
               </AlertDescription>
             </Alert>
           </div>
@@ -942,7 +993,8 @@ const TeacherBrowse: React.FC = () => {
             </Button>
             <Button
               onClick={handleSendRequestSubmit}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700 text-white"}
             >
               {sendingRequest ? (
                 <>
@@ -952,7 +1004,7 @@ const TeacherBrowse: React.FC = () => {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Send Request (10 tokens)
+                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>

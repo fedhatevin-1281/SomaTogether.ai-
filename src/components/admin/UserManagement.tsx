@@ -83,7 +83,6 @@ export function UserManagement({ onBack }: UserManagementProps) {
   const handleSuspendClick = (user: AdminUser, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
-      e.stopPropagation();
     }
     console.log('Suspend button clicked for user:', user);
     setUserToSuspend(user);
@@ -300,7 +299,6 @@ export function UserManagement({ onBack }: UserManagementProps) {
                           size="sm"
                           onClick={(e) => {
                             e.preventDefault();
-                            e.stopPropagation();
                             handleViewUser(user.id);
                           }}
                         >
@@ -312,7 +310,6 @@ export function UserManagement({ onBack }: UserManagementProps) {
                           size="sm"
                           onClick={(e) => {
                             e.preventDefault();
-                            e.stopPropagation();
                             handleSuspendClick(user, e);
                           }}
                         >

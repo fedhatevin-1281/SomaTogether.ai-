@@ -46,10 +46,25 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
   const [requestTime, setRequestTime] = useState('');
   const [requestDuration, setRequestDuration] = useState('1');
   const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
+  const [studentTokens, setStudentTokens] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTeachers();
+    loadStudentTokens();
   }, []);
+
+  const loadStudentTokens = async () => {
+    if (user?.id) {
+      try {
+        const studentProfile = await SessionRequestService.getStudentProfile(user.id);
+        if (studentProfile) {
+          setStudentTokens(studentProfile.tokens);
+        }
+      } catch (tokenErr) {
+        console.warn('Could not load student tokens:', tokenErr);
+      }
+    }
+  };
 
   const fetchTeachers = async () => {
     try {
@@ -150,6 +165,11 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       setRequestTime('');
       setRequestDuration('1');
       setSelectedTeacher(null);
+
+      // Update tokens locally
+      if (studentTokens !== null) {
+        setStudentTokens(prev => (prev !== null ? prev - 10 : null));
+      }
     } catch (error: any) {
       console.error('[BrowseTeachers] Error sending request:', error);
       console.error('[BrowseTeachers] Error details:', {
@@ -202,11 +222,19 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Browse Teachers</h1>
-          <p className="text-gray-600 mt-1">
-            Find and connect with qualified teachers for your learning needs
-          </p>
+        <div className="flex items-center justify-between flex-1">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Browse Teachers</h1>
+            <p className="text-gray-600 mt-1">
+              Find and connect with qualified teachers for your learning needs
+            </p>
+          </div>
+          {studentTokens !== null && (
+            <Badge variant="secondary" className="px-3 py-2 flex items-center space-x-1 ml-4">
+              <span className="text-gray-600 font-normal">Your Tokens:</span>
+              <span className="font-bold text-blue-600">{studentTokens}</span>
+            </Badge>
+          )}
         </div>
         {onBack && (
           <Button variant="outline" onClick={onBack}>
@@ -398,8 +426,13 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
             <DialogTitle>Send Session Request</DialogTitle>
             <DialogDescription>
               Send a request to {selectedTeacher?.full_name} for a tutoring session.
-              This will cost 10 tokens.
             </DialogDescription>
+            {studentTokens !== null && (
+              <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                <span className="text-xs text-blue-700 uppercase font-bold tracking-wider">Your Balance</span>
+                <span className="text-sm font-bold text-blue-800">{studentTokens} tokens</span>
+              </div>
+            )}
           </DialogHeader>
 
           <div className="space-y-4">
@@ -485,12 +518,18 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
             </div>
 
             {/* Token Cost Info */}
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                This will link you to the teacher. The Zoom class will cost <strong>10 tokens</strong>. 
-                Tokens will be deducted after the Zoom class is completed. 
-                You need at least 10 tokens to send this request.
+            <Alert className={studentTokens !== null && studentTokens < 10 ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"}>
+              {studentTokens !== null && studentTokens < 10 ? (
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-blue-600" />
+              )}
+              <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
+                {studentTokens !== null && studentTokens < 10 ? (
+                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                ) : (
+                  <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
+                )}
               </AlertDescription>
             </Alert>
       </div>
@@ -505,7 +544,8 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
             </Button>
             <Button
               onClick={handleSendRequest}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700 text-white"}
             >
               {sendingRequest ? (
                 <>
@@ -515,7 +555,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Send Request (10 tokens)
+                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>

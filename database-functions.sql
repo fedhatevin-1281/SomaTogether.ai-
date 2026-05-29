@@ -505,6 +505,10 @@ CREATE POLICY "Users can view own notifications" ON public.notifications
 CREATE POLICY "Users can update own notifications" ON public.notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
+-- Authenticated users can insert notifications
+CREATE POLICY "Users can insert notifications" ON public.notifications
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
 -- =====================================================
 -- MATERIALS LIBRARY TABLE POLICIES
 -- =====================================================

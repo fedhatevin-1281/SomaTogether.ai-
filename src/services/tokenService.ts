@@ -592,7 +592,7 @@ export class TokenService {
       const { data, error } = await supabase
         .from('withdrawal_requests')
         .select('*')
-        .eq('user_id', userId)
+        .eq('teacher_id', userId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -622,7 +622,7 @@ export class TokenService {
       const { data, error } = await supabase
         .from('withdrawal_requests')
         .insert({
-          user_id: userId,
+          teacher_id: userId,
           wallet_id: walletId,
           payment_method_id: paymentMethodId,
           amount_usd: amountUSD,

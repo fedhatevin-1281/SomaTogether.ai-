@@ -365,7 +365,7 @@ export class SessionRequestService {
           location,
           timezone,
           language,
-          students!inner(
+          students!students_id_fkey!inner(
             grade_level,
             school_name,
             learning_goals,
@@ -463,11 +463,17 @@ export class SessionRequestService {
       // Check if student has enough tokens (will be deducted after Zoom class completion)
       // The "Send request" button just links the student to the teacher - no tokens deducted here
       // Tokens are only deducted after a Zoom class session is completed
-      if (!student || student.tokens < 10) {
-        const message = 'Insufficient tokens. You need at least 10 tokens to send a session request. Tokens will be deducted after the Zoom class is completed.';
+      if (!student) {
+        const message = 'Your student profile was not found. Please complete your onboarding or contact support.';
+        console.error('[createSessionRequest] Student record missing for ID:', studentId);
+        throw new Error(message);
+      }
+
+      if (student.tokens < 10) {
+        const message = `Insufficient tokens. You have ${student.tokens} tokens, but 10 tokens are required to send a session request.`;
         console.warn('[createSessionRequest] Insufficient tokens', {
           studentId,
-          availableTokens: student?.tokens || 0,
+          availableTokens: student.tokens,
           requiredTokens: 10,
         });
         throw new Error(message);
@@ -549,7 +555,7 @@ export class SessionRequestService {
       // Note: Tokens will be deducted after the session is completed, not when the request is sent
 
       // Get teacher profile for notification (teacher_id should be profile ID)
-      const { data: teacherProfile, error: teacherProfileError } = await supabase
+      const { data: teacherProfileData, error: teacherProfileError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('id', requestData.teacher_id)
@@ -562,8 +568,8 @@ export class SessionRequestService {
         });
       }
 
-      const teacherName = teacherProfile?.full_name || 'the teacher';
-      const teacherProfileId = teacherProfile?.id || requestData.teacher_id;
+      const teacherName = teacherProfileData?.full_name || 'the teacher';
+      const teacherProfileId = teacherProfileData?.id || requestData.teacher_id;
 
       console.log('[createSessionRequest] Teacher profile fetched', {
         teacherProfileId,
@@ -866,21 +872,118 @@ export class SessionRequestService {
         teacher_id: request?.teacher_id,
       });
 
-      // Get teacher name for notification message
-      const { data: teacherProfile, error: teacherProfileError } = await supabase
+      // 1. Get the teacher's primary subject
+      console.log('[acceptRequest] Fetching teacher primary subject', { teacher_id: request.teacher_id });
+      const { data: teacherSubject, error: subjectError } = await supabase
+        .from('teacher_subjects')
+        .select('subject_id')
+        .eq('teacher_id', request.teacher_id)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      let subjectId = teacherSubject?.subject_id;
+
+      if (subjectError || !subjectId) {
+        console.log('[acceptRequest] No primary subject found, fetching any subject', { error: subjectError });
+        // Fallback: get any subject the teacher teaches
+        const { data: anySubject } = await supabase
+          .from('teacher_subjects')
+          .select('subject_id')
+          .eq('teacher_id', request.teacher_id)
+          .limit(1)
+          .maybeSingle();
+        
+        subjectId = anySubject?.subject_id;
+      }
+
+      // Get teacher profile for name
+      const { data: teacherProfileResult, error: teacherProfileFetchError } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', request.teacher_id)
         .single();
 
-      if (teacherProfileError) {
-        console.error('[acceptRequest] Failed to fetch teacher profile', {
-          teacher_id: request.teacher_id,
-          error: teacherProfileError,
-        });
-      }
+      const teacherName = teacherProfileResult?.full_name || 'Teacher';
 
-      const teacherName = teacherProfile?.full_name || 'the teacher';
+      if (!subjectId) {
+        console.warn('[acceptRequest] Teacher has no subjects defined. Cannot create class.');
+      } else {
+        console.log('[acceptRequest] Found subject for class', { subjectId });
+        
+        // 2. Check if a class already exists for this student and teacher for this subject
+        const { data: existingClass } = await supabase
+          .from('classes')
+          .select('id')
+          .eq('teacher_id', request.teacher_id)
+          .eq('student_id', request.student_id)
+          .eq('subject_id', subjectId)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        let classId = existingClass?.id;
+
+        if (!classId) {
+          console.log('[acceptRequest] Creating new class');
+          // 3. Create a new class
+          const { data: teacherData } = await supabase
+            .from('teachers')
+            .select('hourly_rate')
+            .eq('id', request.teacher_id)
+            .single();
+
+          const { data: newClass, error: createClassError } = await supabase
+            .from('classes')
+            .insert({
+              teacher_id: request.teacher_id,
+              student_id: request.student_id,
+              subject_id: subjectId,
+              title: `Private Tutoring with ${teacherName}`,
+              hourly_rate: teacherData?.hourly_rate || 0,
+              status: 'active'
+            })
+            .select('id')
+            .single();
+
+          if (createClassError) {
+            console.error('[acceptRequest] Failed to create class', createClassError);
+          } else {
+            classId = newClass.id;
+            console.log('[acceptRequest] Created new class', { classId });
+          }
+        } else {
+          console.log('[acceptRequest] Using existing class', { classId });
+        }
+
+        if (classId) {
+          // 4. Create a class session
+          console.log('[acceptRequest] Creating class session');
+          const { error: sessionError } = await supabase
+            .from('class_sessions')
+            .insert({
+              class_id: classId,
+              teacher_id: request.teacher_id,
+              student_id: request.student_id,
+              title: `Session: ${teacherName}`,
+              scheduled_start: request.requested_start,
+              scheduled_end: request.requested_end,
+              status: 'scheduled',
+              tokens_charged: request.tokens_required || 10
+            });
+
+          if (sessionError) {
+            console.error('[acceptRequest] Failed to create class session', sessionError);
+          } else {
+            console.log('[acceptRequest] Created class session');
+          }
+
+          // 5. Update the request with the class_id
+          await supabase
+            .from('session_requests')
+            .update({ class_id: classId })
+            .eq('id', requestId);
+        }
+      }
 
       console.log('[acceptRequest] Retrieved teacher name', { teacherName });
 

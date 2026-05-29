@@ -330,6 +330,25 @@ export class AssignmentService {
   }
 
   /**
+   * Get all active subjects
+   */
+  static async getSubjects(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Submit an assignment
    */
   static async submitAssignment(submissionData: SubmitAssignmentData): Promise<AssignmentSubmission> {
@@ -485,6 +504,42 @@ export class AssignmentService {
       }));
     } catch (error) {
       console.error('Error fetching student submissions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all submissions for assignments belonging to a teacher
+   */
+  static async getTeacherSubmissions(teacherId: string): Promise<AssignmentSubmission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .select(`
+          *,
+          assignments!inner (
+            id,
+            title,
+            teacher_id,
+            subjects!assignments_subject_id_fkey (id, name)
+          ),
+          students!assignment_submissions_student_id_fkey (
+            id,
+            profiles!students_id_fkey (full_name, avatar_url)
+          )
+        `)
+        .eq('assignments.teacher_id', teacherId)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map(submissionData => ({
+        ...submissionData,
+        assignment: submissionData.assignments,
+        student: submissionData.students?.profiles
+      }));
+    } catch (error) {
+      console.error('Error fetching teacher submissions:', error);
       throw error;
     }
   }
