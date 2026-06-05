@@ -353,9 +353,14 @@ export function MyClasses({ onScreenChange }: MyClassesProps) {
           <Badge className="bg-blue-100 text-blue-800">
             {formatTimeAgo(session.scheduled_start)}
           </Badge>
-          <Button size="sm" variant="outline">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!session.meeting_url}
+            onClick={() => session.meeting_url && window.open(session.meeting_url, '_blank')}
+          >
             <Video className="w-4 h-4 mr-2" />
-            Join
+            Join Live Class
           </Button>
         </div>
       </div>

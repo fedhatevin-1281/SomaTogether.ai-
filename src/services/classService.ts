@@ -370,8 +370,32 @@ export class ClassService {
 
       if (error) throw error;
 
+      const zoomResponse = await fetch('/api/zoom/meetings/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: data.id,
+          topic: data.title,
+          startTime: data.scheduled_start,
+          duration: data.duration_minutes || 60,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+        })
+      });
+
+      const zoomResult = await zoomResponse.json().catch(() => null);
+
+      if (!zoomResponse.ok || !zoomResult?.success) {
+        console.error('Error creating Zoom meeting for session:', zoomResult);
+        throw new Error(zoomResult?.error || 'Unable to connect to Zoom. Please try again later.');
+      }
+
       return {
         ...data,
+        meeting_url: zoomResult.meeting?.join_url || data.meeting_url,
+        meeting_id: zoomResult.meeting?.meeting_id || data.meeting_id,
+        zoom_meeting_id: zoomResult.meeting?.id || data.zoom_meeting_id,
         class: data.classes,
         teacher: data.classes?.teachers?.profiles,
         student: data.classes?.students?.profiles

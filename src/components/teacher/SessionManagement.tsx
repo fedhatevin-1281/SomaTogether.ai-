@@ -63,8 +63,15 @@ export function SessionManagement({ onBack }: SessionManagementProps) {
 
   const handleCreateSession = async () => {
     try {
-      await ClassService.createSession(sessionForm);
-      toast.success('Session created successfully');
+      const scheduledEnd = sessionForm.scheduled_end || new Date(
+        new Date(sessionForm.scheduled_start).getTime() + (sessionForm.duration_minutes || 60) * 60000
+      ).toISOString();
+
+      await ClassService.createSession({
+        ...sessionForm,
+        scheduled_end: scheduledEnd
+      });
+      toast.success('Session created successfully with Zoom meeting');
       setCreateSessionDialogOpen(false);
       setSessionForm({
         class_id: '',
@@ -78,7 +85,7 @@ export function SessionManagement({ onBack }: SessionManagementProps) {
       loadData();
     } catch (error) {
       console.error('Error creating session:', error);
-      toast.error('Failed to create session');
+      toast.error(error instanceof Error ? error.message : 'Failed to create session');
     }
   };
 
@@ -355,10 +362,15 @@ export function SessionManagement({ onBack }: SessionManagementProps) {
                       {session.status === 'scheduled' && (
                         <Button
                           size="sm"
-                          onClick={() => handleStartSession(session.id)}
+                          onClick={() => {
+                            handleStartSession(session.id);
+                            if (session.meeting_url) {
+                              window.open(session.meeting_url, '_blank');
+                            }
+                          }}
                         >
                           <Play className="w-4 h-4 mr-1" />
-                          Start Session
+                          Start Meeting
                         </Button>
                       )}
                       {session.status === 'in_progress' && (

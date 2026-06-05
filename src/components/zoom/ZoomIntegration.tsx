@@ -32,10 +32,7 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Connection form state
-  const [apiKey, setApiKey] = useState('');
-  const [apiSecret, setApiSecret] = useState('');
-  const [email, setEmail] = useState('');
+  const [configured, setConfigured] = useState(true);
 
   // Meeting creation state
   const [creatingMeeting, setCreatingMeeting] = useState(false);
@@ -56,19 +53,22 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
       const response = await fetch(`/api/zoom/status/${teacherId}`);
       const data = await response.json();
 
+      setConfigured(data.configured !== false);
+
       if (data.connected && data.account) {
         setAccount(data.account);
+      } else {
+        setAccount(null);
       }
     } catch (error) {
       console.error('Error fetching Zoom status:', error);
-      setError('Failed to fetch Zoom account status');
+      setError('Unable to connect to Zoom. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConnect = async () => {
     setConnecting(true);
     setError(null);
 
@@ -79,31 +79,23 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          teacherId,
-          zoomUserId: email, // Using email as Zoom user ID for now
-          email,
-          firstName: 'Teacher', // You might want to get this from profile
-          lastName: 'User',
-          apiKey,
-          apiSecret
+          teacherId
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setSuccess('Zoom account connected successfully!');
-        setAccount(data.zoomAccount);
-        // Clear form
-        setApiKey('');
-        setApiSecret('');
-        setEmail('');
+        setSuccess('Zoom Connected');
+        setConfigured(true);
+        setAccount(data.account);
       } else {
+        setConfigured(data.configured !== false);
         setError(data.error || 'Failed to connect Zoom account');
       }
     } catch (error) {
       console.error('Error connecting Zoom account:', error);
-      setError('Failed to connect Zoom account');
+      setError('Unable to connect to Zoom. Please try again later.');
     } finally {
       setConnecting(false);
     }
@@ -226,49 +218,20 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleConnect} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Zoom Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your-email@example.com"
-                      required
-                    />
-                  </div>
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {configured
+                        ? 'Zoom will be connected using the administrator configured Server-to-Server OAuth app.'
+                        : 'Zoom is not configured by the administrator.'}
+                    </AlertDescription>
+                  </Alert>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="apiKey">Zoom API Key</Label>
-                    <Input
-                      id="apiKey"
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Enter your Zoom API Key"
-                      autoComplete="off"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="apiSecret">Zoom API Secret</Label>
-                    <Input
-                      id="apiSecret"
-                      type="password"
-                      value={apiSecret}
-                      onChange={(e) => setApiSecret(e.target.value)}
-                      placeholder="Enter your Zoom API Secret"
-                      autoComplete="off"
-                      required
-                    />
-                  </div>
-
-                  <Button type="submit" disabled={connecting} className="w-full">
+                  <Button onClick={handleConnect} disabled={connecting || !configured} className="w-full">
                     {connecting ? 'Connecting...' : 'Connect Zoom Account'}
                   </Button>
-                </form>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -428,7 +391,7 @@ function MeetingList({ teacherId }: { teacherId: string }) {
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {meeting.duration} minutes
+                        {meeting.duration_minutes} minutes
                       </div>
                     </div>
                   </div>
@@ -441,10 +404,10 @@ function MeetingList({ teacherId }: { teacherId: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(meeting.join_url, '_blank')}
+                    onClick={() => window.open(meeting.start_url || meeting.join_url, '_blank')}
                   >
                     <Video className="h-4 w-4 mr-1" />
-                    Join Meeting
+                    Start Meeting
                   </Button>
                   <Button
                     size="sm"

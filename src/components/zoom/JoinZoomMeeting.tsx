@@ -251,7 +251,7 @@ export function JoinZoomMeeting({ studentId, onMeetingJoined }: JoinZoomMeetingP
                   ) : (
                     <>
                       <Video className="h-4 w-4 mr-2" />
-                      {canJoin ? 'Join Meeting' : 'Meeting Not Available'}
+                      {canJoin ? 'Join Live Class' : 'Meeting Not Available'}
                     </>
                   )}
                 </Button>
@@ -383,7 +383,7 @@ export function MeetingDetails({ meetingId, onClose }: MeetingDetailsProps) {
             className="flex-1"
           >
             <Video className="h-4 w-4 mr-2" />
-            Join Meeting
+            Join Live Class
           </Button>
           <Button variant="outline" onClick={onClose}>
             Close

@@ -353,84 +353,30 @@ class ZoomService {
    */
   static async connectZoomAccount(
     teacherId: string,
-    authCode: string,
-    redirectUri: string
+    authCode?: string,
+    redirectUri?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('Connecting Zoom account for teacher:', teacherId);
 
-      // Exchange authorization code for access token
-      const tokenResponse = await fetch('https://zoom.us/oauth/token', {
+      const response = await fetch('/api/zoom/connect', {
         method: 'POST',
         headers: {
-          'Authorization': `Basic ${btoa(`${process.env.REACT_APP_ZOOM_CLIENT_ID}:${process.env.REACT_APP_ZOOM_CLIENT_SECRET}`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: authCode,
-          redirect_uri: redirectUri
-        })
+        body: JSON.stringify({ teacherId, authCode, redirectUri })
       });
 
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        console.error('Zoom OAuth error:', errorData);
-        return { success: false, error: 'Failed to exchange authorization code' };
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return { success: false, error: data.error || 'Unable to connect to Zoom. Please try again later.' };
       }
-
-      const tokenData = await tokenResponse.json();
-
-      // Get user info from Zoom
-      const userResponse = await fetch('https://api.zoom.us/v2/users/me', {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`
-        }
-      });
-
-      if (!userResponse.ok) {
-        console.error('Failed to get Zoom user info');
-        return { success: false, error: 'Failed to get user information from Zoom' };
-      }
-
-      const userData = await userResponse.json();
-
-      // Save to database
-      const expiresAt = new Date();
-      expiresAt.setSeconds(expiresAt.getSeconds() + tokenData.expires_in);
-
-      const { error } = await supabase
-        .from('zoom_accounts')
-        .upsert({
-          teacher_id: teacherId,
-          zoom_user_id: userData.id,
-          email: userData.email,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          personal_meeting_url: userData.pmi,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          token_expires_at: expiresAt.toISOString(),
-          is_active: true
-        });
-
-      if (error) {
-        console.error('Error saving Zoom account:', error);
-        return { success: false, error: 'Failed to save Zoom account' };
-      }
-
-      // Update teacher's zoom_connected status
-      await supabase
-        .from('teachers')
-        .update({ zoom_connected: true })
-        .eq('id', teacherId);
-
-      console.log('Zoom account connected successfully');
 
       return { success: true };
     } catch (error) {
       console.error('Error connecting Zoom account:', error);
-      return { success: false, error: 'Failed to connect Zoom account' };
+      return { success: false, error: 'Unable to connect to Zoom. Please try again later.' };
     }
   }
 
@@ -438,53 +384,7 @@ class ZoomService {
    * Refresh access token
    */
   private static async refreshAccessToken(teacherId: string): Promise<boolean> {
-    try {
-      const zoomAccount = await this.getZoomAccount(teacherId);
-      if (!zoomAccount || !zoomAccount.refresh_token) {
-        return false;
-      }
-
-      const response = await fetch('https://zoom.us/oauth/token', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`${process.env.REACT_APP_ZOOM_CLIENT_ID}:${process.env.REACT_APP_ZOOM_CLIENT_SECRET}`)}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: zoomAccount.refresh_token
-        })
-      });
-
-      if (!response.ok) {
-        console.error('Failed to refresh Zoom token');
-        return false;
-      }
-
-      const tokenData = await response.json();
-
-      const expiresAt = new Date();
-      expiresAt.setSeconds(expiresAt.getSeconds() + tokenData.expires_in);
-
-      const { error } = await supabase
-        .from('zoom_accounts')
-        .update({
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          token_expires_at: expiresAt.toISOString()
-        })
-        .eq('teacher_id', teacherId);
-
-      if (error) {
-        console.error('Error updating refreshed token:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error refreshing access token:', error);
-      return false;
-    }
+    return false;
   }
 
   /**
@@ -611,6 +511,28 @@ class ZoomService {
       console.error('Error in updateParticipantLeaveTime:', error);
       return false;
     }
+  }
+
+  static formatMeetingTime(startTime: string, timezone: string = 'UTC'): string {
+    return new Date(startTime).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: timezone
+    });
+  }
+
+  static getTimeUntilMeeting(startTime: string): string {
+    const diffMs = new Date(startTime).getTime() - Date.now();
+
+    if (diffMs <= 0) return 'now';
+
+    const minutes = Math.ceil(diffMs / 60000);
+    if (minutes < 60) return `${minutes}m`;
+
+    const hours = Math.ceil(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+
+    return `${Math.ceil(hours / 24)}d`;
   }
 }
 

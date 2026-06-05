@@ -12,6 +12,14 @@ interface ZoomOAuthToken {
   token_type: 'Bearer';
 }
 
+const readEnv = (key: string): string => {
+  if (typeof process !== 'undefined' && process.env?.[key]) {
+    return process.env[key] || '';
+  }
+
+  return (import.meta as any).env?.[key] || '';
+};
+
 class ZoomOAuthService {
   private clientId: string;
   private clientSecret: string;
@@ -20,13 +28,9 @@ class ZoomOAuthService {
   private tokenCache: Map<string, { token: string; expiresAt: number }> = new Map();
 
   constructor() {
-    this.clientId = process.env.ZOOM_OAUTH_CLIENT_ID || '';
-    this.clientSecret = process.env.ZOOM_OAUTH_CLIENT_SECRET || '';
-    this.accountId = process.env.ZOOM_ACCOUNT_ID || '';
-
-    if (!this.clientId || !this.clientSecret || !this.accountId) {
-      throw new Error('Missing Zoom OAuth credentials in environment variables');
-    }
+    this.clientId = readEnv('ZOOM_CLIENT_ID');
+    this.clientSecret = readEnv('ZOOM_CLIENT_SECRET');
+    this.accountId = readEnv('ZOOM_ACCOUNT_ID');
 
     this.axiosInstance = axios.create({
       baseURL: 'https://api.zoom.us/v2',
@@ -39,6 +43,10 @@ class ZoomOAuthService {
    * Handles token refresh and caching automatically
    */
   async getAccessToken(): Promise<string> {
+    if (!this.clientId || !this.clientSecret || !this.accountId) {
+      throw new Error('Zoom is not configured by the administrator.');
+    }
+
     const cacheKey = 'zoom_oauth_token';
 
     // Check if cached token is still valid

@@ -25,7 +25,9 @@ interface ZoomAccount {
 export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
   const [account, setAccount] = useState<ZoomAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [configured, setConfigured] = useState(true);
 
   useEffect(() => {
     fetchZoomStatus();
@@ -36,34 +38,53 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
       setLoading(true);
       setError(null);
       
-      // For now, we'll simulate the API call since the backend might not be running
-      // In production, this would call: /api/zoom/status/${teacherId}
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock response - replace with actual API call when backend is ready
-      const mockResponse = {
-        connected: false, // Change to true when Zoom is properly configured
-        account: null
-      };
+      const response = await fetch(`/api/zoom/status/${teacherId}`);
+      const data = await response.json();
 
-      if (mockResponse.connected && mockResponse.account) {
-        setAccount(mockResponse.account);
+      setConfigured(data.configured !== false);
+
+      if (data.connected && data.account) {
+        setAccount(data.account);
+      } else {
+        setAccount(null);
       }
     } catch (error) {
       console.error('Error fetching Zoom status:', error);
-      setError('Failed to fetch Zoom status');
+      setError('Unable to connect to Zoom. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConnectZoom = () => {
-    // This would open the Zoom integration modal or navigate to settings
-    console.log('Opening Zoom connection interface...');
-    // For now, show an alert
-    alert('Zoom integration setup needed. Please check the setup guide for configuration instructions.');
+  const handleConnectZoom = async () => {
+    try {
+      setConnecting(true);
+      setError(null);
+
+      const response = await fetch('/api/zoom/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ teacherId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setConfigured(data.configured !== false);
+        setError(data.error || 'Unable to connect to Zoom. Please try again later.');
+        return;
+      }
+
+      setConfigured(true);
+      setAccount(data.account);
+    } catch (error) {
+      console.error('Error connecting Zoom account:', error);
+      setError('Unable to connect to Zoom. Please try again later.');
+    } finally {
+      setConnecting(false);
+    }
   };
 
   if (loading) {
@@ -85,12 +106,12 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
         {account ? (
           <>
             <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600">Zoom Connected</span>
+            <span className="text-sm text-green-600">Zoom Status: Connected</span>
           </>
         ) : (
           <>
             <AlertCircle className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm text-yellow-600">Zoom Not Connected</span>
+            <span className="text-sm text-yellow-600">Zoom Status: Not Connected</span>
           </>
         )}
       </div>
@@ -117,7 +138,7 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="text-sm font-medium text-green-600">Connected</span>
+              <span className="text-sm font-medium text-green-600">Zoom Status: Connected</span>
             </div>
             
             <div className="space-y-2">
@@ -152,25 +173,19 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-yellow-500" />
-              <span className="text-sm font-medium text-yellow-600">Not Connected</span>
+              <span className="text-sm font-medium text-yellow-600">Zoom Status: Not Connected</span>
             </div>
             
             <p className="text-sm text-gray-600">
-              Connect your Zoom account to schedule and host online classes.
+              {configured
+                ? 'Connect Zoom to schedule and host online classes.'
+                : 'Zoom is not configured by the administrator.'}
             </p>
 
-            <Button onClick={handleConnectZoom} className="w-full">
+            <Button onClick={handleConnectZoom} className="w-full" disabled={connecting || !configured}>
               <Video className="h-4 w-4 mr-2" />
-              Connect Zoom Account
+              {connecting ? 'Connecting...' : 'Connect Zoom Account'}
             </Button>
-
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Setup Required:</strong> Zoom integration needs to be configured. 
-                Check the setup guide for instructions.
-              </AlertDescription>
-            </Alert>
           </div>
         )}
       </CardContent>

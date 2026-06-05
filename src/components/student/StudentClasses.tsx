@@ -343,9 +343,19 @@ export function StudentClasses({ onBack, onScreenChange }: StudentClassesProps) 
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2 mt-4">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!upcomingSessions.some(session => session.class_id === classData.id && session.meeting_url)}
+                        onClick={() => {
+                          const session = upcomingSessions.find(item => item.class_id === classData.id && item.meeting_url);
+                          if (session?.meeting_url) {
+                            window.open(session.meeting_url, '_blank');
+                          }
+                        }}
+                      >
                         <Play className="w-4 h-4 mr-1" />
-                        Join Session
+                        Join Live Class
                       </Button>
                     </div>
                   </CardContent>
