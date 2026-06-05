@@ -55,6 +55,8 @@ export function ClassManagement({ onBack }: ClassManagementProps) {
 
   useEffect(() => {
     if (user?.id) {
+      setClassForm(prev => ({ ...prev, teacher_id: user.id }));
+      setAssignmentForm(prev => ({ ...prev, teacher_id: user.id }));
       loadData();
     }
   }, [user?.id]);
@@ -78,11 +80,19 @@ export function ClassManagement({ onBack }: ClassManagementProps) {
 
   const handleCreateClass = async () => {
     try {
-      await ClassService.createClass(classForm);
+      if (!user?.id) {
+        toast.error('Please sign in before creating a class');
+        return;
+      }
+
+      await ClassService.createClass({
+        ...classForm,
+        teacher_id: user.id
+      });
       toast.success('Class created successfully');
       setCreateClassDialogOpen(false);
       setClassForm({
-        teacher_id: user?.id || '',
+        teacher_id: user.id,
         student_id: '',
         subject_id: '',
         title: '',
@@ -93,17 +103,25 @@ export function ClassManagement({ onBack }: ClassManagementProps) {
       loadData();
     } catch (error) {
       console.error('Error creating class:', error);
-      toast.error('Failed to create class');
+      toast.error(error instanceof Error ? error.message : 'Failed to create class');
     }
   };
 
   const handleCreateAssignment = async () => {
     try {
-      await AssignmentService.createAssignment(assignmentForm);
+      if (!user?.id) {
+        toast.error('Please sign in before creating an assignment');
+        return;
+      }
+
+      await AssignmentService.createAssignment({
+        ...assignmentForm,
+        teacher_id: user.id
+      });
       toast.success('Assignment created successfully');
       setCreateAssignmentDialogOpen(false);
       setAssignmentForm({
-        teacher_id: user?.id || '',
+        teacher_id: user.id,
         class_id: '',
         subject_id: '',
         title: '',

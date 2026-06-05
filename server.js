@@ -702,7 +702,7 @@ async function saveZoomAccountForTeacher(teacherId, zoomUser) {
     .from('zoom_accounts')
     .upsert({
       teacher_id: teacherId,
-      zoom_user_id: zoomUser.id,
+      zoom_user_id: `${zoomUser.id}:${teacherId}`,
       email: zoomUser.email || `${zoomUser.id}@zoom.local`,
       first_name: names.first_name,
       last_name: names.last_name,
@@ -781,6 +781,12 @@ async function createAndStoreZoomMeetingForSession(session, options = {}) {
   return meeting;
 }
 
+function publicZoomMeeting(meeting) {
+  if (!meeting) return null;
+  const { start_url, ...safeMeeting } = meeting;
+  return safeMeeting;
+}
+
 app.get('/api/zoom/configuration', (req, res) => {
   res.json(zoomServerService.getZoomConfigurationStatus());
 });
@@ -819,6 +825,8 @@ app.post('/api/zoom/connect', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Teacher ID is required' });
     }
 
+    await zoomServerService.getZoomAccessToken();
+
     const { data: teacher, error: teacherError } = await supabase
       .from('teachers')
       .select('id')
@@ -829,7 +837,6 @@ app.post('/api/zoom/connect', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Teacher not found' });
     }
 
-    await zoomServerService.getZoomAccessToken();
     const zoomUser = await zoomServerService.getZoomUser('me');
     const zoomAccount = await saveZoomAccountForTeacher(teacherId, zoomUser);
 
@@ -945,7 +952,7 @@ app.get('/api/zoom/meetings/student/:studentId', async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    res.json((data || []).map(row => row.zoom_meetings).filter(Boolean));
+    res.json((data || []).map(row => publicZoomMeeting(row.zoom_meetings)).filter(Boolean));
   } catch (error) {
     sendZoomError(res, error, 'Failed to fetch Zoom meetings');
   }

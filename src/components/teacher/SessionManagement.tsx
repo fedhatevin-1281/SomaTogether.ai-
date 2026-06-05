@@ -67,11 +67,16 @@ export function SessionManagement({ onBack }: SessionManagementProps) {
         new Date(sessionForm.scheduled_start).getTime() + (sessionForm.duration_minutes || 60) * 60000
       ).toISOString();
 
-      await ClassService.createSession({
+      const createdSession = await ClassService.createSession({
         ...sessionForm,
         scheduled_end: scheduledEnd
       });
-      toast.success('Session created successfully with Zoom meeting');
+
+      if (createdSession.zoom_warning) {
+        toast.warning(createdSession.zoom_warning);
+      } else {
+        toast.success('Session created successfully with Zoom meeting');
+      }
       setCreateSessionDialogOpen(false);
       setSessionForm({
         class_id: '',

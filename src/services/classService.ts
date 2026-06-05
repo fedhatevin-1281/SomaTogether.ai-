@@ -86,6 +86,7 @@ export interface ClassSession {
     full_name: string;
     avatar_url?: string;
   };
+  zoom_warning?: string;
 }
 
 export interface CreateSessionData {
@@ -388,7 +389,20 @@ export class ClassService {
 
       if (!zoomResponse.ok || !zoomResult?.success) {
         console.error('Error creating Zoom meeting for session:', zoomResult);
-        throw new Error(zoomResult?.error || 'Unable to connect to Zoom. Please try again later.');
+
+        const zoomError = zoomResult?.error || 'Unable to connect to Zoom. Please try again later.';
+
+        if (zoomResponse.status === 503 || zoomError === 'Zoom is not configured by the administrator.') {
+          return {
+            ...data,
+            zoom_warning: zoomError,
+            class: data.classes,
+            teacher: data.classes?.teachers?.profiles,
+            student: data.classes?.students?.profiles
+          };
+        }
+
+        throw new Error(zoomError);
       }
 
       return {
