@@ -30,9 +30,11 @@ import {
 
 interface BrowseTeachersProps {
   onBack?: () => void;
+  onScreenChange?: (screen: any) => void;
 }
 
-export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
+export function BrowseTeachers({ onBack, onScreenChange }: BrowseTeachersProps) {
+  console.log("BrowseTeachers rendered");
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,9 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       try {
         const studentProfile = await SessionRequestService.getStudentProfile(user.id);
         if (studentProfile) {
+          console.log("Token value before setStudentTokens:", studentProfile.tokens);
           setStudentTokens(studentProfile.tokens);
+          console.log("studentTokens state updated:", studentProfile.tokens);
         }
       } catch (tokenErr) {
         console.warn('Could not load student tokens:', tokenErr);
@@ -92,6 +96,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
   });
 
   const handleSendRequest = async () => {
+    console.log("STEP 1: Handler entered (BrowseTeachers)");
     console.log('[BrowseTeachers] handleSendRequest triggered', {
       userId: user?.id,
       teacherId: selectedTeacher?.id,
@@ -109,7 +114,24 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
       return;
     }
 
+    if (studentTokens !== null && studentTokens < 10) {
+      console.warn('[BrowseTeachers] Insufficient tokens validation failed', { studentTokens });
+      toast.error('Insufficient Tokens', {
+        description: `You need at least 10 tokens to send a session request. Current balance: ${studentTokens} tokens. Please top up your account to continue.`,
+        action: onScreenChange ? {
+          label: 'Top Up',
+          onClick: () => {
+            setRequestDialogOpen(false);
+            onScreenChange('wallet');
+          }
+        } : undefined,
+        duration: 8000
+      });
+      return;
+    }
+
     try {
+      console.log("STEP 2: Validation starting (BrowseTeachers)");
       console.log('[BrowseTeachers] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
@@ -125,6 +147,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
         throw new Error(validationError);
       }
 
+      console.log("STEP 3: Validation passed (BrowseTeachers)");
       // Create datetime strings
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + parseInt(requestDuration) * 60 * 60 * 1000);
@@ -152,6 +175,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
         message: requestMessage || undefined,
       };
 
+      console.log("STEP 4: Calling createSessionRequest (BrowseTeachers)");
       console.log('[BrowseTeachers] Calling SessionRequestService.createSessionRequest...', {
         studentId: user.id,
         requestData,
@@ -159,6 +183,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
 
       const response = await SessionRequestService.createSessionRequest(user.id, requestData);
 
+      console.log("STEP 5: Service returned (BrowseTeachers)");
       console.log('[BrowseTeachers] API response success:', response);
 
       setRequestSuccess('Request sent successfully! The teacher will be notified.');
@@ -536,7 +561,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               )}
               <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
                 {studentTokens !== null && studentTokens < 10 ? (
-                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                  <span className="font-bold">⚠ You currently have {studentTokens} tokens. 10 tokens are required to send a session request.</span>
                 ) : (
                   <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
                 )}
@@ -553,9 +578,20 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               Cancel
             </Button>
             <Button
-              onClick={handleSendRequest}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
-              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700 text-white"}
+              onClick={() => {
+                console.log("SEND REQUEST BUTTON CLICKED (Dialog Submit in BrowseTeachers)");
+                console.log("Button state:", {
+                  sendingRequest,
+                  requestDate,
+                  requestTime,
+                  requestDuration,
+                  studentTokens,
+                  disabled: sendingRequest || !requestDate || !requestTime || !requestDuration
+                });
+                handleSendRequest();
+              }}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
             >
               {sendingRequest ? (
                 <>
@@ -565,7 +601,7 @@ export function BrowseTeachers({ onBack }: BrowseTeachersProps) {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
+                  {studentTokens !== null && studentTokens < 10 ? 'Send Request (10 tokens)' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>

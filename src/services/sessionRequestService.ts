@@ -381,6 +381,11 @@ export class SessionRequestService {
         .eq('role', 'student')
         .single();
 
+      console.log("Raw token query result:", data);
+      console.log("Raw token query error:", error);
+      console.log("Is data.students an array?:", Array.isArray(data?.students));
+      console.log("data.students contents:", data?.students);
+
       if (error) throw error;
       if (!data) return null;
 

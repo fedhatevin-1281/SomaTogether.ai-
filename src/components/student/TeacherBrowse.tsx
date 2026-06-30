@@ -71,9 +71,9 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 border-0 bg-white ${isExpanded ? 'shadow-md' : ''}`}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center space-x-3 min-w-[160px] flex-1">
+            <div className="relative flex-shrink-0">
               <Avatar className="h-16 w-16 border-2 border-white shadow-md">
                 <AvatarImage src={teacher.avatar_url} alt={teacher.full_name} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
@@ -87,38 +87,38 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-semibold text-gray-900 truncate">{teacher.full_name}</h3>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h3 className="font-semibold text-gray-900 truncate max-w-[120px] sm:max-w-[150px]">{teacher.full_name}</h3>
                 {(teacher.is_verified || teacher.verification_status === 'verified') && (
-                  <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-0.5 flex items-center space-x-1 flex-shrink-0">
+                  <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-1.5 py-0.5 flex items-center space-x-1 flex-shrink-0">
                     <CheckCircle className="h-3 w-3" />
                     <span>Verified</span>
                   </Badge>
                 )}
               </div>
               {teacher.location && (
-                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <div className="flex items-center space-x-1 text-xs text-gray-600">
                   <MapPin className="h-3 w-3" />
                   <span className="truncate">{teacher.location}</span>
                 </div>
               )}
               {teacher.languages && teacher.languages.length > 0 && (
-                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <div className="flex items-center space-x-1 text-xs text-gray-600">
                   <Globe className="h-3 w-3" />
-                  <span>{teacher.languages.join(', ')}</span>
+                  <span className="truncate">{teacher.languages.join(', ')}</span>
                 </div>
               )}
             </div>
           </div>
-          <div className="text-right">
-            <div className="flex items-center space-x-1 mb-1">
+          <div className="text-right flex-shrink-0">
+            <div className="flex items-center justify-end space-x-1 mb-1">
               <Star className="h-4 w-4 text-yellow-400 fill-current" />
               <span className="font-semibold text-gray-900">{teacher.rating.toFixed(1)}</span>
               <span className="text-sm text-gray-600">({teacher.total_reviews})</span>
             </div>
             <div className="text-lg font-bold text-green-600">
               {formatPrice(teacher.hourly_rate, teacher.currency)}
-              <span className="text-sm font-normal text-gray-600">/hr</span>
+              <span className="text-xs font-normal text-gray-600">/hr</span>
             </div>
           </div>
         </div>
@@ -356,12 +356,12 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
         )}
 
         {/* Actions */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onToggleExpand(teacher.id)}
-            className="flex-1"
+            className="flex-1 min-w-[120px]"
           >
             {isExpanded ? (
               <>
@@ -379,7 +379,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
             size="sm"
             onClick={() => onSendRequest(teacher)}
             disabled={!isAvailable}
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-700 text-white"
           >
             <MessageCircle className="h-4 w-4 mr-1" />
             Send request
@@ -390,7 +390,12 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, isExpanded, onToggle
   );
 };
 
-const TeacherBrowse: React.FC = () => {
+interface TeacherBrowseProps {
+  onScreenChange?: (screen: any) => void;
+}
+
+const TeacherBrowse: React.FC<TeacherBrowseProps> = ({ onScreenChange }) => {
+  console.log("TeacherBrowse rendered");
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -477,7 +482,9 @@ const TeacherBrowse: React.FC = () => {
       try {
         const studentProfile = await SessionRequestService.getStudentProfile(user.id);
         if (studentProfile) {
+          console.log("Token value before setStudentTokens:", studentProfile.tokens);
           setStudentTokens(studentProfile.tokens);
+          console.log("studentTokens state updated:", studentProfile.tokens);
         }
       } catch (tokenErr) {
         console.warn('Could not load student tokens:', tokenErr);
@@ -507,6 +514,7 @@ const TeacherBrowse: React.FC = () => {
   };
 
   const handleSendRequest = (teacher: TeacherProfile) => {
+    console.log("CARD BUTTON CLICKED: Send request in TeacherBrowse for teacher", teacher.id);
     setSelectedTeacher(teacher);
     setRequestDialogOpen(true);
     setError(null);
@@ -526,6 +534,15 @@ const TeacherBrowse: React.FC = () => {
   };
 
   const handleSendRequestSubmit = async () => {
+    console.log("HANDLE SEND REQUEST ENTERED");
+    console.log({
+      requestDate,
+      requestTime,
+      requestDuration,
+      studentTokens,
+      sendingRequest
+    });
+    console.log("STEP 1: Handler entered (TeacherBrowse)");
     console.log('[TeacherBrowse] handleSendRequestSubmit clicked', {
       userId: user?.id,
       teacherId: selectedTeacher?.id,
@@ -540,7 +557,24 @@ const TeacherBrowse: React.FC = () => {
       return;
     }
 
+    if (studentTokens !== null && studentTokens < 10) {
+      console.warn('[TeacherBrowse] Insufficient tokens validation failed', { studentTokens });
+      toast.error('Insufficient Tokens', {
+        description: `You need at least 10 tokens to send a session request. Current balance: ${studentTokens} tokens. Please top up your account to continue.`,
+        action: onScreenChange ? {
+          label: 'Top Up',
+          onClick: () => {
+            setRequestDialogOpen(false);
+            onScreenChange('wallet');
+          }
+        } : undefined,
+        duration: 8000
+      });
+      return;
+    }
+
     try {
+      console.log("STEP 2: Validation starting (TeacherBrowse)");
       console.log('[TeacherBrowse] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
@@ -551,6 +585,7 @@ const TeacherBrowse: React.FC = () => {
         throw new Error('Please fill in all required fields.');
       }
 
+      console.log("STEP 3: Validation passed (TeacherBrowse)");
       // Create date objects
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + (parseFloat(requestDuration) * 60 * 60 * 1000));
@@ -569,6 +604,7 @@ const TeacherBrowse: React.FC = () => {
         message: requestMessage || undefined,
       };
 
+      console.log("STEP 4: Calling createSessionRequest (TeacherBrowse)");
       console.log('[TeacherBrowse] Calling SessionRequestService.createSessionRequest...', {
         studentId: user.id,
         requestData
@@ -576,6 +612,7 @@ const TeacherBrowse: React.FC = () => {
 
       const response = await SessionRequestService.createSessionRequest(user.id, requestData);
 
+      console.log("STEP 5: Service returned (TeacherBrowse)");
       console.log('[TeacherBrowse] API response success:', response);
 
       setRequestSuccess('Request sent successfully! The teacher will be notified.');
@@ -605,6 +642,16 @@ const TeacherBrowse: React.FC = () => {
       setSendingRequest(false);
     }
   };
+
+  const isDialogButtonDisabled = sendingRequest || !requestDate || !requestTime || !requestDuration;
+  console.log("TeacherBrowse Dialog Button Render State:", {
+    disabled: isDialogButtonDisabled,
+    missingDate: !requestDate,
+    missingTime: !requestTime,
+    missingDuration: !requestDuration,
+    sendingRequest,
+    insufficientTokens: studentTokens !== null && studentTokens < 10
+  });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -815,7 +862,7 @@ const TeacherBrowse: React.FC = () => {
 
       {/* Teachers Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, index) => (
             <Card key={index}>
               <CardHeader>
@@ -848,7 +895,7 @@ const TeacherBrowse: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
             {teachers.map((teacher) => (
               <TeacherCard
                 key={teacher.id}
@@ -995,7 +1042,7 @@ const TeacherBrowse: React.FC = () => {
               )}
               <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
                 {studentTokens !== null && studentTokens < 10 ? (
-                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                  <span className="font-bold">⚠ You currently have {studentTokens} tokens. 10 tokens are required to send a session request.</span>
                 ) : (
                   <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
                 )}
@@ -1012,9 +1059,19 @@ const TeacherBrowse: React.FC = () => {
               Cancel
             </Button>
             <Button
-              onClick={handleSendRequestSubmit}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
-              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700 text-white"}
+              onClick={() => {
+                console.log("DIALOG SUBMIT BUTTON CLICKED");
+                console.log({
+                  requestDate,
+                  requestTime,
+                  requestDuration,
+                  studentTokens,
+                  sendingRequest
+                });
+                handleSendRequestSubmit();
+              }}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
             >
               {sendingRequest ? (
                 <>
@@ -1024,7 +1081,7 @@ const TeacherBrowse: React.FC = () => {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
+                  {studentTokens !== null && studentTokens < 10 ? 'Send Request (10 tokens)' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>

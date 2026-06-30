@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   Users, 
@@ -87,12 +87,33 @@ const roleColors = {
 
 export function Sidebar({ currentRole, onScreenChange, currentScreen, isCollapsed }: SidebarProps) {
   const items = sidebarItems[currentRole];
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const sidebarWidth = isMobile ? '256px' : (isCollapsed ? '64px' : '256px');
+  const sidebarTransform = isMobile && isCollapsed ? 'translateX(-256px)' : 'translateX(0)';
 
   return (
-    <aside className={`fixed left-0 top-16 h-screen bg-white border-r border-slate-200 p-4 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
-      <nav className="space-y-2">
+    <aside 
+      style={{ 
+        width: sidebarWidth, 
+        transform: sidebarTransform,
+      }}
+      className="fixed left-0 top-16 bottom-0 bg-white border-r border-slate-200 p-4 transition-all duration-300 z-40"
+    >
+      <nav className={`flex flex-col space-y-2 ${isCollapsed ? 'items-center' : 'items-stretch'}`}>
         {items.map((item, index) => {
           const isActive = currentScreen === item.screen;
           return (

@@ -55,7 +55,18 @@ export type AdminScreen = 'dashboard' | 'user-management' | 'teacher-verificatio
 function AppContent() {
   const { user, profile, signOut, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('landing');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
   const [studentTokens, setStudentTokens] = useState<number>(200); // example default
 
   // Determine if user is logged in and get role from profile
@@ -73,6 +84,21 @@ function AppContent() {
       setCurrentScreen('login');
     }
   };
+
+  // Auto-collapse sidebar on smaller screens
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsSidebarCollapsed(true);
+      }
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Handle navigation after login based on role and onboarding status
   useEffect(() => {
@@ -175,7 +201,7 @@ function AppContent() {
           return <StudentDashboard currentScreen={currentScreen} onScreenChange={handleScreenChange} />;
         case 'browse-teachers':
         case 'teacher-browse':
-          return <TeacherBrowse />;
+          return <TeacherBrowse onScreenChange={handleScreenChange} />;
         case 'my-classes':
           return <StudentClasses onBack={() => handleScreenChange('dashboard')} onScreenChange={handleScreenChange} />;
         case 'student-classes':
@@ -307,14 +333,24 @@ function AppContent() {
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] bg-slate-50 relative">
+        {!isSidebarCollapsed && isMobile && (
+          <div 
+            className="fixed inset-0 z-30"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
+            onClick={() => setIsSidebarCollapsed(true)}
+          />
+        )}
         <Sidebar
           currentRole={currentRole}
           onScreenChange={handleScreenChange}
           currentScreen={currentScreen}
           isCollapsed={isSidebarCollapsed}
         />
-        <main className={`flex-1 p-6 transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} bg-slate-50 min-h-full`}>
+        <main 
+          style={{ marginLeft: isMobile ? '0px' : (isSidebarCollapsed ? '64px' : '256px') }}
+          className="flex-1 p-4 md:p-6 transition-all duration-300 bg-slate-50 min-h-full"
+        >
           {renderContent()}
         </main>
       </div>

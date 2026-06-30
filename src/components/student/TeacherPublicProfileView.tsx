@@ -36,9 +36,11 @@ interface TeacherPublicProfileViewProps {
   teacherId: string;
   onBack: () => void;
   onSendRequest?: (teacher: TeacherProfile) => void;
+  onScreenChange?: (screen: any) => void;
 }
 
-export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: TeacherPublicProfileViewProps) {
+export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest, onScreenChange }: TeacherPublicProfileViewProps) {
+  console.log("TeacherPublicProfileView rendered");
   const { user } = useAuth();
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,9 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
         try {
           const studentProfile = await SessionRequestService.getStudentProfile(user.id);
           if (studentProfile) {
+            console.log("Token value before setStudentTokens:", studentProfile.tokens);
             setStudentTokens(studentProfile.tokens);
+            console.log("studentTokens state updated:", studentProfile.tokens);
           }
         } catch (tokenErr) {
           console.warn('Could not load student tokens:', tokenErr);
@@ -87,6 +91,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
   };
 
   const handleSendRequest = () => {
+    console.log("CARD BUTTON CLICKED: Send request in TeacherPublicProfileView for teacher", teacher?.id);
     if (teacher) {
       setRequestDialogOpen(true);
       setRequestMessage('');
@@ -97,6 +102,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
   };
 
   const handleSendRequestSubmit = async () => {
+    console.log("STEP 1: Handler entered (TeacherPublicProfileView)");
     console.log('[TeacherPublicProfileView] handleSendRequestSubmit triggered', {
       userId: user?.id,
       teacherId: teacher?.id,
@@ -111,7 +117,24 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
       return;
     }
 
+    if (studentTokens !== null && studentTokens < 10) {
+      console.warn('[TeacherPublicProfileView] Insufficient tokens validation failed', { studentTokens });
+      toast.error('Insufficient Tokens', {
+        description: `You need at least 10 tokens to send a session request. Current balance: ${studentTokens} tokens. Please top up your account to continue.`,
+        action: onScreenChange ? {
+          label: 'Top Up',
+          onClick: () => {
+            setRequestDialogOpen(false);
+            onScreenChange('wallet');
+          }
+        } : undefined,
+        duration: 8000
+      });
+      return;
+    }
+
     try {
+      console.log("STEP 2: Validation starting (TeacherPublicProfileView)");
       console.log('[TeacherPublicProfileView] Starting frontend validation...');
       setSendingRequest(true);
       setError(null);
@@ -122,6 +145,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
         throw new Error('Please fill in all required fields.');
       }
 
+      console.log("STEP 3: Validation passed (TeacherPublicProfileView)");
       // Create date objects
       const requestedStart = new Date(`${requestDate}T${requestTime}`);
       const requestedEnd = new Date(requestedStart.getTime() + (parseFloat(requestDuration) * 60 * 60 * 1000));
@@ -140,6 +164,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
         message: requestMessage || undefined,
       };
 
+      console.log("STEP 4: Calling createSessionRequest (TeacherPublicProfileView)");
       console.log('[TeacherPublicProfileView] Calling SessionRequestService.createSessionRequest...', {
         studentId: user.id,
         requestData
@@ -147,6 +172,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
 
       const response = await SessionRequestService.createSessionRequest(user.id, requestData);
 
+      console.log("STEP 5: Service returned (TeacherPublicProfileView)");
       console.log('[TeacherPublicProfileView] API response success:', response);
 
       setRequestDialogOpen(false);
@@ -571,7 +597,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               )}
               <AlertDescription className={studentTokens !== null && studentTokens < 10 ? "text-red-800" : "text-blue-800"}>
                 {studentTokens !== null && studentTokens < 10 ? (
-                  <span className="font-bold">Insufficient Tokens! You need at least 10 tokens to send a request.</span>
+                  <span className="font-bold">⚠ You currently have {studentTokens} tokens. 10 tokens are required to send a session request.</span>
                 ) : (
                   <span>Sending this request will cost <strong>10 tokens</strong>. Tokens will be deducted after the Zoom class is completed.</span>
                 )}
@@ -588,9 +614,20 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               Cancel
             </Button>
             <Button
-              onClick={handleSendRequestSubmit}
-              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration || (studentTokens !== null && studentTokens < 10)}
-              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"}
+              onClick={() => {
+                console.log("SEND REQUEST BUTTON CLICKED (Dialog Submit in TeacherPublicProfileView)");
+                console.log("Button state:", {
+                  sendingRequest,
+                  requestDate,
+                  requestTime,
+                  requestDuration,
+                  studentTokens,
+                  disabled: sendingRequest || !requestDate || !requestTime || !requestDuration
+                });
+                handleSendRequestSubmit();
+              }}
+              disabled={sendingRequest || !requestDate || !requestTime || !requestDuration}
+              className={studentTokens !== null && studentTokens < 10 ? "bg-red-600 hover:bg-red-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}
             >
               {sendingRequest ? (
                 <>
@@ -600,7 +637,7 @@ export function TeacherPublicProfileView({ teacherId, onBack, onSendRequest }: T
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  {studentTokens !== null && studentTokens < 10 ? 'Insufficient Tokens' : 'Send Request (10 tokens)'}
+                  {studentTokens !== null && studentTokens < 10 ? 'Send Request (10 tokens)' : 'Send Request (10 tokens)'}
                 </>
               )}
             </Button>
