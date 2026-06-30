@@ -700,6 +700,27 @@ router.get('/messaging/messages/:conversationId', requireAuth, async (req, res) 
   }
 });
 
+router.get('/messaging/message/:messageId', requireAuth, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        *,
+        sender:profiles!messages_sender_id_fkey(*),
+        reply_to:messages(*),
+        read_by:message_reads(*)
+      `)
+      .eq('id', messageId)
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.post('/messaging/messages', requireAuth, async (req, res) => {
   try {
     const messagePayload = req.body;

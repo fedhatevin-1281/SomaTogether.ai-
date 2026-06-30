@@ -310,19 +310,13 @@ class MessagingService {
           filter: `conversation_id=eq.${conversationId}`
         },
         async (payload) => {
-          const { data: message } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:profiles!messages_sender_id_fkey(*),
-              reply_to:messages(*),
-              read_by:message_reads(*)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (message) {
-            onMessage(message);
+          try {
+            const res = await apiService.makeRequest<{ success: boolean; data: Message }>(`/messaging/message/${payload.new.id}`);
+            if (res.data) {
+              onMessage(res.data);
+            }
+          } catch (err) {
+            console.error('Error fetching message detail inside Realtime channel:', err);
           }
         }
       )
@@ -338,19 +332,13 @@ class MessagingService {
           if (payload.new.is_deleted) {
             onMessageDelete?.(payload.new.id);
           } else {
-            const { data: message } = await supabase
-              .from('messages')
-              .select(`
-                *,
-                sender:profiles!messages_sender_id_fkey(*),
-                reply_to:messages(*),
-                read_by:message_reads(*)
-              `)
-              .eq('id', payload.new.id)
-              .single();
-
-            if (message) {
-              onMessageUpdate?.(message);
+            try {
+              const res = await apiService.makeRequest<{ success: boolean; data: Message }>(`/messaging/message/${payload.new.id}`);
+              if (res.data) {
+                onMessageUpdate?.(res.data);
+              }
+            } catch (err) {
+              console.error('Error updating message inside Realtime channel:', err);
             }
           }
         }
@@ -378,31 +366,37 @@ class MessagingService {
           filter: `participants=cs.{${userId}}`
         },
         async (payload) => {
-          const { data: conversation } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', payload.new.id)
-            .single();
-
-          if (conversation) {
-            const [lastMessage, unreadCount] = await Promise.all([
-              this.getLastMessage(conversation.id),
-              this.getUnreadCount(conversation.id, userId)
-            ]);
-
-            const otherParticipantId = conversation.participants.find(p => p !== userId);
-            let otherParticipant = null;
-            
-            if (otherParticipantId) {
-              otherParticipant = await this.getUserProfile(otherParticipantId);
-            }
-
-            onConversationUpdate({
-              ...conversation,
-              last_message: lastMessage,
-              unread_count: unreadCount,
-              other_participant: otherParticipant
+          try {
+            const dbRes = await apiService.makeRequest<{ success: boolean; data: any[] }>('/db/conversations/query', {
+              method: 'POST',
+              body: JSON.stringify({
+                eq: { id: payload.new.id }
+              })
             });
+            const conversation = dbRes.data?.[0];
+
+            if (conversation) {
+              const [lastMessage, unreadCount] = await Promise.all([
+                this.getLastMessage(conversation.id),
+                this.getUnreadCount(conversation.id, userId)
+              ]);
+
+              const otherParticipantId = conversation.participants.find((p: string) => p !== userId);
+              let otherParticipant = null;
+              
+              if (otherParticipantId) {
+                otherParticipant = await this.getUserProfile(otherParticipantId);
+              }
+
+              onConversationUpdate({
+                ...conversation,
+                last_message: lastMessage,
+                unread_count: unreadCount,
+                other_participant: otherParticipant
+              });
+            }
+          } catch (err) {
+            console.error('Error handling conversation change in Realtime:', err);
           }
         }
       )

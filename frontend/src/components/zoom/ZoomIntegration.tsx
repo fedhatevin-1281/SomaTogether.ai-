@@ -8,6 +8,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Calendar, Clock, Users, Video, Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import zoomService, { ZoomMeeting } from '../../services/zoomService';
+import { apiService } from '../../services/apiService';
 
 interface ZoomIntegrationProps {
   teacherId: string;
@@ -50,8 +51,7 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
   const fetchZoomStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/zoom/status/${teacherId}`);
-      const data = await response.json();
+      const data = await apiService.makeRequest<any>(`/zoom/status/${teacherId}`);
 
       setConfigured(data.configured !== false);
 
@@ -73,17 +73,12 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
     setError(null);
 
     try {
-      const response = await fetch('/api/zoom/connect', {
+      const data = await apiService.makeRequest<any>('/zoom/connect', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           teacherId
         }),
       });
-
-      const data = await response.json();
 
       if (data.success) {
         setSuccess('Zoom Connected');
@@ -93,9 +88,9 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
         setConfigured(data.configured !== false);
         setError(data.error || 'Failed to connect Zoom account');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error connecting Zoom account:', error);
-      setError('Unable to connect to Zoom. Please try again later.');
+      setError(error.message || 'Unable to connect to Zoom. Please try again later.');
     } finally {
       setConnecting(false);
     }
@@ -107,11 +102,8 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
     setError(null);
 
     try {
-      const response = await fetch('/api/zoom/meetings/create', {
+      const data = await apiService.makeRequest<any>('/zoom/meetings/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           sessionId: 'temp-session', // You'll need to pass actual session ID
           topic: meetingForm.topic,
@@ -120,8 +112,6 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
           timezone: meetingForm.timezone
         }),
       });
-
-      const data = await response.json();
 
       if (data.success) {
         setSuccess('Meeting created successfully!');
@@ -138,9 +128,9 @@ export function ZoomIntegration({ teacherId, onMeetingCreated }: ZoomIntegration
       } else {
         setError(data.error || 'Failed to create meeting');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating meeting:', error);
-      setError('Failed to create meeting');
+      setError(error.message || 'Failed to create meeting');
     } finally {
       setCreatingMeeting(false);
     }
@@ -346,8 +336,7 @@ function MeetingList({ teacherId }: { teacherId: string }) {
   const fetchMeetings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/zoom/meetings/teacher/${teacherId}?status=upcoming`);
-      const data = await response.json();
+      const data = await apiService.makeRequest<any[]>(`/zoom/meetings/teacher/${teacherId}?status=upcoming`);
       setMeetings(data);
     } catch (error) {
       console.error('Error fetching meetings:', error);

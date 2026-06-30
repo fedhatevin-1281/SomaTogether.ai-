@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { CheckCircle, AlertCircle, Video, Settings, ExternalLink } from 'lucide-react';
+import { apiService } from '../../services/apiService';
 
 interface ZoomStatusProps {
   teacherId: string;
@@ -38,8 +39,7 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/zoom/status/${teacherId}`);
-      const data = await response.json();
+      const data = await apiService.makeRequest<any>(`/zoom/status/${teacherId}`);
 
       setConfigured(data.configured !== false);
 
@@ -61,27 +61,16 @@ export function ZoomStatus({ teacherId, compact = false }: ZoomStatusProps) {
       setConnecting(true);
       setError(null);
 
-      const response = await fetch('/api/zoom/connect', {
+      const data = await apiService.makeRequest<any>('/zoom/connect', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({ teacherId })
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setConfigured(data.configured !== false);
-        setError(data.error || 'Unable to connect to Zoom. Please try again later.');
-        return;
-      }
-
       setConfigured(true);
       setAccount(data.account);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error connecting Zoom account:', error);
-      setError('Unable to connect to Zoom. Please try again later.');
+      setError(error.message || 'Unable to connect to Zoom. Please try again later.');
     } finally {
       setConnecting(false);
     }

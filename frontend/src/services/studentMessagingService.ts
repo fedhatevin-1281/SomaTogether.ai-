@@ -1,54 +1,5 @@
-import { supabase } from '../supabaseClient';
-
-export interface Conversation {
-  id: string;
-  type: 'direct' | 'group' | 'class';
-  title: string;
-  class_id?: string;
-  created_by: string;
-  participants: string[];
-  last_message_at: string;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-  // Additional fields for display
-  other_participant?: {
-    id: string;
-    name: string;
-    avatar_url?: string;
-    role: string;
-  };
-  last_message?: {
-    content: string;
-    sender_name: string;
-    created_at: string;
-  };
-  unread_count?: number;
-}
-
-export interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  content: string;
-  message_type: 'text' | 'image' | 'file' | 'assignment' | 'system';
-  attachments: any[];
-  reply_to_id?: string;
-  is_edited: boolean;
-  edited_at?: string;
-  is_deleted: boolean;
-  deleted_at?: string;
-  metadata: any;
-  created_at: string;
-  // Additional fields for display
-  sender_name: string;
-  sender_avatar?: string;
-  sender_role: string;
-  reply_to?: {
-    content: string;
-    sender_name: string;
-  };
-}
+import { messagingService, Conversation, Message } from './messagingService';
+import { apiService } from './apiService';
 
 export interface TeacherContact {
   id: string;
@@ -60,7 +11,6 @@ export interface TeacherContact {
   total_reviews: number;
   is_available: boolean;
   last_seen?: string;
-  // Conversation info
   conversation_id?: string;
   unread_count?: number;
   last_message?: string;
@@ -73,95 +23,24 @@ class StudentMessagingService {
    */
   static async getConversations(studentId: string): Promise<Conversation[]> {
     try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select(`
-          *,
-          messages!messages_conversation_id_fkey (
-            id,
-            content,
-            created_at,
-            sender_id,
-            profiles!messages_sender_id_fkey (
-              full_name
-            )
-          )
-        `)
-        .contains('participants', [studentId])
-        .order('last_message_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return [];
-      }
-
-      // Process conversations to add display information
-      const processedConversations = await Promise.all(
-        (data || []).map(async (conv) => {
-          // Get other participants (not the current student)
-          const otherParticipants = conv.participants.filter((id: string) => id !== studentId);
-          
-          let otherParticipant = null;
-          if (otherParticipants.length > 0) {
-            const { data: participantData } = await supabase
-              .from('profiles')
-              .select('id, full_name, avatar_url, role')
-              .eq('id', otherParticipants[0])
-              .single();
-            
-            if (participantData) {
-              otherParticipant = participantData;
-            }
-          }
-
-          // Get last message info
-          const lastMessage = conv.messages && conv.messages.length > 0 
-            ? conv.messages[conv.messages.length - 1]
-            : null;
-
-          // Get unread count - messages not read by this student
-          let unreadCount = 0;
-          try {
-            const { data: unreadMessages, error: unreadError } = await supabase
-              .from('messages')
-              .select('id')
-              .eq('conversation_id', conv.id)
-              .neq('sender_id', studentId) // Only count messages not sent by student
-              .eq('is_deleted', false);
-
-            if (!unreadError && unreadMessages && unreadMessages.length > 0) {
-              // Check which messages have been read by this student
-              const messageIds = unreadMessages.map(m => m.id);
-              const { data: readMessages } = await supabase
-                .from('message_reads')
-                .select('message_id')
-                .in('message_id', messageIds)
-                .eq('user_id', studentId);
-
-              const readMessageIds = new Set((readMessages || []).map(r => r.message_id));
-              unreadCount = messageIds.filter(id => !readMessageIds.has(id)).length;
-            }
-          } catch (error) {
-            console.error('Error calculating unread count:', error);
-            unreadCount = 0;
-          }
-
-          return {
-            ...conv,
-            other_participant: otherParticipant,
-            last_message: lastMessage ? {
-              content: lastMessage.content,
-              sender_name: lastMessage.profiles?.full_name || 'Unknown',
-              created_at: lastMessage.created_at
-            } : undefined,
-            unread_count: unreadCount
-          };
-        })
-      );
-
-      return processedConversations;
+      const convs = await messagingService.getConversations(studentId);
+      // Format to fit the StudentConversation layout
+      return convs.map(conv => ({
+        ...conv,
+        other_participant: conv.other_participant ? {
+          id: conv.other_participant.id,
+          name: conv.other_participant.full_name,
+          avatar_url: conv.other_participant.avatar_url,
+          role: conv.other_participant.role
+        } : undefined,
+        last_message: conv.last_message ? {
+          content: conv.last_message.content,
+          sender_name: conv.last_message.sender?.full_name || 'Unknown',
+          created_at: conv.last_message.created_at
+        } : undefined
+      }));
     } catch (error) {
-      console.error('Error in getConversations:', error);
+      console.error('Error fetching student conversations via API:', error);
       return [];
     }
   }
@@ -171,38 +50,20 @@ class StudentMessagingService {
    */
   static async getMessages(conversationId: string): Promise<Message[]> {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          profiles!messages_sender_id_fkey (
-            full_name,
-            avatar_url,
-            role
-          )
-        `)
-        .eq('conversation_id', conversationId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return [];
-      }
-
-      return (data || []).map((msg: any) => ({
+      const messages = await messagingService.getMessages(conversationId);
+      return messages.map((msg: any) => ({
         ...msg,
-        sender_name: msg.profiles?.full_name || 'Unknown',
-        sender_avatar: msg.profiles?.avatar_url,
-        sender_role: msg.profiles?.role || 'user',
+        sender_name: msg.sender?.full_name || 'Unknown',
+        sender_avatar: msg.sender?.avatar_url,
+        sender_role: msg.sender?.role || 'user',
         reply_to: msg.reply_to_id ? {
           id: msg.reply_to_id,
-          content: 'Reply message', // We'll fetch this separately if needed
-          sender_name: 'Previous message'
+          content: msg.reply_to?.content || 'Reply message',
+          sender_name: msg.reply_to?.sender?.full_name || 'Previous message'
         } : null
       }));
     } catch (error) {
-      console.error('Error in getMessages:', error);
+      console.error('Error fetching student messages via API:', error);
       return [];
     }
   }
@@ -219,34 +80,18 @@ class StudentMessagingService {
     replyToId?: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: senderId,
-          content,
-          message_type: messageType,
-          attachments,
-          reply_to_id: replyToId
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error sending message:', error);
-        return { success: false, error: error.message };
-      }
-
-      // Update conversation's last_message_at
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
-
-      return { success: true, messageId: data.id };
-    } catch (error) {
-      console.error('Error in sendMessage:', error);
-      return { success: false, error: 'Failed to send message' };
+      const msg = await messagingService.sendMessage(
+        conversationId,
+        senderId,
+        content,
+        messageType,
+        attachments,
+        replyToId
+      );
+      return { success: true, messageId: msg.id };
+    } catch (error: any) {
+      console.error('Error sending student message via API:', error);
+      return { success: false, error: error.message || 'Failed to send message' };
     }
   }
 
@@ -258,66 +103,11 @@ class StudentMessagingService {
     teacherId: string
   ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      console.log('Creating conversation between student:', studentId, 'and teacher:', teacherId);
-      
-      // Check if conversation already exists - use a different approach
-      const { data: existingConvs, error: fetchError } = await supabase
-        .from('conversations')
-        .select('id, participants')
-        .eq('type', 'direct')
-        .contains('participants', [studentId]);
-
-      if (fetchError) {
-        console.error('Error fetching existing conversations:', fetchError);
-      }
-
-      // Check if any existing conversation contains both participants
-      let existingConv = null;
-      if (existingConvs) {
-        existingConv = existingConvs.find(conv => 
-          conv.participants && 
-          conv.participants.includes(studentId) && 
-          conv.participants.includes(teacherId)
-        );
-      }
-
-      if (existingConv) {
-        console.log('Found existing conversation:', existingConv.id);
-        return { success: true, conversationId: existingConv.id };
-      }
-
-      // Get teacher name for conversation title
-      const { data: teacherData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', teacherId)
-        .single();
-
-      const teacherName = teacherData?.full_name || 'Teacher';
-      console.log('Teacher name:', teacherName);
-
-      // Create new conversation
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert({
-          type: 'direct',
-          title: `Chat with ${teacherName}`,
-          created_by: studentId,
-          participants: [studentId, teacherId]
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating teacher conversation:', error);
-        return { success: false, error: error.message };
-      }
-
-      console.log('Created new conversation:', data.id);
-      return { success: true, conversationId: data.id };
-    } catch (error) {
-      console.error('Error in getOrCreateTeacherConversation:', error);
-      return { success: false, error: 'Failed to create teacher conversation' };
+      const conv = await messagingService.findOrCreateDirectConversation(studentId, teacherId);
+      return { success: true, conversationId: conv.id };
+    } catch (error: any) {
+      console.error('Error creating teacher conversation via API:', error);
+      return { success: false, error: error.message || 'Failed to create conversation' };
     }
   }
 
@@ -326,159 +116,54 @@ class StudentMessagingService {
    */
   static async getOrCreateAIConversation(studentId: string): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      console.log('Creating AI conversation for student:', studentId);
-      
-      // Check if AI conversation already exists
-      const { data: existingConvs, error: fetchError } = await supabase
-        .from('conversations')
-        .select('id, participants, title')
-        .eq('type', 'direct')
-        .contains('participants', [studentId])
-        .eq('title', 'AI Assistant');
-
-      if (fetchError) {
-        console.error('Error fetching existing AI conversations:', fetchError);
-      }
-
-      // Check if any existing conversation is with AI
-      let existingConv = null;
-      if (existingConvs) {
-        existingConv = existingConvs.find(conv => 
-          conv.participants && 
-          conv.participants.includes(studentId) && 
-          conv.participants.includes('ai-assistant')
-        );
-      }
-
-      if (existingConv) {
-        console.log('Found existing AI conversation:', existingConv.id);
-        return { success: true, conversationId: existingConv.id };
-      }
-
-      // Create new AI conversation
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert({
-          type: 'direct',
-          title: 'AI Assistant',
-          created_by: studentId,
-          participants: [studentId, 'ai-assistant'] // Special ID for AI
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating AI conversation:', error);
-        return { success: false, error: error.message };
-      }
-
-      console.log('Created new AI conversation:', data.id);
-      return { success: true, conversationId: data.id };
-    } catch (error) {
-      console.error('Error in getOrCreateAIConversation:', error);
-      return { success: false, error: 'Failed to create AI conversation' };
+      // Find existing or create direct chat with special recipient 'ai-assistant'
+      const conv = await messagingService.createConversation([studentId, 'ai-assistant'], 'direct', 'AI Assistant');
+      return { success: true, conversationId: conv.id };
+    } catch (error: any) {
+      console.error('Error creating AI conversation via API:', error);
+      return { success: false, error: error.message || 'Failed to create AI conversation' };
     }
   }
 
   /**
    * Get available teachers for messaging
-   * Only returns teachers that the student is linked to through classes
    */
   static async getAvailableTeachers(studentId: string): Promise<TeacherContact[]> {
     try {
-      // First, get all teacher IDs that have active classes with this student
-      const { data: classesData, error: classesError } = await supabase
-        .from('classes')
-        .select('teacher_id')
-        .eq('student_id', studentId)
-        .eq('status', 'active');
+      // Get student's classes to find teachers
+      const classes = await apiService.makeRequest<{ success: boolean; data: any[] }>(`/classes/student/${studentId}`);
+      const teacherIds = [...new Set((classes.data || []).map(c => c.teacher_id).filter(Boolean))];
 
-      if (classesError) {
-        console.error('Error fetching classes:', classesError);
-        return [];
-      }
+      if (teacherIds.length === 0) return [];
 
-      if (!classesData || classesData.length === 0) {
-        return [];
-      }
-
-      // Extract unique teacher IDs
-      const teacherIds = [...new Set(classesData.map(c => c.teacher_id))];
-
-      // Now get the teacher details
-      const { data, error } = await supabase
-        .from('teachers')
-        .select(`
-          id,
-          subjects,
-          rating,
-          total_reviews,
-          is_available,
-          updated_at,
-          profiles!teachers_id_fkey (
-            id,
-            full_name,
-            email,
-            avatar_url,
-            role
-          )
-        `)
-        .in('id', teacherIds)
-        .eq('is_available', true);
-
-      if (error) {
-        console.error('Error fetching teachers:', error);
-        return [];
-      }
-
-      // Filter to only include teachers with active profiles
-      const filteredData = (data || []).filter(teacher => teacher.profiles?.role === 'teacher');
-
-      // Get conversation info for each teacher
-      const teachersWithConversations = await Promise.all(
-        filteredData.map(async (teacher) => {
-          const convResult = await this.getOrCreateTeacherConversation(studentId, teacher.id);
-          const conversationId = convResult.conversationId;
-
-          // Get last message if conversation exists
-          let lastMessage = null;
-          let lastMessageTime = null;
-          if (conversationId) {
-            const { data: lastMsg } = await supabase
-              .from('messages')
-              .select('content, created_at')
-              .eq('conversation_id', conversationId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (lastMsg) {
-              lastMessage = lastMsg.content;
-              lastMessageTime = lastMsg.created_at;
-            }
-          }
-
-          return {
-            id: teacher.id,
-            name: teacher.profiles?.full_name || 'Unknown Teacher',
-            email: teacher.profiles?.email || '',
-            avatar_url: teacher.profiles?.avatar_url,
-            subjects: teacher.subjects || [],
-            rating: teacher.rating || 0,
-            total_reviews: teacher.total_reviews || 0,
-            is_available: teacher.is_available,
-            last_seen: teacher.updated_at,
-            conversation_id: conversationId,
-            unread_count: 0, // TODO: Implement unread count
-            last_message: lastMessage,
-            last_message_time: lastMessageTime
-          };
+      // Query teacher profiles using generic db query
+      const teachersRes = await apiService.makeRequest<{ success: boolean; data: any[] }>('/db/teachers/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          select: '*, profiles:profiles!teachers_id_fkey(*)'
         })
-      );
+      });
 
-      return teachersWithConversations;
+      const activeTeachers = (teachersRes.data || []).filter(t => teacherIds.includes(t.id) && t.is_available);
+
+      return await Promise.all(activeTeachers.map(async (t) => {
+        const convRes = await this.getOrCreateTeacherConversation(studentId, t.id);
+        return {
+          id: t.id,
+          name: t.profiles?.full_name || 'Unknown Teacher',
+          email: t.profiles?.email || '',
+          avatar_url: t.profiles?.avatar_url,
+          subjects: t.subjects || [],
+          rating: t.rating || 0,
+          total_reviews: t.total_reviews || 0,
+          is_available: t.is_available,
+          last_seen: t.updated_at,
+          conversation_id: convRes.conversationId,
+          unread_count: 0
+        };
+      }));
     } catch (error) {
-      console.error('Error in getAvailableTeachers:', error);
+      console.error('Error getting available teachers via API:', error);
       return [];
     }
   }
@@ -488,60 +173,10 @@ class StudentMessagingService {
    */
   static async getStudentRequests(studentId: string): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('session_requests')
-        .select(`
-          *,
-          teachers!session_requests_teacher_id_fkey(
-            id,
-            hourly_rate,
-            currency,
-            subjects,
-            specialties,
-            experience_years,
-            rating,
-            total_reviews,
-            verification_status,
-            profiles!teachers_id_fkey(
-              id,
-              full_name,
-              email,
-              avatar_url
-            )
-          )
-        `)
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching student requests:', error);
-        return [];
-      }
-
-      return (data || []).map((request: any) => {
-        const teacher = request.teachers;
-        const profile = teacher?.profiles;
-        
-        return {
-          ...request,
-          teacher: {
-            id: teacher?.id || request.teacher_id,
-            full_name: profile?.full_name || 'Unknown Teacher',
-            email: profile?.email || '',
-            avatar_url: profile?.avatar_url,
-            hourly_rate: teacher?.hourly_rate || 0,
-            currency: teacher?.currency || 'USD',
-            subjects: teacher?.subjects || [],
-            specialties: teacher?.specialties || [],
-            experience_years: teacher?.experience_years || 0,
-            rating: teacher?.rating || 0,
-            total_reviews: teacher?.total_reviews || 0,
-            verification_status: teacher?.verification_status || 'pending',
-          },
-        };
-      });
+      const res = await apiService.makeRequest<{ success: boolean; data: any[] }>(`/session-requests/student/${studentId}`);
+      return res.data || [];
     } catch (error) {
-      console.error('Error in getStudentRequests:', error);
+      console.error('Error fetching student requests via API:', error);
       return [];
     }
   }
@@ -551,39 +186,20 @@ class StudentMessagingService {
    */
   static async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
     try {
-      const { data: messages } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('conversation_id', conversationId)
-        .neq('sender_id', userId)
-        .eq('is_deleted', false);
+      // Fetch messages for conversation first
+      const messages = await messagingService.getMessages(conversationId);
+      const unreadMessageIds = messages
+        .filter(m => m.sender_id !== userId && !m.read_by?.some(r => r.user_id === userId))
+        .map(m => m.id);
 
-      if (!messages || messages.length === 0) return;
-
-      const messageIds = messages.map(m => m.id);
-      const { data: existingReads } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .in('message_id', messageIds)
-        .eq('user_id', userId);
-
-      const readIds = new Set((existingReads || []).map(r => r.message_id));
-      const unreadIds = messageIds.filter(id => !readIds.has(id));
-
-      if (unreadIds.length === 0) return;
-
-      const readsToInsert = unreadIds.map(id => ({
-        message_id: id,
-        user_id: userId
-      }));
-
-      await supabase
-        .from('message_reads')
-        .upsert(readsToInsert, { onConflict: 'message_id,user_id', ignoreDuplicates: true });
+      if (unreadMessageIds.length > 0) {
+        await messagingService.markMessagesAsRead(unreadMessageIds, userId);
+      }
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      console.error('Error marking messages as read via API:', error);
     }
   }
 }
 
 export default StudentMessagingService;
+export type { Conversation, Message };

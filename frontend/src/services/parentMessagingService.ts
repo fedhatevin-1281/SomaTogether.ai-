@@ -1,54 +1,6 @@
-import { supabase } from '../supabaseClient';
-
-export interface Conversation {
-  id: string;
-  type: 'direct' | 'group' | 'class';
-  title: string;
-  class_id?: string;
-  created_by: string;
-  participants: string[];
-  last_message_at: string;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-  // Additional fields for display
-  other_participant?: {
-    id: string;
-    name: string;
-    avatar_url?: string;
-    role: string;
-  };
-  last_message?: {
-    content: string;
-    sender_name: string;
-    created_at: string;
-  };
-  unread_count?: number;
-}
-
-export interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  content: string;
-  message_type: 'text' | 'image' | 'file' | 'assignment' | 'system';
-  attachments: any[];
-  reply_to_id?: string;
-  is_edited: boolean;
-  edited_at?: string;
-  is_deleted: boolean;
-  deleted_at?: string;
-  metadata: any;
-  created_at: string;
-  // Additional fields for display
-  sender_name: string;
-  sender_avatar?: string;
-  sender_role: string;
-  reply_to?: {
-    content: string;
-    sender_name: string;
-  };
-}
+import { messagingService, Conversation, Message } from './messagingService';
+import { apiService } from './apiService';
+import parentService from './parentService';
 
 export interface TeacherContact {
   id: string;
@@ -60,7 +12,6 @@ export interface TeacherContact {
   total_reviews: number;
   is_available: boolean;
   last_seen?: string;
-  // Conversation info
   conversation_id?: string;
   unread_count?: number;
   last_message?: string;
@@ -83,7 +34,6 @@ export interface SessionRequest {
   expires_at: string;
   created_at: string;
   updated_at: string;
-  // Additional fields for display
   student_name: string;
   teacher_name: string;
   teacher_avatar?: string;
@@ -96,95 +46,23 @@ class ParentMessagingService {
    */
   static async getConversations(parentId: string): Promise<Conversation[]> {
     try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select(`
-          *,
-          messages!messages_conversation_id_fkey (
-            id,
-            content,
-            created_at,
-            sender_id,
-            profiles!messages_sender_id_fkey (
-              full_name
-            )
-          )
-        `)
-        .contains('participants', [parentId])
-        .order('last_message_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return [];
-      }
-
-      // Process conversations to add display information
-      const processedConversations = await Promise.all(
-        (data || []).map(async (conv) => {
-          // Get other participants (not the current parent)
-          const otherParticipants = conv.participants.filter((id: string) => id !== parentId);
-          
-          let otherParticipant = null;
-          if (otherParticipants.length > 0) {
-            const { data: participantData } = await supabase
-              .from('profiles')
-              .select('id, full_name, avatar_url, role')
-              .eq('id', otherParticipants[0])
-              .single();
-            
-            if (participantData) {
-              otherParticipant = participantData;
-            }
-          }
-
-          // Get last message info
-          const lastMessage = conv.messages && conv.messages.length > 0 
-            ? conv.messages[conv.messages.length - 1]
-            : null;
-
-          // Get unread count - messages not read by this parent
-          let unreadCount = 0;
-          try {
-            const { data: unreadMessages, error: unreadError } = await supabase
-              .from('messages')
-              .select('id')
-              .eq('conversation_id', conv.id)
-              .neq('sender_id', parentId) // Only count messages not sent by parent
-              .eq('is_deleted', false);
-
-            if (!unreadError && unreadMessages && unreadMessages.length > 0) {
-              // Check which messages have been read by this parent
-              const messageIds = unreadMessages.map(m => m.id);
-              const { data: readMessages } = await supabase
-                .from('message_reads')
-                .select('message_id')
-                .in('message_id', messageIds)
-                .eq('user_id', parentId);
-
-              const readMessageIds = new Set((readMessages || []).map(r => r.message_id));
-              unreadCount = messageIds.filter(id => !readMessageIds.has(id)).length;
-            }
-          } catch (error) {
-            console.error('Error calculating unread count:', error);
-            unreadCount = 0;
-          }
-
-          return {
-            ...conv,
-            other_participant: otherParticipant,
-            last_message: lastMessage ? {
-              content: lastMessage.content,
-              sender_name: lastMessage.profiles?.full_name || 'Unknown',
-              created_at: lastMessage.created_at
-            } : undefined,
-            unread_count: unreadCount
-          };
-        })
-      );
-
-      return processedConversations;
+      const convs = await messagingService.getConversations(parentId);
+      return convs.map(conv => ({
+        ...conv,
+        other_participant: conv.other_participant ? {
+          id: conv.other_participant.id,
+          name: conv.other_participant.full_name,
+          avatar_url: conv.other_participant.avatar_url,
+          role: conv.other_participant.role
+        } : undefined,
+        last_message: conv.last_message ? {
+          content: conv.last_message.content,
+          sender_name: conv.last_message.sender?.full_name || 'Unknown',
+          created_at: conv.last_message.created_at
+        } : undefined
+      }));
     } catch (error) {
-      console.error('Error in getConversations:', error);
+      console.error('Error fetching parent conversations via API:', error);
       return [];
     }
   }
@@ -194,38 +72,20 @@ class ParentMessagingService {
    */
   static async getMessages(conversationId: string): Promise<Message[]> {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          profiles!messages_sender_id_fkey (
-            full_name,
-            avatar_url,
-            role
-          )
-        `)
-        .eq('conversation_id', conversationId)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return [];
-      }
-
-      return (data || []).map((msg: any) => ({
+      const messages = await messagingService.getMessages(conversationId);
+      return messages.map((msg: any) => ({
         ...msg,
-        sender_name: msg.profiles?.full_name || 'Unknown',
-        sender_avatar: msg.profiles?.avatar_url,
-        sender_role: msg.profiles?.role || 'user',
+        sender_name: msg.sender?.full_name || 'Unknown',
+        sender_avatar: msg.sender?.avatar_url,
+        sender_role: msg.sender?.role || 'user',
         reply_to: msg.reply_to_id ? {
           id: msg.reply_to_id,
-          content: 'Reply message', // We'll fetch this separately if needed
-          sender_name: 'Previous message'
+          content: msg.reply_to?.content || 'Reply message',
+          sender_name: msg.reply_to?.sender?.full_name || 'Previous message'
         } : null
       }));
     } catch (error) {
-      console.error('Error in getMessages:', error);
+      console.error('Error fetching parent messages via API:', error);
       return [];
     }
   }
@@ -242,34 +102,18 @@ class ParentMessagingService {
     replyToId?: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: senderId,
-          content,
-          message_type: messageType,
-          attachments,
-          reply_to_id: replyToId
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error sending message:', error);
-        return { success: false, error: error.message };
-      }
-
-      // Update conversation's last_message_at
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
-
-      return { success: true, messageId: data.id };
-    } catch (error) {
-      console.error('Error in sendMessage:', error);
-      return { success: false, error: 'Failed to send message' };
+      const msg = await messagingService.sendMessage(
+        conversationId,
+        senderId,
+        content,
+        messageType,
+        attachments,
+        replyToId
+      );
+      return { success: true, messageId: msg.id };
+    } catch (error: any) {
+      console.error('Error sending parent message via API:', error);
+      return { success: false, error: error.message || 'Failed to send message' };
     }
   }
 
@@ -278,57 +122,11 @@ class ParentMessagingService {
    */
   static async getOrCreateAIConversation(parentId: string): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      console.log('Creating AI conversation for parent:', parentId);
-      
-      // Check if AI conversation already exists
-      const { data: existingConvs, error: fetchError } = await supabase
-        .from('conversations')
-        .select('id, participants, title')
-        .eq('type', 'direct')
-        .contains('participants', [parentId])
-        .eq('title', 'AI Assistant');
-
-      if (fetchError) {
-        console.error('Error fetching existing AI conversations:', fetchError);
-      }
-
-      // Check if any existing conversation is with AI
-      let existingConv = null;
-      if (existingConvs) {
-        existingConv = existingConvs.find(conv => 
-          conv.participants && 
-          conv.participants.includes(parentId) && 
-          conv.participants.includes('ai-assistant')
-        );
-      }
-
-      if (existingConv) {
-        console.log('Found existing AI conversation:', existingConv.id);
-        return { success: true, conversationId: existingConv.id };
-      }
-
-      // Create new AI conversation
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert({
-          type: 'direct',
-          title: 'AI Assistant',
-          created_by: parentId,
-          participants: [parentId, 'ai-assistant'] // Special ID for AI
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating AI conversation:', error);
-        return { success: false, error: error.message };
-      }
-
-      console.log('Created new AI conversation:', data.id);
-      return { success: true, conversationId: data.id };
-    } catch (error) {
-      console.error('Error in getOrCreateAIConversation:', error);
-      return { success: false, error: 'Failed to create AI conversation' };
+      const conv = await messagingService.createConversation([parentId, 'ai-assistant'], 'direct', 'AI Assistant');
+      return { success: true, conversationId: conv.id };
+    } catch (error: any) {
+      console.error('Error creating parent AI conversation:', error);
+      return { success: false, error: error.message || 'Failed to create AI conversation' };
     }
   }
 
@@ -340,66 +138,11 @@ class ParentMessagingService {
     teacherId: string
   ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
     try {
-      console.log('Creating conversation between parent:', parentId, 'and teacher:', teacherId);
-      
-      // Check if conversation already exists - use a different approach
-      const { data: existingConvs, error: fetchError } = await supabase
-        .from('conversations')
-        .select('id, participants')
-        .eq('type', 'direct')
-        .contains('participants', [parentId]);
-
-      if (fetchError) {
-        console.error('Error fetching existing conversations:', fetchError);
-      }
-
-      // Check if any existing conversation contains both participants
-      let existingConv = null;
-      if (existingConvs) {
-        existingConv = existingConvs.find(conv => 
-          conv.participants && 
-          conv.participants.includes(parentId) && 
-          conv.participants.includes(teacherId)
-        );
-      }
-
-      if (existingConv) {
-        console.log('Found existing conversation:', existingConv.id);
-        return { success: true, conversationId: existingConv.id };
-      }
-
-      // Get teacher name for conversation title
-      const { data: teacherData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', teacherId)
-        .single();
-
-      const teacherName = teacherData?.full_name || 'Teacher';
-      console.log('Teacher name:', teacherName);
-
-      // Create new conversation
-      const { data, error } = await supabase
-        .from('conversations')
-        .insert({
-          type: 'direct',
-          title: `Chat with ${teacherName}`,
-          created_by: parentId,
-          participants: [parentId, teacherId]
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating teacher conversation:', error);
-        return { success: false, error: error.message };
-      }
-
-      console.log('Created new conversation:', data.id);
-      return { success: true, conversationId: data.id };
-    } catch (error) {
-      console.error('Error in getOrCreateTeacherConversation:', error);
-      return { success: false, error: 'Failed to create teacher conversation' };
+      const conv = await messagingService.findOrCreateDirectConversation(parentId, teacherId);
+      return { success: true, conversationId: conv.id };
+    } catch (error: any) {
+      console.error('Error creating parent-teacher conversation:', error);
+      return { success: false, error: error.message || 'Failed to create conversation' };
     }
   }
 
@@ -408,76 +151,33 @@ class ParentMessagingService {
    */
   static async getAvailableTeachers(parentId: string): Promise<TeacherContact[]> {
     try {
-      const { data, error } = await supabase
-        .from('teachers')
-        .select(`
-          id,
-          subjects,
-          rating,
-          total_reviews,
-          is_available,
-          updated_at,
-          profiles!inner (
-            id,
-            full_name,
-            email,
-            avatar_url,
-            role
-          )
-        `)
-        .eq('is_available', true)
-        .eq('profiles.is_active', true);
-
-      if (error) {
-        console.error('Error fetching teachers:', error);
-        return [];
-      }
-
-      // Get conversation info for each teacher
-      const teachersWithConversations = await Promise.all(
-        (data || []).map(async (teacher) => {
-          const convResult = await this.getOrCreateTeacherConversation(parentId, teacher.id);
-          const conversationId = convResult.conversationId;
-
-          // Get last message if conversation exists
-          let lastMessage = null;
-          let lastMessageTime = null;
-          if (conversationId) {
-            const { data: lastMsg } = await supabase
-              .from('messages')
-              .select('content, created_at')
-              .eq('conversation_id', conversationId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-            
-            if (lastMsg) {
-              lastMessage = lastMsg.content;
-              lastMessageTime = lastMsg.created_at;
-            }
-          }
-
-          return {
-            id: teacher.id,
-            name: teacher.profiles.full_name,
-            email: teacher.profiles.email,
-            avatar_url: teacher.profiles.avatar_url,
-            subjects: teacher.subjects || [],
-            rating: teacher.rating || 0,
-            total_reviews: teacher.total_reviews || 0,
-            is_available: teacher.is_available,
-            last_seen: teacher.updated_at,
-            conversation_id: conversationId,
-            unread_count: 0, // TODO: Implement unread count
-            last_message: lastMessage,
-            last_message_time: lastMessageTime
-          };
+      // Query teacher profiles using generic db query
+      const teachersRes = await apiService.makeRequest<{ success: boolean; data: any[] }>('/db/teachers/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          select: '*, profiles:profiles!teachers_id_fkey(*)',
+          eq: { is_available: true }
         })
-      );
+      });
 
-      return teachersWithConversations;
+      return await Promise.all((teachersRes.data || []).map(async (t) => {
+        const convRes = await this.getOrCreateTeacherConversation(parentId, t.id);
+        return {
+          id: t.id,
+          name: t.profiles?.full_name || 'Unknown Teacher',
+          email: t.profiles?.email || '',
+          avatar_url: t.profiles?.avatar_url,
+          subjects: t.subjects || [],
+          rating: t.rating || 0,
+          total_reviews: t.total_reviews || 0,
+          is_available: t.is_available,
+          last_seen: t.updated_at,
+          conversation_id: convRes.conversationId,
+          unread_count: 0
+        };
+      }));
     } catch (error) {
-      console.error('Error in getAvailableTeachers:', error);
+      console.error('Error getting available teachers via API:', error);
       return [];
     }
   }
@@ -497,11 +197,11 @@ class ParentMessagingService {
   ): Promise<{ success: boolean; requestId?: string; error?: string }> {
     try {
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // Expire in 24 hours
+      expiresAt.setHours(expiresAt.getHours() + 24);
 
-      const { data, error } = await supabase
-        .from('session_requests')
-        .insert({
+      const res = await apiService.makeRequest<{ success: boolean; data: any }>('/session-requests', {
+        method: 'POST',
+        body: JSON.stringify({
           student_id: studentId,
           teacher_id: teacherId,
           requested_start: requestedStart,
@@ -512,27 +212,29 @@ class ParentMessagingService {
           expires_at: expiresAt.toISOString(),
           status: 'pending'
         })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating session request:', error);
-        return { success: false, error: error.message };
-      }
+      });
 
       // Send notification to teacher
-      await this.sendNotification(
-        teacherId,
-        'session_request',
-        'New Session Request',
-        `You have a new session request from a parent`,
-        { request_id: data.id, parent_id: parentId, student_id: studentId }
-      );
+      try {
+        await apiService.makeRequest('/notifications', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: teacherId,
+            type: 'session_request',
+            title: 'New Session Request',
+            message: `You have a new session request from a parent`,
+            data: { request_id: res.data.id, parent_id: parentId, student_id: studentId },
+            priority: 'normal'
+          })
+        });
+      } catch (notifErr) {
+        console.warn('Optional notification trigger failed:', notifErr);
+      }
 
-      return { success: true, requestId: data.id };
-    } catch (error) {
-      console.error('Error in sendSessionRequest:', error);
-      return { success: false, error: 'Failed to send session request' };
+      return { success: true, requestId: res.data.id };
+    } catch (error: any) {
+      console.error('Error in sendSessionRequest via API:', error);
+      return { success: false, error: error.message || 'Failed to send session request' };
     }
   }
 
@@ -541,98 +243,29 @@ class ParentMessagingService {
    */
   static async getSessionRequests(parentId: string): Promise<SessionRequest[]> {
     try {
-      // Get children of the parent
-      const { data: children } = await supabase
-        .from('students')
-        .select('id')
-        .eq('parent_id', parentId);
+      const children = await parentService.getChildren(parentId);
+      if (children.length === 0) return [];
 
-      if (!children || children.length === 0) {
-        return [];
-      }
-
-      const childrenIds = children.map(child => child.id);
-
-      const { data, error } = await supabase
-        .from('session_requests')
-        .select(`
-          *,
-          students!session_requests_student_id_fkey (
-            profiles!inner (
-              full_name
-            )
-          ),
-          teachers!session_requests_teacher_id_fkey (
-            profiles!inner (
-              full_name,
-              avatar_url
-            )
-          ),
-          classes (
-            title,
-            subjects!inner (
-              name
-            )
-          )
-        `)
-        .in('student_id', childrenIds)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching session requests:', error);
-        return [];
-      }
-
-      return (data || []).map((request: any) => ({
-        id: request.id,
-        student_id: request.student_id,
-        teacher_id: request.teacher_id,
-        class_id: request.class_id,
-        requested_start: request.requested_start,
-        requested_end: request.requested_end,
-        duration_hours: request.duration_hours,
-        tokens_required: request.tokens_required,
-        status: request.status,
-        message: request.message,
-        teacher_response: request.teacher_response,
-        declined_reason: request.declined_reason,
-        expires_at: request.expires_at,
-        created_at: request.created_at,
-        updated_at: request.updated_at,
-        student_name: request.students?.profiles?.full_name || 'Unknown Student',
-        teacher_name: request.teachers?.profiles?.full_name || 'Unknown Teacher',
-        teacher_avatar: request.teachers?.profiles?.avatar_url,
-        subject: request.classes?.subjects?.name || 'General'
+      const allRequests = await Promise.all(children.map(async (child) => {
+        try {
+          const res = await apiService.makeRequest<{ success: boolean; data: any[] }>(`/session-requests/student/${child.id}`);
+          return (res.data || []).map(r => ({
+            ...r,
+            student_name: child.full_name,
+            teacher_name: r.teachers?.profiles?.full_name || 'Unknown Teacher',
+            teacher_avatar: r.teachers?.profiles?.avatar_url,
+            subject: r.classes?.subjects?.name || 'General'
+          }));
+        } catch (err) {
+          console.error(`Error loading session requests for child ${child.id}:`, err);
+          return [];
+        }
       }));
-    } catch (error) {
-      console.error('Error in getSessionRequests:', error);
-      return [];
-    }
-  }
 
-  /**
-   * Send notification to user
-   */
-  private static async sendNotification(
-    userId: string,
-    type: string,
-    title: string,
-    message: string,
-    data?: any
-  ): Promise<void> {
-    try {
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: userId,
-          type,
-          title,
-          message,
-          data: data || {},
-          priority: 'normal'
-        });
+      return allRequests.flat();
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error('Error in getSessionRequests via API:', error);
+      return [];
     }
   }
 
@@ -641,37 +274,16 @@ class ParentMessagingService {
    */
   static async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
     try {
-      const { data: messages } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('conversation_id', conversationId)
-        .neq('sender_id', userId)
-        .eq('is_deleted', false);
+      const messages = await messagingService.getMessages(conversationId);
+      const unreadMessageIds = messages
+        .filter(m => m.sender_id !== userId && !m.read_by?.some(r => r.user_id === userId))
+        .map(m => m.id);
 
-      if (!messages || messages.length === 0) return;
-
-      const messageIds = messages.map(m => m.id);
-      const { data: existingReads } = await supabase
-        .from('message_reads')
-        .select('message_id')
-        .in('message_id', messageIds)
-        .eq('user_id', userId);
-
-      const readIds = new Set((existingReads || []).map(r => r.message_id));
-      const unreadIds = messageIds.filter(id => !readIds.has(id));
-
-      if (unreadIds.length === 0) return;
-
-      const readsToInsert = unreadIds.map(id => ({
-        message_id: id,
-        user_id: userId
-      }));
-
-      await supabase
-        .from('message_reads')
-        .upsert(readsToInsert, { onConflict: 'message_id,user_id', ignoreDuplicates: true });
+      if (unreadMessageIds.length > 0) {
+        await messagingService.markMessagesAsRead(unreadMessageIds, userId);
+      }
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      console.error('Error marking messages as read via API:', error);
     }
   }
 }
