@@ -1,4 +1,5 @@
-// API service for communicating with the backend
+import { supabase } from '../supabaseClient';
+
 const API_BASE_URL = 'http://localhost:3001/api';
 
 export interface DashboardStats {
@@ -73,15 +74,24 @@ export interface WalletData {
 }
 
 class ApiService {
-  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  public async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    // Retrieve session JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
     });
 
     if (!response.ok) {
@@ -146,7 +156,5 @@ class ApiService {
   }
 }
 
-// Export singleton instance
 export const apiService = new ApiService();
 export default apiService;
-

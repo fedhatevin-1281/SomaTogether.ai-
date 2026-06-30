@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { apiService } from './apiService';
 
 export interface Notification {
   id: string;
@@ -58,11 +59,11 @@ class NotificationService {
             
             // Notify all listeners
             this.listeners.forEach(listener => {
-              try {
-                listener(notification);
-              } catch (error) {
-                console.error('Error in notification listener:', error);
-              }
+               try {
+                 listener(notification);
+               } catch (error) {
+                 console.error('Error in notification listener:', error);
+               }
             });
 
             // Show browser notification if permission granted
@@ -104,36 +105,13 @@ class NotificationService {
     unreadOnly: boolean = false
   ): Promise<{notifications: Notification[], total: number}> {
     try {
-      console.log('Fetching notifications for user:', userId);
-
-      let query = supabase
-        .from('notifications')
-        .select('*', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      // Filter out expired notifications
-      const now = new Date().toISOString();
-      query = query.or(`expires_at.is.null,expires_at.gt.${now}`);
-
-      if (unreadOnly) {
-        query = query.eq('is_read', false);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        throw error;
-      }
-
+      const res = await apiService.makeRequest<{ success: boolean; data: Notification[] }>(`/notifications/${userId}?limit=${limit}&unreadOnly=${unreadOnly}`);
       return {
-        notifications: data || [],
-        total: count || 0
+        notifications: res.data || [],
+        total: res.data?.length || 0
       };
     } catch (error) {
-      console.error('Error in getNotifications:', error);
+      console.error('Error in getNotifications via API:', error);
       throw error;
     }
   }
@@ -143,22 +121,12 @@ class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return false;
-      }
-
-      return true;
+      const res = await apiService.makeRequest<{ success: boolean }>(`/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      });
+      return res.success;
     } catch (error) {
-      console.error('Error in markAsRead:', error);
+      console.error('Error in markAsRead via API:', error);
       return false;
     }
   }
@@ -168,23 +136,12 @@ class NotificationService {
    */
   static async markAllAsRead(userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('is_read', false);
-
-      if (error) {
-        console.error('Error marking all notifications as read:', error);
-        return false;
-      }
-
-      return true;
+      const res = await apiService.makeRequest<{ success: boolean }>(`/notifications/user/${userId}/read`, {
+        method: 'PUT'
+      });
+      return res.success;
     } catch (error) {
-      console.error('Error in markAllAsRead:', error);
+      console.error('Error in markAllAsRead via API:', error);
       return false;
     }
   }
@@ -194,19 +151,12 @@ class NotificationService {
    */
   static async deleteNotification(notificationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error deleting notification:', error);
-        return false;
-      }
-
-      return true;
+      const res = await apiService.makeRequest<{ success: boolean }>(`/notifications/${notificationId}`, {
+        method: 'DELETE'
+      });
+      return res.success;
     } catch (error) {
-      console.error('Error in deleteNotification:', error);
+      console.error('Error in deleteNotification via API:', error);
       return false;
     }
   }
@@ -216,20 +166,10 @@ class NotificationService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('is_read', false);
-
-      if (error) {
-        console.error('Error getting unread count:', error);
-        return 0;
-      }
-
-      return count || 0;
+      const res = await apiService.makeRequest<{ success: boolean; count: number }>(`/notifications/${userId}/unread-count`);
+      return res.count;
     } catch (error) {
-      console.error('Error in getUnreadCount:', error);
+      console.error('Error in getUnreadCount via API:', error);
       return 0;
     }
   }
@@ -247,11 +187,9 @@ class NotificationService {
     expiresAt?: string
   ): Promise<string | null> {
     try {
-      console.log('Creating notification:', { userId, type, title, message });
-
-      const { data: notification, error } = await supabase
-        .from('notifications')
-        .insert({
+      const res = await apiService.makeRequest<{ success: boolean; data: Notification }>('/notifications', {
+        method: 'POST',
+        body: JSON.stringify({
           user_id: userId,
           type,
           title,
@@ -260,17 +198,10 @@ class NotificationService {
           priority,
           expires_at: expiresAt
         })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating notification:', error);
-        return null;
-      }
-
-      return notification.id;
+      });
+      return res.data?.id || null;
     } catch (error) {
-      console.error('Error in createNotification:', error);
+      console.error('Error in createNotification via API:', error);
       return null;
     }
   }
@@ -280,27 +211,19 @@ class NotificationService {
    */
   static async getNotificationPreferences(userId: string): Promise<NotificationPreferences | null> {
     try {
-      // Get from teacher preferences if user is teacher
-      const { data: teacherPrefs } = await supabase
-        .from('teacher_preferences')
-        .select('email_notifications, sms_notifications, push_notifications, marketing_emails')
-        .eq('teacher_id', userId)
-        .single();
-
-      if (teacherPrefs) {
+      const res = await apiService.makeRequest<{ success: boolean; data: any }>(`/notifications/preferences/${userId}`);
+      if (res.data) {
         return {
-          email_notifications: teacherPrefs.email_notifications,
-          sms_notifications: teacherPrefs.sms_notifications,
-          push_notifications: teacherPrefs.push_notifications,
-          marketing_emails: teacherPrefs.marketing_emails,
-          session_requests: true, // Default
-          session_reminders: true, // Default
-          payment_updates: true, // Default
-          system_updates: true // Default
+          email_notifications: res.data.email_notifications,
+          sms_notifications: res.data.sms_notifications,
+          push_notifications: res.data.push_notifications,
+          marketing_emails: res.data.marketing_emails,
+          session_requests: true,
+          session_reminders: true,
+          payment_updates: true,
+          system_updates: true
         };
       }
-
-      // Default preferences for non-teachers
       return {
         email_notifications: true,
         sms_notifications: false,
@@ -312,7 +235,7 @@ class NotificationService {
         system_updates: true
       };
     } catch (error) {
-      console.error('Error in getNotificationPreferences:', error);
+      console.error('Error in getNotificationPreferences via API:', error);
       return null;
     }
   }
@@ -325,25 +248,13 @@ class NotificationService {
     preferences: Partial<NotificationPreferences>
   ): Promise<boolean> {
     try {
-      // Update teacher preferences if user is teacher
-      const { error } = await supabase
-        .from('teacher_preferences')
-        .upsert({
-          teacher_id: userId,
-          email_notifications: preferences.email_notifications,
-          sms_notifications: preferences.sms_notifications,
-          push_notifications: preferences.push_notifications,
-          marketing_emails: preferences.marketing_emails
-        });
-
-      if (error) {
-        console.error('Error updating notification preferences:', error);
-        return false;
-      }
-
-      return true;
+      const res = await apiService.makeRequest<{ success: boolean }>(`/notifications/preferences/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(preferences)
+      });
+      return res.success;
     } catch (error) {
-      console.error('Error in updateNotificationPreferences:', error);
+      console.error('Error in updateNotificationPreferences via API:', error);
       return false;
     }
   }
@@ -384,7 +295,6 @@ class NotificationService {
         return;
       }
 
-      // Check if notification should be shown based on preferences
       const shouldShow = await this.shouldShowNotification(notification);
       if (!shouldShow) {
         return;
@@ -401,16 +311,13 @@ class NotificationService {
         window.focus();
         browserNotification.close();
         
-        // Mark as read when clicked
         this.markAsRead(notification.id);
         
-        // Navigate to relevant page if data contains navigation info
         if (notification.data?.navigate_to) {
           window.location.href = notification.data.navigate_to;
         }
       };
 
-      // Auto-close after 5 seconds
       setTimeout(() => {
         browserNotification.close();
       }, 5000);
@@ -427,7 +334,6 @@ class NotificationService {
       const preferences = await this.getNotificationPreferences(notification.user_id);
       if (!preferences) return true;
 
-      // Check specific notification types
       switch (notification.type) {
         case 'session_request':
           return preferences.session_requests;
@@ -444,7 +350,7 @@ class NotificationService {
       }
     } catch (error) {
       console.error('Error checking notification preferences:', error);
-      return true; // Default to showing notification
+      return true;
     }
   }
 
@@ -460,29 +366,20 @@ class NotificationService {
     priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal'
   ): Promise<number> {
     try {
-      console.log('Sending bulk notification to', userIds.length, 'users');
-
-      const notifications = userIds.map(userId => ({
-        user_id: userId,
-        type,
-        title,
-        message,
-        data: data || {},
-        priority
-      }));
-
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notifications);
-
-      if (error) {
-        console.error('Error sending bulk notification:', error);
-        return 0;
-      }
-
-      return userIds.length;
+      const res = await apiService.makeRequest<{ success: boolean; count: number }>('/notifications/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          userIds,
+          type,
+          title,
+          message,
+          data,
+          priority
+        })
+      });
+      return res.count || 0;
     } catch (error) {
-      console.error('Error in sendBulkNotification:', error);
+      console.error('Error in sendBulkNotification via API:', error);
       return 0;
     }
   }
@@ -492,14 +389,9 @@ class NotificationService {
    */
   static async cleanupExpiredNotifications(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .lt('expires_at', new Date().toISOString());
-
-      if (error) {
-        console.error('Error cleaning up expired notifications:', error);
-      }
+      await apiService.makeRequest('/notifications/cleanup', {
+        method: 'POST'
+      }).catch(() => null);
     } catch (error) {
       console.error('Error in cleanupExpiredNotifications:', error);
     }

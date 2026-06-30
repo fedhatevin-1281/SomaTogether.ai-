@@ -1,4 +1,4 @@
-import { supabase } from '../supabaseClient';
+import { apiService } from './apiService';
 
 export interface EducationSystem {
   id: string;
@@ -31,18 +31,14 @@ export class EducationService {
    */
   static async getEducationSystems(): Promise<EducationSystem[]> {
     try {
-      const { data, error } = await supabase
-        .from('education_systems')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching education systems:', error);
-        return [];
-      }
-
-      return data || [];
+      const res = await apiService.makeRequest<{ success: boolean; data: EducationSystem[] }>('/db/education_systems/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          eq: { is_active: true },
+          order: { column: 'name' }
+        })
+      });
+      return res.data || [];
     } catch (error) {
       console.error('Error fetching education systems:', error);
       return [];
@@ -54,18 +50,14 @@ export class EducationService {
    */
   static async getEducationLevels(systemId: string): Promise<EducationLevel[]> {
     try {
-      const { data, error } = await supabase
-        .from('education_levels')
-        .select('*')
-        .eq('system_id', systemId)
-        .order('order_index');
-
-      if (error) {
-        console.error('Error fetching education levels:', error);
-        return [];
-      }
-
-      return data || [];
+      const res = await apiService.makeRequest<{ success: boolean; data: EducationLevel[] }>('/db/education_levels/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          eq: { system_id: systemId },
+          order: { column: 'order_index' }
+        })
+      });
+      return res.data || [];
     } catch (error) {
       console.error('Error fetching education levels:', error);
       return [];
@@ -77,18 +69,14 @@ export class EducationService {
    */
   static async getSubjects(): Promise<Subject[]> {
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching subjects:', error);
-        return [];
-      }
-
-      return data || [];
+      const res = await apiService.makeRequest<{ success: boolean; data: Subject[] }>('/db/subjects/query', {
+        method: 'POST',
+        body: JSON.stringify({
+          eq: { is_active: true },
+          order: { column: 'name' }
+        })
+      });
+      return res.data || [];
     } catch (error) {
       console.error('Error fetching subjects:', error);
       return [];
@@ -106,9 +94,9 @@ export class EducationService {
     preferred_language: string;
   }) {
     try {
-      const { data: response, error } = await supabase
-        .from('onboarding_responses')
-        .insert({
+      const res = await apiService.makeRequest<{ success: boolean; data: any[] }>('/db/onboarding_responses/insert', {
+        method: 'POST',
+        body: JSON.stringify({
           user_id: data.user_id,
           system_id: data.system_id,
           level_id: data.level_id,
@@ -117,15 +105,8 @@ export class EducationService {
           completed: true,
           completed_at: new Date().toISOString()
         })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating onboarding response:', error);
-        return { success: false, error };
-      }
-
-      return { success: true, response };
+      });
+      return { success: res.success, response: res.data?.[0] };
     } catch (error) {
       console.error('Error creating onboarding response:', error);
       return { success: false, error };
@@ -142,16 +123,11 @@ export class EducationService {
         subject_id: subjectId
       }));
 
-      const { error } = await supabase
-        .from('onboarding_preferred_subjects')
-        .insert(subjectInserts);
-
-      if (error) {
-        console.error('Error adding preferred subjects:', error);
-        return { success: false, error };
-      }
-
-      return { success: true };
+      const res = await apiService.makeRequest<{ success: boolean }>('/db/onboarding_preferred_subjects/insert', {
+        method: 'POST',
+        body: JSON.stringify(subjectInserts)
+      });
+      return { success: res.success };
     } catch (error) {
       console.error('Error adding preferred subjects:', error);
       return { success: false, error };
@@ -167,24 +143,17 @@ export class EducationService {
     preferred_language: string;
   }) {
     try {
-      const { data: response, error } = await supabase
-        .from('teacher_onboarding_responses')
-        .insert({
+      const res = await apiService.makeRequest<{ success: boolean; data: any[] }>('/db/teacher_onboarding_responses/insert', {
+        method: 'POST',
+        body: JSON.stringify({
           teacher_id: data.teacher_id,
           max_children: data.max_children,
           preferred_language: data.preferred_language,
           completed: true,
           completed_at: new Date().toISOString()
         })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating teacher onboarding response:', error);
-        return { success: false, error };
-      }
-
-      return { success: true, response };
+      });
+      return { success: res.success, response: res.data?.[0] };
     } catch (error) {
       console.error('Error creating teacher onboarding response:', error);
       return { success: false, error };
@@ -201,16 +170,11 @@ export class EducationService {
         system_id: systemId
       }));
 
-      const { error } = await supabase
-        .from('teacher_preferred_curriculums')
-        .insert(curriculumInserts);
-
-      if (error) {
-        console.error('Error adding preferred curriculums:', error);
-        return { success: false, error };
-      }
-
-      return { success: true };
+      const res = await apiService.makeRequest<{ success: boolean }>('/db/teacher_preferred_curriculums/insert', {
+        method: 'POST',
+        body: JSON.stringify(curriculumInserts)
+      });
+      return { success: res.success };
     } catch (error) {
       console.error('Error adding preferred curriculums:', error);
       return { success: false, error };
@@ -227,16 +191,11 @@ export class EducationService {
         subject_id: subjectId
       }));
 
-      const { error } = await supabase
-        .from('teacher_preferred_subjects')
-        .insert(subjectInserts);
-
-      if (error) {
-        console.error('Error adding teacher preferred subjects:', error);
-        return { success: false, error };
-      }
-
-      return { success: true };
+      const res = await apiService.makeRequest<{ success: boolean }>('/db/teacher_preferred_subjects/insert', {
+        method: 'POST',
+        body: JSON.stringify(subjectInserts)
+      });
+      return { success: res.success };
     } catch (error) {
       console.error('Error adding teacher preferred subjects:', error);
       return { success: false, error };
@@ -261,16 +220,11 @@ export class EducationService {
         timezone: slot.timezone
       }));
 
-      const { error } = await supabase
-        .from('teacher_onboarding_availability')
-        .insert(availabilityInserts);
-
-      if (error) {
-        console.error('Error adding teacher availability:', error);
-        return { success: false, error };
-      }
-
-      return { success: true };
+      const res = await apiService.makeRequest<{ success: boolean }>('/db/teacher_onboarding_availability/insert', {
+        method: 'POST',
+        body: JSON.stringify(availabilityInserts)
+      });
+      return { success: res.success };
     } catch (error) {
       console.error('Error adding teacher availability:', error);
       return { success: false, error };

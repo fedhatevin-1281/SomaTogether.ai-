@@ -147,5 +147,7 @@ module.exports = {
   getZoomMeeting,
   getZoomUser,
   getZoomConfigurationStatus,
-  clearZoomTokenCache
+  clearZoomTokenCache,
+  createMeeting: createZoomMeeting,
+  deleteMeeting: deleteZoomMeeting
 };

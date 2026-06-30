@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const DatabaseService = require('./src/services/databaseService');
 const { createClient } = require('@supabase/supabase-js');
-const zoomServerService = require('./src/services/zoomServerService');
 require('dotenv').config();
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const DatabaseService = require('./services/databaseService');
+const zoomServerService = require('./services/zoomServerService');
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || 'https://jhzhrpwcfackqinawobg.supabase.co';
@@ -14,6 +15,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Make app globally accessible for the classroom endpoints legacy loading
+global.app = app;
+
 // Middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173'],
@@ -21,6 +25,13 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Load classroom endpoints
+require('./routes/classroom');
+
+// Load central REST endpoints
+const apiRouter = require('./routes/index');
+app.use('/api', apiRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -5,9 +5,11 @@
  * Requires: zoomOAuthService.ts, Supabase client
  */
 
-const express = require('express');
-const { zoomOAuthService } = require('./src/services/zoomOAuthService');
-const { supabase } = require('./src/supabaseClient');
+const { createClient } = require('@supabase/supabase-js');
+const supabaseUrl = process.env.SUPABASE_URL || 'https://jhzhrpwcfackqinawobg.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoemhycHdjZmFja3FpbmF3b2JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMjE2MDQsImV4cCI6MjA3NTU5NzYwNH0.tOHiPVTyyMh0a3tCl3YYtgVZEMEVmHvQlJ8QEs4bb8g';
+const supabase = createClient(supabaseUrl, supabaseKey);
+const zoomOAuthService = require('../services/zoomServerService');
 
 // ================================================
 // TEACHER ENDPOINTS - CLASS CREATION & MANAGEMENT

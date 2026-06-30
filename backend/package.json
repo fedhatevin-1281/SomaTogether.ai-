@@ -1,0 +1,23 @@
+{
+  "name": "somatogether-backend",
+  "version": "1.0.0",
+  "description": "Backend API server for SomaTogether.ai",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.10.0",
+    "@supabase/supabase-js": "^2.74.0",
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mime": "^4.1.0",
+    "node-fetch": "^3.3.2",
+    "somatogether-workspace": "file:..",
+    "stripe": "^19.1.0"
+  }
+}
