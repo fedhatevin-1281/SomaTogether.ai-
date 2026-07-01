@@ -667,18 +667,80 @@ router.post('/session-requests/:requestId/respond', requireAuth, async (req, res
 router.get('/messaging/conversations/:userId', requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
-    const { data, error } = await supabase
+    const { data: conversations, error } = await supabase
       .from('conversations')
-      .select(`
-        *,
-        user1:user1_id(id, full_name, avatar_url, role),
-        user2:user2_id(id, full_name, avatar_url, role)
-      `)
-      .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
-      .order('updated_at', { ascending: false });
+      .select('*')
+      .contains('participants', [userId])
+      .eq('is_archived', false)
+      .order('last_message_at', { ascending: false });
 
     if (error) throw error;
-    res.json({ success: true, data });
+
+    const conversationsWithDetails = await Promise.all(
+      (conversations || []).map(async (conversation) => {
+        // Fetch last message
+        const { data: messageData } = await supabase
+          .from('messages')
+          .select(`
+            *,
+            sender:profiles!messages_sender_id_fkey(*)
+          `)
+          .eq('conversation_id', conversation.id)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const lastMessage = messageData?.[0] || null;
+
+        // Fetch unread count
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conversation.id)
+          .neq('sender_id', userId);
+
+        let unreadCount = count || 0;
+
+        if (unreadCount > 0) {
+          const { data: readRecords } = await supabase
+            .from('message_reads')
+            .select('message_id')
+            .eq('user_id', userId);
+
+          const readMessageIds = new Set((readRecords || []).map(r => r.message_id));
+          
+          const { data: conversationMessages } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('conversation_id', conversation.id)
+            .neq('sender_id', userId);
+
+          const unreadMessages = (conversationMessages || []).filter(m => !readMessageIds.has(m.id));
+          unreadCount = unreadMessages.length;
+        }
+
+        const otherParticipantId = conversation.participants.find(p => p !== userId);
+        let otherParticipant = null;
+        
+        if (otherParticipantId) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', otherParticipantId)
+            .maybeSingle();
+          otherParticipant = profile;
+        }
+
+        return {
+          ...conversation,
+          last_message: lastMessage,
+          unread_count: unreadCount,
+          other_participant: otherParticipant
+        };
+      })
+    );
+
+    res.json({ success: true, data: conversationsWithDetails });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -749,11 +811,20 @@ router.post('/messaging/conversations', requireAuth, async (req, res) => {
     const payload = req.body;
     
     // Check if conversation already exists
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('*')
-      .or(`and(user1_id.eq.${payload.user1_id},user2_id.eq.${payload.user2_id}),and(user1_id.eq.${payload.user2_id},user2_id.eq.${payload.user1_id})`)
-      .maybeSingle();
+    let existing = null;
+    if (payload.type === 'direct' && payload.participants?.length === 2) {
+      const { data: directConversations } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('type', 'direct')
+        .contains('participants', payload.participants);
+        
+      existing = (directConversations || []).find(c => 
+        c.participants.length === 2 && 
+        c.participants.includes(payload.participants[0]) && 
+        c.participants.includes(payload.participants[1])
+      );
+    }
 
     if (existing) {
       return res.json({ success: true, data: existing });
@@ -1834,11 +1905,29 @@ Provide a personalized response following the requested structure.`;
 // 11. GENERIC DB SECURE ROUTING LAYER
 // ==========================================
 
-const BLACKLISTED_TABLES = ['wallets', 'token_transactions', 'platform_earnings', 'withdrawal_requests'];
+const PUBLIC_TABLES = ['education_systems', 'subjects'];
 
-router.post('/db/:table/query', requireAuth, async (req, res) => {
+router.post('/db/:table/query', async (req, res) => {
   try {
     const { table } = req.params;
+    
+    // Only require authentication if table is NOT in the public whitelist
+    if (!PUBLIC_TABLES.includes(table)) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: 'No authorization header provided' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      
+      if (error || !user) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+      }
+      
+      req.user = user;
+    }
+
     if (BLACKLISTED_TABLES.includes(table)) {
       return res.status(403).json({ success: false, error: 'Access denied to sensitive table' });
     }
